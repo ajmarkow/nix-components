@@ -1,0 +1,22 @@
+# Nix
+result
+result-*
+.direnv/
+.nix-gc-roots/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.key
+*.pem
+secrets.yaml
+secrets.json
