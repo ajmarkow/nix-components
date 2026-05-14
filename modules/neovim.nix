@@ -146,6 +146,8 @@
           lua_ls.enable = true;
           # Go LSP
           gopls.enable = true;
+          # Ruby LSP
+          ruby_lsp.enable = true;
         };
       };
       nvim-autopairs = {
