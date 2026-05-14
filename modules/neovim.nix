@@ -163,23 +163,23 @@ in
       };
       nvim-autopairs = {
         enable = true;
-        lazyLoad.enable = true;
+
       };
       # blankline for indentation guides
       indent-blankline = {
         enable = true;
-        lazyLoad.enable = true;
+
       };
       # oil for file and folder management
       oil = {
         enable = true;
-        lazyLoad.enable = true;
+
       };
 
       # nvim-lint: async linter (vale, shellcheck, sqlfluff)
       lint = {
         enable = true;
-        lazyLoad.enable = true;
+
         lintersByFt = {
           markdown = [ "markdownlint" ];
           sh = [ "shellcheck" ];
@@ -191,7 +191,7 @@ in
       # File explorer (neo-tree: https://github.com/nvim-neo-tree/neo-tree.nvim)
       neo-tree = {
         enable = true;
-        lazyLoad.enable = true;
+
         settings = {
           window = {
             position = "left";
@@ -210,7 +210,7 @@ in
       # Trouble for better error rendering
       trouble = {
         enable = true;
-        lazyLoad.enable = true;
+
         settings = {
           warn_no_results = false; # Don't show warning when no diagnostics
         };
@@ -250,7 +250,7 @@ in
       # Git integration
       gitsigns = {
         enable = true;
-        lazyLoad.enable = true;
+
       };
 
       # Status line
@@ -270,7 +270,7 @@ in
       cmp.enable = false;
       "blink-cmp" = {
         enable = true;
-        lazyLoad.enable = true;
+
         setupLspCapabilities = true;
         settings = {
           sources = {
