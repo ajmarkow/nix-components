@@ -38,6 +38,8 @@ in
 
     envExtra = ''
       fpath=(${pkgs.zsh-completions}/share/zsh/site-functions $fpath)
+      export PNPM_HOME="$HOME/.local/share/pnpm"
+      export PATH="$PNPM_HOME:$PATH"
     '';
 
     shellAliases = {
