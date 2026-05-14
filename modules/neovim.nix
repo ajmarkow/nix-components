@@ -1,4 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, config, lib, options, ... }:
+let
+  stylixActive = (options ? stylix) && config.stylix.enable;
+in
 {
   programs.nixvim = {
     enable = true;
@@ -15,7 +18,7 @@
 
     # General options
     opts = {
-      background = "dark";
+      background = lib.mkIf (!stylixActive) "dark";
       autoindent = true; # Auto indent
       smartindent = true;
       number = true; # Show line numbers
@@ -24,7 +27,7 @@
       shiftwidth = 2; # Indent width
       expandtab = true; # Use spaces instead of tabs
       wrap = false; # Don't wrap lines
-      termguicolors = true; # Enable 24-bit RGB colors
+      termguicolors = lib.mkIf (!stylixActive) true; # Enable 24-bit RGB colors
       clipboard = "unnamedplus"; # Use system clipboard
       autochdir = true; # Auto change directory to the current file's directory
       signcolumn = "yes";
@@ -35,7 +38,7 @@
     };
 
     # Colorscheme
-    colorschemes.catppuccin = {
+    colorschemes.catppuccin = lib.mkIf (!stylixActive) {
       enable = true;
       settings = {
         flavour = "frappe";
@@ -51,6 +54,14 @@
         };
       };
     };
+
+    # LSP/linter dependencies
+    extraPackages = with pkgs; [
+      nixfmt
+      shellcheck
+      markdownlint-cli
+      sqlfluff
+    ];
 
     # Pulse - single command palette with prefix-based pickers
     # https://github.com/willyelm/pulse.nvim

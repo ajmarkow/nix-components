@@ -31,6 +31,8 @@
 
     # Languages
     python3
+    nodejs
+    uv
 
     # Editors
     neovim
