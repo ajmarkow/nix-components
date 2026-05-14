@@ -16,6 +16,10 @@
     jq
     curl
     ripgrep
+    delta
+    bat
+    fd
+    btop
 
     # Zsh plugins (needed by zsh.nix OMZ shims)
     zsh-completions

@@ -30,6 +30,9 @@ in
       termguicolors = lib.mkIf (!stylixActive) true; # Enable 24-bit RGB colors
       clipboard = "unnamedplus"; # Use system clipboard
       autochdir = true; # Auto change directory to the current file's directory
+      undofile = true;
+      backup = true;
+      backupdir.__raw = "vim.fn.stdpath('state') .. '/backup//'";
       signcolumn = "yes";
       cursorline = true;
       guicursor = "n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,sm:block-blinkwait175-blinkoff150-blinkon175";

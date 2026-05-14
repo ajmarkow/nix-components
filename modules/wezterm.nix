@@ -34,6 +34,7 @@
       -- Enable kitty keyboard protocol so WezTerm can disambiguate ESC from Alt+key sequences.
       -- Without this, vi mode escape detection is unreliable.
       config.enable_kitty_keyboard = true
+      config.term = "wezterm"
 
       -- Tab bar settings
       config.window_decorations = "INTEGRATED_BUTTONS|RESIZE"

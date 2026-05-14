@@ -23,6 +23,13 @@ in
   programs.zsh = {
     enable = true;
     enableCompletion = true;
+    autocd = true;
+    history = {
+      size = 10000;
+      extended = true;
+      ignoreAllDups = true;
+      share = true;
+    };
     oh-my-zsh = {
       enable = true;
       custom = "${config.home.homeDirectory}/.oh-my-zsh-custom";
@@ -61,6 +68,7 @@ in
     initContent = lib.mkMerge [
       # Must run before OMZ/plugins (default order 500) so zsh-vi-mode picks up these vars at init time.
       (lib.mkOrder 400 ''
+        setopt HIST_REDUCE_BLANKS
         export ZVM_KEYTIMEOUT=0.05
         export ZVM_ESCAPE_KEYTIMEOUT=0.05
       '')

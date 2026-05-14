@@ -13,13 +13,24 @@ in
     };
     extraConfig = {
       gpg.program = "${pkgs.gnupg}/bin/gpg";
+      rerere.enabled = true;
+      init.defaultBranch = "main";
+      pull.rebase = true;
+      diff.algorithm = "histogram";
+      fetch.prune = true;
+      push.autoSetupRemote = true;
+      core.pager = "delta";
+      interactive.diffFilter = "delta --color-only";
+      delta.navigate = true;
+      delta.line-numbers = true;
+      merge.conflictstyle = "diff3";
     };
   };
 
   services.gpg-agent = {
     enable = true;
     enableSshSupport = true;
-    defaultCacheTtl = 604800;
-    maxCacheTtl = 604800;
+    defaultCacheTtl = 14400;
+    maxCacheTtl = 14400;
   };
 }
