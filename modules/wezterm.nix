@@ -20,7 +20,7 @@
       -- Set fontsize and other formatting
       local myfontsize = 14
       local ajrows = 8
-      local preferred_font = wezterm.font_with_fallback({'Fira Code'})
+      local preferred_font = wezterm.font_with_fallback({'FiraCode Nerd Font'})
       config.color_scheme = 'Catppuccin Frappe'
       config.font = preferred_font
       config.font_size = myfontsize

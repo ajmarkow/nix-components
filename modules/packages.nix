@@ -41,6 +41,9 @@
     # Editors
     neovim
 
+    # Fonts
+    nerd-fonts.fira-code
+
     # Nix tooling
     nil
     nixfmt
