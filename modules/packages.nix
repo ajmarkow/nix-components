@@ -38,11 +38,10 @@
     nodejs
     uv
 
-    # Editors
-    neovim
-
-    # Fonts
+    # Fonts — Nerd Font provides icon glyphs for eza --icons and nvim-web-devicons.
+    # fontconfig is needed so the font is discoverable in headless/server environments.
     nerd-fonts.fira-code
+    fontconfig
 
     # Nix tooling
     nil
