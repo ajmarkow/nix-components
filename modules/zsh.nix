@@ -92,6 +92,18 @@ in
           mkdir -p -- "$1" && cd -- "$1"
         }
 
+        claude-usage() {
+          local tmp
+          tmp="$(mktemp -t cswap-export.XXXXXX.json)"
+          cswap --export "$tmp" >/dev/null 2>&1 && \
+          TZ=America/Chicago jq -r '
+            .accounts[]
+            | select(.email == "alexanderjmarkow@gmail.com")
+            | "For account \(.organizationName) (\(.email)), your usage limit resets at \"\((.credentials.claudeAiOauth.expiresAt / 1000) | strflocaltime("%Y-%m-%d %I:%M:%S %p %Z"))\"."
+          ' "$tmp"
+          rm -f "$tmp"
+        }
+
         ip-loc() {
           local ip="''${1:?Usage: ip-loc <ip>}"
           curl -s "https://ipinfo.io/''${ip}/json" \
