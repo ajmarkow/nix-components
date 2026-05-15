@@ -1,10 +1,11 @@
 { config
 , pkgs
+, pkgs-unstable
 , inputs
 , ...
 }:
 {
-  home.packages = [ pkgs.rtk ];
+  home.packages = [ pkgs-unstable.rtk ];
 
   home.file.".claude/statusline-command.sh" = {
     executable = true;
