@@ -5,13 +5,13 @@ in
 {
   programs.git = {
     enable = true;
-    userName = "AJ Markow";
-    userEmail = "alexanderjmarkow@gmail.com";
     signing = {
       key = signingKey;
       signByDefault = true;
     };
-    extraConfig = {
+    settings = {
+      user.name = "AJ Markow";
+      user.email = "alexanderjmarkow@gmail.com";
       gpg.program = "${pkgs.gnupg}/bin/gpg";
       rerere.enabled = true;
       init.defaultBranch = "main";
