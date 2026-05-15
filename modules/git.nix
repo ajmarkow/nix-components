@@ -1,6 +1,6 @@
 { pkgs, ... }:
 let
-  signingKey = "0E96371A9739318ADA6E6F1ADF9CCC102CBF66CB";
+  signingKey = "B9076853EC110207A2EE0D5D3D19E49D0F3BD0FA";
 in
 {
   programs.git = {
