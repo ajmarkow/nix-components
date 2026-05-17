@@ -77,24 +77,32 @@
   };
 
   home.file.".claude/CLAUDE.md".text = ''
-    # Bash Tool Guidelines
+    # Agent Guidelines
 
-    ## Sequential Bash Tool Calls
+    ## Bash
 
-    Always issue Bash tool calls **sequentially** (one at a time), never in parallel batches.
+    Prefix every Bash command with `rtk`. Unsupported commands pass through unchanged.
 
-    **Why:** A known Claude Code bug (anthropics/claude-code#6305) causes the PreToolUse hook to be silently skipped for tool calls in a parallel batch, breaking the rtk rewrite hook.
+    ## Inter-Agent Messaging
 
-    ## RTK — Token-Optimized Commands
+    When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism.
 
-    Prefix **all** Bash commands with `rtk`. Unsupported commands pass through unchanged, so there is no downside.
-
-    **Always do this:**
+    Find the target agent, then send:
     ```bash
-    rtk git status
-    rtk cat src/main.rs
-    rtk cargo test
-    rtk find . -name '*.rs'
+    paseo ls -a -g                         # list all agents across all directories
+    paseo send <id> "message or task"      # id can be shortened if unambiguous
+    ```
+
+    If no agent is running for the target, start one:
+    ```bash
+    paseo run "task" --detach --name <name>
+    ```
+
+    Prefer `paseo send` to an existing agent over starting a duplicate. Other commands:
+    ```bash
+    paseo attach <id>   # stream output live
+    paseo wait <id>     # block until agent finishes
+    paseo stop <id>     # terminate
     ```
   '';
 
