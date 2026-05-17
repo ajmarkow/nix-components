@@ -76,6 +76,28 @@
     '';
   };
 
+  home.file.".claude/CLAUDE.md".text = ''
+    # Bash Tool Guidelines
+
+    ## Sequential Bash Tool Calls
+
+    Always issue Bash tool calls **sequentially** (one at a time), never in parallel batches.
+
+    **Why:** A known Claude Code bug (anthropics/claude-code#6305) causes the PreToolUse hook to be silently skipped for tool calls in a parallel batch, breaking the rtk rewrite hook.
+
+    ## RTK — Token-Optimized Commands
+
+    Prefix **all** Bash commands with `rtk`. Unsupported commands pass through unchanged, so there is no downside.
+
+    **Always do this:**
+    ```bash
+    rtk git status
+    rtk cat src/main.rs
+    rtk cargo test
+    rtk find . -name '*.rs'
+    ```
+  '';
+
   home.file.".claude/hooks/rtk-rewrite.sh" = {
     executable = true;
     text = ''
