@@ -3,6 +3,7 @@ name: Notify consumers of flake update
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   dispatch:
