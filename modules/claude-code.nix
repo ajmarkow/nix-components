@@ -77,11 +77,26 @@
   };
 
   home.file.".claude/CLAUDE.md".text = ''
-    # Agent Guidelines
+    # Bash Tool Guidelines — MANDATORY
 
-    ## Bash
+    ## ⚠️ CRITICAL: Every Bash command MUST start with `rtk`
 
-    Prefix every Bash command with `rtk`. Unsupported commands pass through unchanged.
+    **No exceptions.** Prefix every single Bash tool call with `rtk`. This applies to ALL commands: git, cp, mkdir, ls, grep, cat, find, npm, nix, gh, paseo — everything. Unsupported commands pass through unchanged, so there is zero downside and no reason to ever omit it.
+
+    ```bash
+    # CORRECT — always do this:
+    rtk git status
+    rtk git push origin main
+    rtk cp file.txt dest/
+    rtk mkdir -p .github/workflows
+    rtk ls ~/projects
+    rtk paseo ls
+
+    # WRONG — never do this:
+    git status
+    cp file.txt dest/
+    mkdir -p .github/workflows
+    ```
 
     ## Inter-Agent Messaging
 
