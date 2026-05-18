@@ -1,0 +1,29 @@
+name: Notify consumers of flake update
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        consumer:
+          # Add each consumer repo in "owner/repo" format
+          - ajmarkow/nix-mac
+          - ajmarkow/nix-server
+    steps:
+      - name: Dispatch update event to ${{ matrix.consumer }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFISICAL_NIX_CONSUMER_TOKEN }}
+          repository: ${{ matrix.consumer }}
+          event-type: upstream-flake-updated
+          client-payload: |
+            {
+              "source_repo": "${{ github.repository }}",
+              "source_sha": "${{ github.sha }}",
+              "source_ref": "${{ github.ref_name }}"
+            }
