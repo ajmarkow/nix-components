@@ -229,6 +229,12 @@
     enable = true;
     package = inputs.claude-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     enableMcpIntegration = true;
+    mcpServers = {
+      paseo = {
+        command = "paseo";
+        args = [ "mcp" ];
+      };
+    };
     settings = {
       hooks = {
         PreToolUse = [
