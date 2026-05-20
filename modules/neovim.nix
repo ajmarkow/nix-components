@@ -331,7 +331,7 @@ in
       # File explorer
       {
         key = "<leader>e";
-        action = ":Neotree toggle<CR>";
+        action = ":Neotree toggle reveal=false<CR>";
         options.desc = "Toggle file explorer";
       }
       # Save file
