@@ -73,6 +73,37 @@
     paseo stop <id>     # terminate
     ```
 
+    ## Tool Availability & nix-shell Optimization
+
+    **Before wrapping a command in nix-shell, check if the tool is already available in PATH.** Tools already in the current environment do not need nix-shell.
+
+    ### Check Tool Availability
+
+    Use `which <tool>` to verify a tool is installed before using nix-shell:
+
+    ```bash
+    # Check if curl is available
+    rtk which curl
+
+    # If available (exit code 0), use it directly:
+    rtk curl https://example.com
+
+    # Only use nix-shell if not found:
+    rtk nix-shell -p curl --run "curl https://example.com"
+    ```
+
+    ### Common Tools Already Available
+
+    Many tools are already in `/etc/profiles/per-user/paseo/bin/` and other standard PATH locations. Examples: `curl`, `git`, `jq`, `python3`, `node`, `grep`, `sed`, `awk`, `find`, `ls`. Check before assuming nix-shell is needed.
+
+    ### Pattern
+
+    - ❌ `NIXPKGS_ALLOW_UNFREE=1 rtk nix-shell -p curl --run "curl ..."`
+    - ✅ `rtk which curl && rtk curl ...` (if available)
+    - ✅ `rtk nix-shell -p curl --run "curl ..."` (only if not found)
+
+    This reduces overhead and keeps command execution fast. Reserved only for tools guaranteed to be unavailable elsewhere (e.g., ngrok, specialized build tools, or specific versions).
+
     ## Nix & Declarative Configuration Philosophy
 
     Prefer declarative configuration and environment management over imperative commands. This applies across all projects and tools.
