@@ -12,6 +12,16 @@ Serve a local file or directory publicly over the web using Python's HTTP server
 
 `$ARGUMENTS` contains everything the user typed after `/serve`.
 
+### Stop Command
+If `$ARGUMENTS` is exactly `stop`:
+- Kill the ngrok tunnel: `rtk pkill -f ngrok || true`
+- Kill the HTTP server: `rtk pkill -f "http.server" || true`
+- Wait 1 second for graceful shutdown
+- Confirm: "✓ Server stopped. ngrok tunnel and HTTP server terminated."
+- Stop processing and exit.
+
+### Start Command
+Otherwise, continue with the start flow:
 - Extract the target path (file or directory). If omitted, use the current working directory.
 - If the target is a single file (e.g. `glow-text.html`), serve its parent directory and remember the filename to append to the final URL.
 - Extract an optional `--port PORT` flag. Default port: **8090**.
@@ -92,7 +102,7 @@ Parse `.tunnels[0].public_url` from the JSON response.
 
 - The ngrok free tier shows a browser interstitial on first visit — this is expected behavior.
 - The tunnel stays alive as long as the ngrok process runs; it dies when the terminal session ends.
-- To stop serving: `rtk pkill -f ngrok && rtk pkill -f 'http.server'`
+- To stop serving: Use `/serve stop` to cleanly terminate both the ngrok tunnel and HTTP server.
 
 ## Examples
 
@@ -102,3 +112,4 @@ Parse `.tunnels[0].public_url` from the JSON response.
 | `/serve glow-text.html` | Serves parent directory, URL points to the file |
 | `/serve ./dist` | Serves the `dist` directory on port 8090 |
 | `/serve index.html --port 3000` | Serves parent directory on port 3000 |
+| `/serve stop` | Cleanly terminates the ngrok tunnel and HTTP server |
