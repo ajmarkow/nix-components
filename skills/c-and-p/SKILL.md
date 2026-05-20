@@ -2,6 +2,7 @@
 name: c-and-p
 description: Commit all staged and unstaged changes using a conventional commit message, then push to the current remote branch.
 user-invocable: true
+model: haiku
 ---
 
 Commit all staged and unstaged changes using a conventional commit message, then push.
