@@ -21,6 +21,31 @@
     mkdir -p .github/workflows
     ```
 
+    ## ⚠️ CRITICAL: Prefer `rg` (ripgrep) over `grep`
+
+    **Always use `rg`** for file searching instead of `grep`. It's faster, respects .gitignore, handles directories recursively by default, and provides better output formatting. No exceptions.
+
+    ```bash
+    # CORRECT — always do this:
+    rtk rg "pattern" .
+    rtk rg "pattern" src/
+    rtk rg -t rust "const "
+
+    # WRONG — never do this:
+    rtk grep "pattern" -r .
+    rtk grep -r "pattern" src/
+    ```
+
+    ## Fetching Web Content
+
+    Always prefer `defuddle` over `WebFetch` when reading URLs (articles, docs, blog posts, any standard web page). It strips navigation and clutter, reducing token usage.
+
+    ```bash
+    rtk defuddle parse <url> --md
+    ```
+
+    Only fall back to `WebFetch` if defuddle is unavailable or the URL is not a standard web page (e.g. raw JSON APIs, authenticated services).
+
     ## Inter-Agent Messaging
 
     When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism.
