@@ -1,0 +1,61 @@
+name: Update paseo-skills flake input
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # every Monday at 09:00 UTC
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v14
+
+      - name: Update paseo-skills input
+        run: nix flake update paseo-skills
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            OLD=$(git show HEAD:flake.lock | jq -r '.nodes["paseo-skills"].locked.rev')
+            NEW=$(jq -r '.nodes["paseo-skills"].locked.rev' flake.lock)
+            echo "old_rev=${OLD}" >> "$GITHUB_OUTPUT"
+            echo "new_rev=${NEW}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="update/paseo-skills-$(date +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add flake.lock
+          git commit -m "chore(flake): update paseo-skills input"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore(flake): update paseo-skills" \
+            --body "$(cat <<EOF
+          Weekly automated update of the \`paseo-skills\` flake input.
+
+          | | Revision |
+          |---|---|
+          | Before | \`${{ steps.diff.outputs.old_rev }}\` |
+          | After  | \`${{ steps.diff.outputs.new_rev }}\` |
+
+          Review the skill changes at https://github.com/getpaseo/paseo/compare/${{ steps.diff.outputs.old_rev }}...${{ steps.diff.outputs.new_rev }}
+          EOF
+          )" \
+            --base main \
+            --head "$BRANCH"
