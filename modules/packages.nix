@@ -43,6 +43,10 @@
     nerd-fonts.fira-code
     fontconfig
 
+    # Node.js tooling
+    npkill
+    pi-coding-agent
+
     # Nix tooling
     nil
     nixfmt

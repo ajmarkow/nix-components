@@ -4,6 +4,12 @@
 
 Do not create `mcp.json` files manually. This repo manages MCP configuration declaratively through Nix. See [adding-mcp.md](docs/adding-mcp.md) for where and how to add an MCP server entry.
 
+## nixpkgs searches
+
+Use `nix search <package>` to query nixpkgs from the CLI. Do NOT spawn agents to search nixpkgs or clone the repo—it's massive. Always check for official packages before installing globally via npm.
+
+Example: `nix search serverless` to see if an npm package has a nixpkgs equivalent.
+
 ## Flake structure (flake-parts)
 
 This flake uses [flake-parts](https://flake.parts) to split outputs across files. System-independent outputs (e.g. `homeModules`) go inside the `flake = { ... }` block in `flake.nix`. Per-system outputs (e.g. `packages`) are defined in `perSystem` modules and imported via the top-level `imports` list.
