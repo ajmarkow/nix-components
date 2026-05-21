@@ -2,12 +2,17 @@
 , pkgs
 , pkgs-unstable
 , inputs
+, lib
 , ...
 }:
 let
   # CLAUDE.md configuration is split into its own module
   claudeCodeClaudeMd = import ./claude-code-claude-md.nix;
   summarize = import ../pkgs/summarize.nix { inherit pkgs; };
+  skillsDir = ../skills;
+  skillCommands = lib.mapAttrs'
+    (name: _: lib.nameValuePair name (builtins.readFile (skillsDir + "/${name}/SKILL.md")))
+    (lib.filterAttrs (_: type: type == "directory") (builtins.readDir skillsDir));
 in
 {
   home.packages = [
@@ -196,11 +201,7 @@ in
     enable = true;
     package = inputs.claude-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     enableMcpIntegration = true;
-    commands.c-and-p = builtins.readFile ../skills/c-and-p/SKILL.md;
-    commands.serve = builtins.readFile ../skills/serve/SKILL.md;
-    commands.add-mcp = builtins.readFile ../skills/add-mcp/SKILL.md;
-    commands.summarize = builtins.readFile ../skills/summarize/SKILL.md;
-    commands.tighten = builtins.readFile ../skills/tighten/SKILL.md;
+    commands = skillCommands;
     mcpServers = {
       paseo = {
         command = "paseo";
