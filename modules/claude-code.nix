@@ -200,6 +200,7 @@ in
     commands.serve = builtins.readFile ../skills/serve/SKILL.md;
     commands.add-mcp = builtins.readFile ../skills/add-mcp/SKILL.md;
     commands.summarize = builtins.readFile ../skills/summarize/SKILL.md;
+    commands.tighten = builtins.readFile ../skills/tighten/SKILL.md;
     mcpServers = {
       paseo = {
         command = "paseo";
