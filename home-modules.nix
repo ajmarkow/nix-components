@@ -6,6 +6,8 @@ let
   toEntry = name: lib.nameValuePair (lib.removeSuffix ".nix" name) (
     { ... }: {
       imports = [ (moduleDir + "/${name}") ];
+    } // lib.optionalAttrs (name == "claude-code.nix") {
+      _module.args.paseoSkillsSource = inputs.paseo-skills;
     }
   );
 in

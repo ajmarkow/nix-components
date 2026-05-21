@@ -94,8 +94,6 @@ in
     '';
   };
 
-  _module.args.paseoSkillsSource = inputs.paseo-skills;
-
 } // claudeCodeClaudeMd // {
 
   home.file.".claude/hooks/rtk-rewrite.sh" = {
