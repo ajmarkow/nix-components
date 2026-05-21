@@ -35,7 +35,7 @@ jobs:
       - name: Open PR
         if: steps.diff.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.INFISICAL_GITHUB_TOKEN }}
         run: |
           BRANCH="update/paseo-skills-$(date +%Y-%m-%d)"
           git config user.name "github-actions[bot]"
