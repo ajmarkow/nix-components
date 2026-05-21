@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    paseo-skills = {
+      url = "github:getpaseo/paseo";
+      flake = false;
+    };
   };
 
   outputs =

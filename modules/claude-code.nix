@@ -3,16 +3,19 @@
 , pkgs-unstable
 , inputs
 , lib
+, paseoSkillsSource
 , ...
 }:
 let
   # CLAUDE.md configuration is split into its own module
   claudeCodeClaudeMd = import ./claude-code-claude-md.nix;
   summarize = import ../pkgs/summarize.nix { inherit pkgs; };
-  skillsDir = ../skills;
-  skillCommands = lib.mapAttrs'
-    (name: _: lib.nameValuePair name (builtins.readFile (skillsDir + "/${name}/SKILL.md")))
-    (lib.filterAttrs (_: type: type == "directory") (builtins.readDir skillsDir));
+  readSkills = dir: lib.mapAttrs'
+    (name: _: lib.nameValuePair name (builtins.readFile (dir + "/${name}/SKILL.md")))
+    (lib.filterAttrs (_: type: type == "directory") (builtins.readDir dir));
+  skillCommands =
+    (readSkills ../skills) //
+    (readSkills (paseoSkillsSource + "/skills"));
 in
 {
   home.packages = [

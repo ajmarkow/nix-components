@@ -39,6 +39,23 @@ The companion server repo is named **`nix-server`** (at `~/paseo-projects/nix-se
 
 Never run `find /nix/store` — the store is massive and the command will hang indefinitely. Use `which`, `nix-env -q`, or PATH inspection to locate binaries instead.
 
+## Claude Code skills
+
+Skills registered with `programs.claude-code.commands` come from two sources:
+
+- **Local skills** — directories under `skills/` in this repo, committed directly
+- **Upstream paseo skills** — fetched at build time from `github:getpaseo/paseo` via the `paseo-skills` flake input
+
+The merge happens in `modules/claude-code.nix`. Do not commit paseo skills into `skills/` — they are read directly from the locked flake input at evaluation time.
+
+To update the upstream paseo skills to their latest version:
+
+```bash
+nix flake update paseo-skills
+```
+
+To add a new local skill, create `skills/<name>/SKILL.md`. It will be picked up automatically.
+
 ## Linting and dead code
 
 Two linters are available in the devShell (`nix develop`):

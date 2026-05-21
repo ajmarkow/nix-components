@@ -21,11 +21,13 @@ Examples:
 
 ## Steps
 
-### 1. List all agents
+### 1. List active agents
 
 ```bash
-rtk paseo ls -a -g
+rtk paseo ls -g
 ```
+
+This shows only running/idle agents (no closed). Do not use `-a` — it includes closed agents and adds noise.
 
 ### 2. Filter by name
 
@@ -43,11 +45,10 @@ rtk paseo send <id> "<message>"
 rtk paseo send <chosen-id> "<message>"
 ```
 
-**Zero matches** — report that no running agent matched the filter. Offer two options:
-1. Start a new detached agent: `rtk paseo run "<message>" --detach --name <name-filter>`
-2. Re-run `/paseo-send` with a different filter
-
-Do not start a new agent without explicit user confirmation.
+**Zero matches** — no active agent matched. Start a new detached agent automatically:
+```bash
+rtk paseo run "<message>" --detach --name <name-filter>
+```
 
 ## Notes
 
