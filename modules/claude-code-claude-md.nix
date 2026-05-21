@@ -125,5 +125,9 @@
     - ❌ Imperative `mkdir` or `ln -s` → ✅ Use Nix `home.file` or `home.sessionVariables`
 
     **Why?** Reproducibility, auditability, and self-documentation. Configuration becomes code that survives rebuilds and can be version-controlled.
+
+    ### Nix Flakes
+
+    **Run `rtk nix flake check` before every commit when working in a flake repo.** The check must pass before the commit proceeds.
   '';
 }
