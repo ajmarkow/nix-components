@@ -32,3 +32,17 @@ When dispatching work to another agent, prefer `paseo send <id> "..."` if an age
 The companion server repo is named **`nix-server`** (at `~/paseo-projects/nix-server`). Do not use the old name `server-2-config`.
 
 Never run `find /nix/store` — the store is massive and the command will hang indefinitely. Use `which`, `nix-env -q`, or PATH inspection to locate binaries instead.
+
+## Linting and dead code
+
+Two linters are available in the devShell (`nix develop`):
+
+- **statix** — catches Nix antipatterns (e.g. `with pkgs;`, `rec` where unnecessary, deprecated syntax)
+  - `statix check` — report warnings
+  - `statix fix` — auto-fix safe issues
+
+- **deadnix** — finds unused `let` bindings and function arguments
+  - `deadnix` — report unused bindings
+  - `deadnix --edit` — auto-remove them
+
+Run both before committing any Nix changes. Fix `statix` warnings manually if `statix fix` doesn't cover them; `deadnix --edit` is safe to apply automatically.

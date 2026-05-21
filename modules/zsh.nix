@@ -43,11 +43,17 @@ in
       ];
     };
 
-    envExtra = ''
-      fpath=(${pkgs.zsh-completions}/share/zsh/site-functions $fpath)
-      export PNPM_HOME="$HOME/.local/share/pnpm"
-      export PATH="$PNPM_HOME:$PATH"
-    '';
+    envExtra = lib.mkMerge [
+      ''
+        fpath=(${pkgs.zsh-completions}/share/zsh/site-functions $fpath)
+        export PNPM_HOME="$HOME/.local/share/pnpm"
+        export PATH="$PNPM_HOME:$PATH"
+      ''
+      (lib.mkIf pkgs.stdenv.isDarwin ''
+        fpath=(''${fpath:#/usr/local/share/zsh/site-functions})
+        fpath=(~/.docker/completions $fpath)
+      '')
+    ];
 
     shellAliases = {
       ga = "git add";
@@ -58,11 +64,23 @@ in
       neofetch = "fastfetch";
       dig = "doggo";
       dog = "doggo";
+    } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+      hsw = "home-manager switch";
+      dsw = "source ~/.zshrc && sudo -E darwin-rebuild switch --impure --flake /etc/nix-darwin#AJ-MARKOW-WORK-MACBOOK-PRO";
+      showfiles = "defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder";
+      hidefiles = "defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder";
+      claude-monitor = "claude-monitor --plan pro";
+      sync-mcp-servers = "ruby /Users/ajmarkow/Documents/Scripts/sync-mcp-servers.rb";
+      claude-work = "cswap --switch-to 2 && claude";
+      claude-personal = "cswap --switch-to 1 && claude";
     };
 
     sessionVariables = {
       EDITOR = "nvim";
       XDG_CONFIG_HOME = "$HOME/.config";
+    } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+      WEZTERM_CONFIG_FILE = "$HOME/.config/wezterm/wezterm.lua";
+      TWEAKCC_CC_INSTALLATION_PATH = "/usr/bin/cc";
     };
 
     initContent = lib.mkMerge [
@@ -72,6 +90,11 @@ in
         export ZVM_KEYTIMEOUT=0.05
         export ZVM_ESCAPE_KEYTIMEOUT=0.05
       '')
+
+      (lib.mkIf pkgs.stdenv.isDarwin (lib.mkOrder 1000 ''
+        export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+        export PATH="$HOME/.npm-packages/bin:$PATH"
+      ''))
 
       (lib.mkOrder 1000 ''
         # Load secrets from Infisical (only when token is present; 3s timeout avoids blocking).
@@ -137,6 +160,15 @@ in
       echo -e "''${INDIGO}     \\__\\/                    \\__\\/     ''${RESET}"
       echo -e "''${VIOLET}                                        ''${RESET}"
       echo -e "''${RED}                                        ''${RESET}"
+    '';
+  };
+
+  home.activation = lib.mkIf pkgs.stdenv.isDarwin {
+    dockerCompletions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      mkdir -p $HOME/.docker/completions
+      if command -v docker &>/dev/null; then
+        docker completion zsh > $HOME/.docker/completions/_docker
+      fi
     '';
   };
 

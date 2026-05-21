@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   signingKey = "B9076853EC110207A2EE0D5D3D19E49D0F3BD0FA";
 in
@@ -32,5 +32,6 @@ in
     enableSshSupport = true;
     defaultCacheTtl = 14400;
     maxCacheTtl = 14400;
+    pinentry.package = lib.mkIf pkgs.stdenv.isDarwin pkgs.pinentry_mac;
   };
 }
