@@ -29,6 +29,7 @@
 
     # Security
     gnupg
+    ngrok
 
     # Secrets
     infisical
