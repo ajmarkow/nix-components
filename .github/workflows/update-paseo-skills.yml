@@ -44,9 +44,12 @@ jobs:
           git add flake.lock
           git commit -m "chore(flake): update paseo-skills input"
           git push --force origin "$BRANCH"
-          gh pr create \
-            --title "chore(flake): update paseo-skills" \
-            --body "$(cat <<EOF
+          if gh pr view "$BRANCH" --json number -q .number 2>/dev/null; then
+            echo "PR already exists for $BRANCH, skipping creation"
+          else
+            gh pr create \
+              --title "chore(flake): update paseo-skills" \
+              --body "$(cat <<EOF
           Weekly automated update of the \`paseo-skills\` flake input.
 
           | | Revision |
@@ -56,6 +59,7 @@ jobs:
 
           Review the skill changes at https://github.com/getpaseo/paseo/compare/${{ steps.diff.outputs.old_rev }}...${{ steps.diff.outputs.new_rev }}
           EOF
-          )" \
-            --base main \
-            --head "$BRANCH"
+              )" \
+              --base main \
+              --head "$BRANCH"
+          fi
