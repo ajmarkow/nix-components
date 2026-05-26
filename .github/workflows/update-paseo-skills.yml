@@ -32,8 +32,24 @@ jobs:
             echo "new_rev=${NEW}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Open PR
+      - name: Check for skills changes
+        id: skills
         if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGED=$(gh api \
+            "repos/getpaseo/paseo/compare/${{ steps.diff.outputs.old_rev }}...${{ steps.diff.outputs.new_rev }}" \
+            --jq '[.files[].filename | select(startswith("skills/"))] | length')
+          if [ "$CHANGED" -gt 0 ]; then
+            echo "skills_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skills_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No skills/ files changed, skipping PR"
+          fi
+
+      - name: Open PR
+        if: steps.diff.outputs.changed == 'true' && steps.skills.outputs.skills_changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
