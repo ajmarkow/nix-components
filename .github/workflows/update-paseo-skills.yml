@@ -38,14 +38,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          CHANGED=$(gh api \
-            "repos/getpaseo/paseo/compare/${{ steps.diff.outputs.old_rev }}...${{ steps.diff.outputs.new_rev }}" \
-            --jq '[.files[].filename | select(startswith("skills/"))] | length')
-          if [ "$CHANGED" -gt 0 ]; then
+          OLD_SKILLS=$(gh api "repos/getpaseo/paseo/git/trees/${{ steps.diff.outputs.old_rev }}" \
+            --jq '.tree[] | select(.path == "skills") | .sha')
+          NEW_SKILLS=$(gh api "repos/getpaseo/paseo/git/trees/${{ steps.diff.outputs.new_rev }}" \
+            --jq '.tree[] | select(.path == "skills") | .sha')
+          if [ "$OLD_SKILLS" != "$NEW_SKILLS" ]; then
             echo "skills_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "skills_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No skills/ files changed, skipping PR"
+            echo "No skills/ changes detected, skipping PR"
           fi
 
       - name: Open PR
