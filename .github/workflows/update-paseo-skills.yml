@@ -43,7 +43,7 @@ jobs:
           git checkout -b "$BRANCH"
           git add flake.lock
           git commit -m "chore(flake): update paseo-skills input"
-          git push origin "$BRANCH"
+          git push --force origin "$BRANCH"
           gh pr create \
             --title "chore(flake): update paseo-skills" \
             --body "$(cat <<EOF
