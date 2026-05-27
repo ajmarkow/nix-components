@@ -250,6 +250,7 @@ in
         "aws-cost-ops@aws-skills" = true;
         "serverless-eda@aws-skills" = true;
         "aws-agentic-ai@aws-skills" = true;
+        "autonomous-agents@antigravity-awesome-skills" = true;
       };
       extraKnownMarketplaces = {
         "obsidian-skills" = {
@@ -268,6 +269,12 @@ in
           source = {
             source = "github";
             repo = "zxkane/aws-skills";
+          };
+        };
+        "antigravity-awesome-skills" = {
+          source = {
+            source = "github";
+            repo = "sickn33/antigravity-awesome-skills";
           };
         };
       };
