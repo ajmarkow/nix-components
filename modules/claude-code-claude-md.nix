@@ -155,5 +155,26 @@
     ### Nix Flakes
 
     **Run `rtk nix flake check` before every commit when working in a flake repo.** The check must pass before the commit proceeds.
+
+    ## Context & Session Discipline
+
+    ### Context Boundaries
+
+    Treat the following as context boundaries — compact or split the session before continuing past them:
+    - Major tool output dumps (build logs, test output, large diffs)
+    - Model or config changes
+    - Task pivots (switching to a different feature, bug, or module)
+
+    ### Two-Strike Rule
+
+    After **two failed attempts on the same issue**, stop. Inspect the invariant and the latest error, then restart with a smaller scope rather than iterating on the same failing approach.
+
+    ### Cap Shell Output
+
+    Cap shell command output by default. Use focused filters (`--no-pager`, `head`, `grep`, line-range flags) and paste only the relevant failing excerpt back into context — never the full raw output.
+
+    ### File Reading Discipline
+
+    Before rereading a file, summarize what you already know about it. Prefer targeted symbol searches (`rg`, LSP go-to-definition) or narrow line ranges (`offset`/`limit`) over whole-file reads.
   '';
 }
