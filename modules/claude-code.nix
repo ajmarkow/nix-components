@@ -245,6 +245,11 @@ in
         "superpowers@claude-plugins-official" = true;
         "obsidian@obsidian-skills" = true;
         "ralph-skills@ralph-marketplace" = true;
+        "aws-common@aws-skills" = true;
+        "aws-cdk@aws-skills" = true;
+        "aws-cost-ops@aws-skills" = true;
+        "serverless-eda@aws-skills" = true;
+        "aws-agentic-ai@aws-skills" = true;
       };
       extraKnownMarketplaces = {
         "obsidian-skills" = {
@@ -257,6 +262,12 @@ in
           source = {
             source = "github";
             repo = "snarktank/ralph";
+          };
+        };
+        "aws-skills" = {
+          source = {
+            source = "github";
+            repo = "zxkane/aws-skills";
           };
         };
       };
