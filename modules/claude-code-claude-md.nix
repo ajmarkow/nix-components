@@ -4,50 +4,23 @@
 
     ## ⚠️ CRITICAL: Every Bash command MUST start with `rtk`
 
-    **No exceptions.** Prefix every single Bash tool call with `rtk`. This applies to ALL commands: git, cp, mkdir, ls, grep, cat, find, npm, nix, gh, paseo — everything. Unsupported commands pass through unchanged, so there is zero downside and no reason to ever omit it.
+    **No exceptions.** Prefix every single Bash tool call with `rtk`. This applies to ALL commands: git, cp, mkdir, ls, grep, cat, find, npm, nix, gh — everything. `paseo` is exempt; run it directly.
 
     ```bash
-    # CORRECT — always do this:
     rtk git status
     rtk git push origin main
     rtk cp file.txt dest/
     rtk mkdir -p .github/workflows
-    rtk ls ~/projects
-    rtk paseo ls
-
-    # WRONG — never do this:
-    git status
-    cp file.txt dest/
-    mkdir -p .github/workflows
-    ```
-
-    ## ⚠️ CRITICAL: Prefer `rg` (ripgrep) over `grep`
-
-    **Always use `rg`** for file searching instead of `grep`. It's faster, respects .gitignore, handles directories recursively by default, and provides better output formatting. No exceptions.
-
-    ```bash
-    # CORRECT — always do this:
-    rtk rg "pattern" .
-    rtk rg "pattern" src/
-    rtk rg -t rust "const "
-
-    # WRONG — never do this:
-    rtk grep "pattern" -r .
-    rtk grep -r "pattern" src/
+    paseo ls          # paseo is exempt
     ```
 
     ## ⚠️ CRITICAL: Use `semble` for Code Search
 
-    **Always use `semble search` first** when exploring a codebase — before `rg` or file reads. Describe what the code does or name a symbol; semble finds semantically relevant chunks across the entire repo. Reserve `rg` for exhaustive literal matches after semble has identified the area. No exceptions.
+    **Always use `semble search` first** when exploring a codebase — before `rg` or file reads. Describe what the code does or name a symbol; semble finds semantically relevant chunks across the entire repo. Reserve `rg` for exhaustive literal matches after semble has identified the area.
 
     ```bash
-    # CORRECT — start with semantic search:
     rtk semble search "authentication flow" ./my-project
-    rtk semble search "save_pretrained" ./my-project
     rtk semble search "save model to disk" ./my-project --top-k 10
-
-    # THEN use rg for exact-string confirmation within the identified area:
-    rtk rg "save_pretrained" src/models/
     ```
 
     Use `--content docs`, `--content config`, or `--content all` to search beyond code:
@@ -55,7 +28,6 @@
     ```bash
     rtk semble search "deployment guide" ./my-project --content docs
     rtk semble search "database host port" ./my-project --content config
-    rtk semble search "authentication" ./my-project --content all
     ```
 
     Use `semble find-related` to discover code similar to a known location:
@@ -66,11 +38,21 @@
 
     The index builds and caches automatically; `path` defaults to `.`. If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
 
-    **Workflow:**
-    1. `semble search` first — find relevant chunks semantically.
-    2. `semble find-related` — discover related implementations from a known result.
-    3. Inspect full files only when the chunk lacks enough context.
-    4. `rg` last — exhaustive literal matches or exact-string confirmation.
+    When `rg` is needed (exact-string confirmation, exhaustive match), always prefer it over `grep` — it respects `.gitignore` and handles directories recursively by default.
+
+    ## Context & Session Discipline
+
+    ### Two-Strike Rule
+
+    After **two failed attempts on the same issue**, stop. Inspect the invariant and the latest error, then restart with a smaller scope rather than iterating on the same failing approach.
+
+    ### Cap Shell Output
+
+    Cap shell command output by default. Use focused filters (`--no-pager`, `head`, `grep`, line-range flags) and paste only the relevant failing excerpt back into context — never the full raw output.
+
+    ### File Reading Discipline
+
+    Before rereading a file, summarize what you already know about it. Prefer targeted symbol searches (`rg`, LSP go-to-definition) or narrow line ranges (`offset`/`limit`) over whole-file reads.
 
     ## Fetching Web Content
 
@@ -84,7 +66,7 @@
 
     ## Inter-Agent Messaging
 
-    When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism.
+    When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism. `paseo` does not need the `rtk` prefix.
 
     **Agent Selection Strategy:**
     - **Use existing agent** if it is directly relevant to the task/message being sent (same repo, same module, immediate follow-up, or closely related work)
@@ -111,106 +93,44 @@
 
     ## Tool Availability & nix-shell Optimization
 
-    **Before wrapping a command in nix-shell, check if the tool is already available in PATH.** Tools already in the current environment do not need nix-shell.
-
-    ### Check Tool Availability
-
-    Use `which <tool>` to verify a tool is installed before using nix-shell:
+    Run `which <tool>` before wrapping a command in nix-shell — if it exits 0, use the tool directly.
 
     ```bash
-    # Check if curl is available
-    rtk which curl
-
-    # If available (exit code 0), use it directly:
-    rtk curl https://example.com
-
-    # Only use nix-shell if not found:
+    rtk which curl && rtk curl https://example.com
+    # only if not found:
     rtk nix-shell -p curl --run "curl https://example.com"
     ```
 
-    ### Common Tools Already Available
-
-    Many tools are already in `/etc/profiles/per-user/paseo/bin/` and other standard PATH locations. Examples: `curl`, `git`, `jq`, `python3`, `node`, `grep`, `sed`, `awk`, `find`, `ls`. Check before assuming nix-shell is needed.
-
-    ### Pattern
-
-    - ❌ `NIXPKGS_ALLOW_UNFREE=1 rtk nix-shell -p curl --run "curl ..."`
-    - ✅ `rtk which curl && rtk curl ...` (if available)
-    - ✅ `rtk nix-shell -p curl --run "curl ..."` (only if not found)
-
-    This reduces overhead and keeps command execution fast. Reserved only for tools guaranteed to be unavailable elsewhere (e.g., ngrok, specialized build tools, or specific versions).
-
     ## Missing Tools — Self-Healing Protocol
 
-    When a command fails with **"command not found"**, **"No such file or directory"** (ENOENT on a binary), or **"spawn X ENOENT"**, treat it as a signal to fix the environment declaratively rather than working around it.
+    When a command fails with **"command not found"**, **"No such file or directory"** (ENOENT on a binary), or **"spawn X ENOENT"**, fix the environment declaratively rather than working around it.
 
     ### Protocol
 
     1. **Identify the missing binary** from the error (e.g. `sh`, `make`, `sed`).
     2. **Find its nixpkgs package**: `rtk nix-locate --top-level --whole-name bin/<binary>` or check [search.nixos.org](https://search.nixos.org/packages).
-    3. **Add it to `/var/lib/paseo/paseo-projects/nix-server/modules/paseo.nix`** under `systemd.services.paseo.path`:
-       ```nix
-       pkgs.<package-name>
-       ```
-    4. **Verify the flake evaluates**: `cd ~/paseo-projects/nix-server && rtk nix flake check --no-build`
-    5. **Commit and push**, then **trigger redeploy**:
-       ```bash
-       cd ~/paseo-projects/nix-server
-       rtk git add modules/paseo.nix && rtk git commit -m "fix(paseo): add <pkg> to service PATH"
-       rtk git push
-       rtk sudo systemctl start nixos-rebuild-switch
-       ```
+    3. **Add it to the appropriate Nix configuration for this system** (e.g. the home-manager or NixOS module that manages the relevant service's PATH). If you don't know the path, ask the user before proceeding.
+    4. **Verify the flake evaluates**: `rtk nix flake check --no-build` in the config repo root.
+    5. **Commit and push**, then **trigger redeploy** using the appropriate rebuild command for this system (e.g. `home-manager switch`, `nixos-rebuild switch`, or the system's deploy script). Ask the user if unsure.
     6. **Wait for the deploy to complete**, then retry the original task.
 
-    ### Why declarative, not nix-shell
-
-    Ad-hoc `nix-shell -p foo --run "..."` works once but leaves the environment broken for the next session and for other agents. Adding to `paseo.nix` fixes it permanently for all future sessions. **Always fix the root cause.**
+    Ad-hoc `nix-shell -p foo --run "..."` works once but leaves the environment broken for the next session and for other agents. Adding to the appropriate Nix config fixes it permanently. **Always fix the root cause.**
 
     ## Nix & Declarative Configuration Philosophy
-
-    Prefer declarative configuration and environment management over imperative commands. This applies across all projects and tools.
-
-    ### Core Principle
 
     **Always edit the source, never the output.** Generated files, installed packages, and applied configurations should never be modified directly. Changes belong in the declarative source:
     - `.nix` files for system/home-manager configuration
     - `devenv.nix` for development environments
     - Configuration modules for tools and services
 
-    Then regenerate by running the appropriate apply command (`home-manager switch`, `nixos-rebuild switch`, `devenv up`, etc.).
-
-    ### Pattern Examples
+    Then regenerate with the appropriate apply command (`home-manager switch`, `nixos-rebuild switch`, `devenv up`, etc.).
 
     - ❌ `nix-env -i package` → ✅ Add to `devenv.packages` or Nix module
     - ❌ Edit generated config files → ✅ Modify the `.nix` source
     - ❌ Manual `.env` setup → ✅ Define in `devenv.nix`
     - ❌ Imperative `mkdir` or `ln -s` → ✅ Use Nix `home.file` or `home.sessionVariables`
 
-    **Why?** Reproducibility, auditability, and self-documentation. Configuration becomes code that survives rebuilds and can be version-controlled.
-
-    ### Nix Flakes
-
     **Run `rtk nix flake check` before every commit when working in a flake repo.** The check must pass before the commit proceeds.
 
-    ## Context & Session Discipline
-
-    ### Context Boundaries
-
-    Treat the following as context boundaries — compact or split the session before continuing past them:
-    - Major tool output dumps (build logs, test output, large diffs)
-    - Model or config changes
-    - Task pivots (switching to a different feature, bug, or module)
-
-    ### Two-Strike Rule
-
-    After **two failed attempts on the same issue**, stop. Inspect the invariant and the latest error, then restart with a smaller scope rather than iterating on the same failing approach.
-
-    ### Cap Shell Output
-
-    Cap shell command output by default. Use focused filters (`--no-pager`, `head`, `grep`, line-range flags) and paste only the relevant failing excerpt back into context — never the full raw output.
-
-    ### File Reading Discipline
-
-    Before rereading a file, summarize what you already know about it. Prefer targeted symbol searches (`rg`, LSP go-to-definition) or narrow line ranges (`offset`/`limit`) over whole-file reads.
   '';
 }
