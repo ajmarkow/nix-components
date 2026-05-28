@@ -20,6 +20,8 @@
     bat
     fd
     btop
+    # Linters
+    trunk-io
 
     # Zsh plugins (needed by zsh.nix OMZ shims)
     zsh-completions
