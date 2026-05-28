@@ -1,9 +1,11 @@
 { config
 , pkgs
 , pkgs-unstable
-, inputs
 , lib
 , paseoSkillsSource
+, uv2nix
+, pyprojectNix
+, pyprojectBuildSystems
 , ...
 }:
 let
@@ -11,8 +13,9 @@ let
   claudeCodeClaudeMd = import ./claude-code-claude-md.nix;
   summarize = import ../pkgs/summarize.nix { inherit pkgs; };
   semble = import ../pkgs/semble.nix {
-    inherit pkgs;
-    inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
+    inherit pkgs uv2nix;
+    pyproject-nix = pyprojectNix;
+    pyproject-build-systems = pyprojectBuildSystems;
   };
   readSkills = dir: lib.mapAttrs'
     (name: _: lib.nameValuePair name (builtins.readFile (dir + "/${name}/SKILL.md")))

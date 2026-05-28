@@ -9,6 +9,9 @@ let
       imports = [ baseModule (moduleDir + "/${name}") ];
     } // lib.optionalAttrs (name == "claude-code.nix") {
       _module.args.paseoSkillsSource = inputs.paseo-skills;
+      _module.args.uv2nix = inputs.uv2nix;
+      _module.args.pyprojectNix = inputs.pyproject-nix;
+      _module.args.pyprojectBuildSystems = inputs.pyproject-build-systems;
     }
   );
 in
