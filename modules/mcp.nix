@@ -1,12 +1,7 @@
 { config, lib, ... }:
 let
   cfg = config.nix-components.mcp;
-  requireEnv =
-    name:
-    let
-      v = builtins.getEnv name;
-    in
-    if v == "" then builtins.throw "${name} must be set in environment" else v;
+  requireEnv = name: builtins.getEnv name;
 in
 {
   options.nix-components.mcp = {
