@@ -38,6 +38,7 @@
 
       imports = [
         ./home-modules.nix
+        ./overlays.nix
         ./per-system.nix
       ];
     };

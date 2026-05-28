@@ -52,5 +52,9 @@
     # Nix tooling
     nil
     nixfmt
+
+    # Custom packages
+    semble
+    summarize
   ];
 }
