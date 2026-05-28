@@ -215,10 +215,6 @@ in
     enableMcpIntegration = true;
     commands = skillCommands;
     mcpServers = {
-      paseo = {
-        command = "paseo";
-        args = [ "mcp" ];
-      };
       nixos = {
         command = "uvx";
         args = [ "mcp-nixos" ];
