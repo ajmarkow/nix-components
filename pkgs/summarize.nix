@@ -1,4 +1,4 @@
-{ pkgs, lib ? pkgs.lib }:
+{ pkgs, lib ? pkgs.lib, ... }:
 
 pkgs.stdenv.mkDerivation (finalAttrs: {
   pname = "summarize";

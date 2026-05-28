@@ -10,6 +10,10 @@ let
   # CLAUDE.md configuration is split into its own module
   claudeCodeClaudeMd = import ./claude-code-claude-md.nix;
   summarize = import ../pkgs/summarize.nix { inherit pkgs; };
+  semble = import ../pkgs/semble.nix {
+    inherit pkgs;
+    inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
+  };
   readSkills = dir: lib.mapAttrs'
     (name: _: lib.nameValuePair name (builtins.readFile (dir + "/${name}/SKILL.md")))
     (lib.filterAttrs (_: type: type == "directory") (builtins.readDir dir));
@@ -22,6 +26,7 @@ in
     pkgs-unstable.rtk
     pkgs.ripgrep
     pkgs.uv
+    semble
     summarize
   ];
 
