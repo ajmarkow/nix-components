@@ -36,6 +36,42 @@
     rtk grep -r "pattern" src/
     ```
 
+    ## ⚠️ CRITICAL: Use `semble` for Code Search
+
+    **Always use `semble search` first** when exploring a codebase — before `rg` or file reads. Describe what the code does or name a symbol; semble finds semantically relevant chunks across the entire repo. Reserve `rg` for exhaustive literal matches after semble has identified the area. No exceptions.
+
+    ```bash
+    # CORRECT — start with semantic search:
+    rtk semble search "authentication flow" ./my-project
+    rtk semble search "save_pretrained" ./my-project
+    rtk semble search "save model to disk" ./my-project --top-k 10
+
+    # THEN use rg for exact-string confirmation within the identified area:
+    rtk rg "save_pretrained" src/models/
+    ```
+
+    Use `--content docs`, `--content config`, or `--content all` to search beyond code:
+
+    ```bash
+    rtk semble search "deployment guide" ./my-project --content docs
+    rtk semble search "database host port" ./my-project --content config
+    rtk semble search "authentication" ./my-project --content all
+    ```
+
+    Use `semble find-related` to discover code similar to a known location:
+
+    ```bash
+    rtk semble find-related src/auth.py 42 ./my-project
+    ```
+
+    The index builds and caches automatically; `path` defaults to `.`. If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
+
+    **Workflow:**
+    1. `semble search` first — find relevant chunks semantically.
+    2. `semble find-related` — discover related implementations from a known result.
+    3. Inspect full files only when the chunk lacks enough context.
+    4. `rg` last — exhaustive literal matches or exact-string confirmation.
+
     ## Fetching Web Content
 
     Always prefer `defuddle` over `WebFetch` when reading URLs (articles, docs, blog posts, any standard web page). It strips navigation and clutter, reducing token usage.
@@ -155,44 +191,6 @@
     ### Nix Flakes
 
     **Run `rtk nix flake check` before every commit when working in a flake repo.** The check must pass before the commit proceeds.
-
-    ## Code Search
-
-    Use `semble search` to find code by describing what it does or naming a symbol/identifier, instead of grep:
-
-    ```bash
-    semble search "authentication flow" ./my-project
-    semble search "save_pretrained" ./my-project
-    semble search "save model to disk" ./my-project --top-k 10
-    ```
-
-    The index is built on first run (and cached for subsequent runs) and invalidated automatically when files change.
-
-    Use `--content docs` to search documentation and prose, `--content config` for config files (yaml, toml, etc.), or `--content all` to search code, docs, and config:
-
-    ```bash
-    semble search "deployment guide" ./my-project --content docs
-    semble search "database host port" ./my-project --content config
-    semble search "authentication" ./my-project --content all
-    ```
-
-    Use `semble find-related` to discover code similar to a known location (pass `file_path` and `line` from a prior search result):
-
-    ```bash
-    semble find-related src/auth.py 42 ./my-project
-    ```
-
-    `path` defaults to the current directory when omitted; git URLs are accepted.
-
-    If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
-
-    ### Workflow
-
-    1. Start with `semble search` to find relevant chunks. The index is built and cached automatically.
-    2. Use `--content docs` for documentation, `--content config` for config files, or `--content all` for everything.
-    3. Inspect full files only when the returned chunk does not give enough context.
-    4. Optionally use `semble find-related` with a promising result's `file_path` and `line` to discover related implementations.
-    5. Use grep only when you need exhaustive literal matches or quick confirmation of an exact string.
 
     ## Context & Session Discipline
 
