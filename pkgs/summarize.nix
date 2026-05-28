@@ -11,15 +11,16 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-5xAwiPCj3exl23b1opRrJy2WxnjqRR7RMjBkIOXyRPA=";
   };
 
-  # package.json and pnpm-lock.yaml have mismatched overrides/patchedDependencies.
-  # Strip overrides from both to satisfy pnpm's config-lockfile consistency check.
-  # Strip patchedDependencies only from package.json — keeping it in the lockfile
-  # ensures patched packages (e.g. @earendil-works/pi-ai) are included in the FOD.
+  # package.json uses pnpm 10 format for patchedDependencies (path string only),
+  # but pnpm-lock.yaml uses pnpm 11 format ({hash, path}). pnpm 11 rejects the
+  # mismatch. Fix by reading the lockfile's patchedDependencies and writing them
+  # back into package.json so both files use the same format. overrides already
+  # match and are left untouched.
   pnpmPatch = ''
-    ${pkgs.jq}/bin/jq 'del(.pnpm.overrides) | del(.pnpm.patchedDependencies)' \
+    patched=$(${pkgs.yq-go}/bin/yq '.patchedDependencies' pnpm-lock.yaml -o=json)
+    ${pkgs.jq}/bin/jq --argjson patched "$patched" \
+      '.pnpm.patchedDependencies = $patched' \
       package.json > package.json.tmp && mv package.json.tmp package.json
-    ${pkgs.yq-go}/bin/yq 'del(.overrides)' \
-      pnpm-lock.yaml > pnpm-lock.yaml.tmp && mv pnpm-lock.yaml.tmp pnpm-lock.yaml
   '';
 
   pnpmDeps = pkgs.fetchPnpmDeps {
