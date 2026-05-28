@@ -11,21 +11,19 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-5xAwiPCj3exl23b1opRrJy2WxnjqRR7RMjBkIOXyRPA=";
   };
 
-  # Upstream package.json (pnpm@10) and lockfile (v9.0) are out of sync;
-  # pnpm rejects frozen install due to overrides/patchedDependencies mismatch.
-  # Strip both sections from package.json and pnpm-lock.yaml so they agree.
+  # package.json lists overrides/patchedDependencies that conflict with the
+  # lockfile; strip them from package.json only so pnpm accepts frozen install.
+  # Leaving pnpm-lock.yaml intact ensures all patched packages are fetched.
   pnpmPatch = ''
     ${pkgs.jq}/bin/jq 'del(.pnpm.overrides) | del(.pnpm.patchedDependencies)' \
       package.json > package.json.tmp && mv package.json.tmp package.json
-    ${pkgs.yq-go}/bin/yq 'del(.overrides) | del(.patchedDependencies)' \
-      pnpm-lock.yaml > pnpm-lock.yaml.tmp && mv pnpm-lock.yaml.tmp pnpm-lock.yaml
   '';
 
   pnpmDeps = pkgs.fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
     prePnpmInstall = finalAttrs.pnpmPatch;
     fetcherVersion = 3;
-    hash = "sha256-DltAx3cPQT4DccqH1gOdZGYcP2f4QpxxdhFMizSq9zo=";
+    hash = "";
   };
 
   postPatch = finalAttrs.pnpmPatch;
@@ -36,7 +34,6 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     pkgs.pnpmConfigHook
     pkgs.makeWrapper
     pkgs.jq
-    pkgs.yq-go
   ];
 
   buildPhase = ''
