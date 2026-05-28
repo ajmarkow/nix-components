@@ -25,7 +25,7 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     inherit (finalAttrs) pname version src;
     prePnpmInstall = finalAttrs.pnpmPatch;
     fetcherVersion = 3;
-    hash = "sha256-aULoD2FdLRpTRFbecs+Ihe2vceJQ7SbbInrU3VHH6aM=";
+    hash = "sha256-DltAx3cPQT4DccqH1gOdZGYcP2f4QpxxdhFMizSq9zo=";
   };
 
   postPatch = finalAttrs.pnpmPatch;
