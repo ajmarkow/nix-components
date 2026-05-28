@@ -23,6 +23,7 @@
       inputs.uv2nix.follows = "uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    claude-code-nix.url = "github:sadjow/claude-code-nix";
   };
 
   outputs =

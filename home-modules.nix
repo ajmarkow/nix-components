@@ -12,6 +12,7 @@ let
       _module.args.uv2nix = inputs.uv2nix;
       _module.args.pyprojectNix = inputs.pyproject-nix;
       _module.args.pyprojectBuildSystems = inputs.pyproject-build-systems;
+      _module.args.claudeCodeNix = inputs.claude-code-nix;
     }
   );
 in

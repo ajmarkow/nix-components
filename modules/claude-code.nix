@@ -6,6 +6,7 @@
 , uv2nix
 , pyprojectNix
 , pyprojectBuildSystems
+, claudeCodeNix
 , ...
 }:
 let
@@ -210,7 +211,7 @@ in
 
   programs.claude-code = {
     enable = true;
-    package = inputs.claude-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    package = claudeCodeNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     enableMcpIntegration = true;
     commands = skillCommands;
     mcpServers = {
