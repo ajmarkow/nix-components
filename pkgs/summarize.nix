@@ -11,16 +11,17 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-5xAwiPCj3exl23b1opRrJy2WxnjqRR7RMjBkIOXyRPA=";
   };
 
-  # package.json uses pnpm 10 format for patchedDependencies (path string only),
-  # but pnpm-lock.yaml uses pnpm 11 format ({hash, path}). pnpm 11 rejects the
-  # mismatch. Fix by reading the lockfile's patchedDependencies and writing them
-  # back into package.json so both files use the same format. overrides already
-  # match and are left untouched.
+  # pnpm 11 rejects frozen install when package.json and pnpm-lock.yaml disagree
+  # on overrides/patchedDependencies. Strip both fields from both files so they
+  # trivially agree. Also remove (patch_hash=...) suffixes from snapshot keys in
+  # the lockfile — without patchedDependencies, pnpm can't resolve patch-keyed
+  # snapshots and silently skips fetching them, causing offline install failures.
   pnpmPatch = ''
-    patched=$(${pkgs.yq-go}/bin/yq '.patchedDependencies' pnpm-lock.yaml -o=json)
-    ${pkgs.jq}/bin/jq --argjson patched "$patched" \
-      '.pnpm.patchedDependencies = $patched' \
+    ${pkgs.jq}/bin/jq 'del(.pnpm.overrides) | del(.pnpm.patchedDependencies)' \
       package.json > package.json.tmp && mv package.json.tmp package.json
+    ${pkgs.yq-go}/bin/yq 'del(.overrides) | del(.patchedDependencies)' \
+      pnpm-lock.yaml > pnpm-lock.yaml.tmp && mv pnpm-lock.yaml.tmp pnpm-lock.yaml
+    ${pkgs.gnused}/bin/sed -i 's/(patch_hash=[^)]*)//g' pnpm-lock.yaml
   '';
 
   pnpmDeps = pkgs.fetchPnpmDeps {
@@ -39,6 +40,7 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     pkgs.makeWrapper
     pkgs.jq
     pkgs.yq-go
+    pkgs.gnused
   ];
 
   buildPhase = ''
