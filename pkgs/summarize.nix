@@ -11,12 +11,15 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-5xAwiPCj3exl23b1opRrJy2WxnjqRR7RMjBkIOXyRPA=";
   };
 
-  # package.json lists overrides/patchedDependencies that conflict with the
-  # lockfile; strip them from package.json only so pnpm accepts frozen install.
-  # Leaving pnpm-lock.yaml intact ensures all patched packages are fetched.
+  # package.json and pnpm-lock.yaml have mismatched overrides/patchedDependencies.
+  # Strip overrides from both to satisfy pnpm's config-lockfile consistency check.
+  # Strip patchedDependencies only from package.json — keeping it in the lockfile
+  # ensures patched packages (e.g. @earendil-works/pi-ai) are included in the FOD.
   pnpmPatch = ''
     ${pkgs.jq}/bin/jq 'del(.pnpm.overrides) | del(.pnpm.patchedDependencies)' \
       package.json > package.json.tmp && mv package.json.tmp package.json
+    ${pkgs.yq-go}/bin/yq 'del(.overrides)' \
+      pnpm-lock.yaml > pnpm-lock.yaml.tmp && mv pnpm-lock.yaml.tmp pnpm-lock.yaml
   '';
 
   pnpmDeps = pkgs.fetchPnpmDeps {
@@ -34,6 +37,7 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     pkgs.pnpmConfigHook
     pkgs.makeWrapper
     pkgs.jq
+    pkgs.yq-go
   ];
 
   buildPhase = ''
