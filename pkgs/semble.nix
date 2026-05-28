@@ -17,5 +17,12 @@ let
       overlay
     ]
   );
+
+  semble-env = pythonSet.mkVirtualEnv "semble-env" workspace.deps.default;
 in
-pythonSet.mkVirtualEnv "semble-env" workspace.deps.default
+# mkVirtualEnv exposes all venv binaries (python3, pip, etc.) which conflict
+# with system packages. Wrap to expose only the semble binary.
+pkgs.runCommandNoCC "semble" { meta.mainProgram = "semble"; } ''
+  mkdir -p $out/bin
+  ln -s ${semble-env}/bin/semble $out/bin/semble
+''
