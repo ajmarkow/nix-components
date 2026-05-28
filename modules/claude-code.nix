@@ -255,8 +255,6 @@ in
         "obsidian@obsidian-skills" = true;
         "ralph-skills@ralph-marketplace" = true;
         "aws-common@aws-skills" = true;
-        "aws-cdk@aws-skills" = true;
-        "aws-cost-ops@aws-skills" = true;
         "serverless-eda@aws-skills" = true;
         "aws-agentic-ai@aws-skills" = true;
         "autonomous-agents@antigravity-awesome-skills" = true;
