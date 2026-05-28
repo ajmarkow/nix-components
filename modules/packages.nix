@@ -48,7 +48,6 @@
 
     # Node.js tooling
     npkill
-    pi-coding-agent
 
     # Nix tooling
     nil
