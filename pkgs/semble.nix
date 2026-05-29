@@ -22,7 +22,7 @@ let
 in
 # mkVirtualEnv exposes all venv binaries (python3, pip, etc.) which conflict
 # with system packages. Wrap to expose only the semble binary.
-pkgs.runCommandNoCC "semble" { meta.mainProgram = "semble"; } ''
+pkgs.runCommand "semble" { meta.mainProgram = "semble"; } ''
   mkdir -p $out/bin
   ln -s ${semble-env}/bin/semble $out/bin/semble
 ''
