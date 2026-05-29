@@ -23,6 +23,10 @@ in
             CONTEXT7_API_KEY = requireEnv "CONTEXT7_API_KEY";
           };
         };
+        playwright = {
+          command = "npx";
+          args = [ "@playwright/mcp@latest" ];
+        };
         "long-term-memory" = {
           command = "node";
           args = [
