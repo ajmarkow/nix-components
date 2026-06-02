@@ -132,5 +132,24 @@
 
     **Run `rtk nix flake check` before every commit when working in a flake repo.** The check must pass before the commit proceeds.
 
+    ## Flake Updates — Targeted by Default
+
+    **Always target specific inputs rather than updating everything at once.** Before running any `nix flake update`, ask the user for scope:
+
+    1. **List named inputs** from `flake.lock` or `flake.nix` so the user can see what's available.
+    2. **Ask**: "Which inputs would you like to update? (list specific names, or 'all' to update everything)"
+    3. Update only what the user confirms.
+
+    ```bash
+    # Targeted (preferred)
+    rtk nix flake update nixpkgs
+    rtk nix flake update nixpkgs home-manager
+
+    # Update all (only when user explicitly requests it)
+    rtk nix flake update
+    ```
+
+    Updating all inputs at once can introduce unexpected breakage across unrelated packages. Targeted updates keep changes reviewable and rollbacks easy.
+
   '';
 }
