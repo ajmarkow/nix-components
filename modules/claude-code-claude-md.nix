@@ -151,5 +151,16 @@
 
     Updating all inputs at once can introduce unexpected breakage across unrelated packages. Targeted updates keep changes reviewable and rollbacks easy.
 
+    ### ⚠️ Update-All Requires Explicit Re-Confirmation
+
+    If the user asks to update all inputs (e.g. "update all flakes", "run nix flake update"), **do not execute immediately**. Instead:
+
+    1. List every named input that will be updated.
+    2. Explicitly warn: "This will update ALL inputs, which may introduce breaking changes."
+    3. Ask: "Confirm you want to update all of the above inputs?"
+    4. **Only proceed after the user says yes in that same turn.**
+
+    A prior "update everything" instruction is not standing permission — re-confirm every time.
+
   '';
 }
