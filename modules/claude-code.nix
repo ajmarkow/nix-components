@@ -254,7 +254,6 @@ in
         "serverless-eda@aws-skills" = true;
         "aws-agentic-ai@aws-skills" = true;
         "autonomous-agents@antigravity-awesome-skills" = true;
-        "taste-skill@taste-skill-marketplace" = true;
       };
       extraKnownMarketplaces = {
         "obsidian-skills" = {
@@ -279,12 +278,6 @@ in
           source = {
             source = "github";
             repo = "sickn33/antigravity-awesome-skills";
-          };
-        };
-        "taste-skill-marketplace" = {
-          source = {
-            source = "github";
-            repo = "Leonxlnx/taste-skill";
           };
         };
       };
