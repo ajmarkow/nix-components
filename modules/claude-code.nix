@@ -29,6 +29,7 @@ in
   home.packages = [
     pkgs-unstable.rtk
     pkgs.defuddle
+    pkgs.nix-index
     pkgs.ripgrep
     pkgs.uv
     semble
