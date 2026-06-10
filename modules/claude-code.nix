@@ -28,6 +28,7 @@ in
 {
   home.packages = [
     pkgs-unstable.rtk
+    pkgs.defuddle
     pkgs.ripgrep
     pkgs.uv
     semble
