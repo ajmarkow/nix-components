@@ -136,30 +136,32 @@ in
     ];
 
     loginExtra = ''
-      RED='\033[0;31m'
-      ORANGE='\033[0;33m'
-      YELLOW='\033[1;33m'
-      GREEN='\033[0;32m'
-      BLUE='\033[0;34m'
-      INDIGO='\033[0;36m'
-      VIOLET='\033[0;35m'
-      RESET='\033[0m'
+      if [[ -t 1 ]]; then
+        RED='\033[0;31m'
+        ORANGE='\033[0;33m'
+        YELLOW='\033[1;33m'
+        GREEN='\033[0;32m'
+        BLUE='\033[0;34m'
+        INDIGO='\033[0;36m'
+        VIOLET='\033[0;35m'
+        RESET='\033[0m'
 
-      echo -e "''${RED}                                        ''${RESET}"
-      echo -e "''${ORANGE}                                        ''${RESET}"
-      echo -e "''${YELLOW}      ___         ___          ___      ''${RESET}"
-      echo -e "''${GREEN}     /  /\\       /  /\\        /__:\\     ''${RESET}"
-      echo -e "''${BLUE}    /  /::\\     /  /:/       |  |::\\    ''${RESET}"
-      echo -e "''${INDIGO}   /  /:/\\:\\   /__/::\\       |  |:|:\\   ''${RESET}"
-      echo -e "''${VIOLET}  /  /:/~/::\\  \\__\\/\\:\\    __|__|:|\\:\\  ''${RESET}"
-      echo -e "''${RED} /__/:/ /:/\\:\\    \\  \\:\\  /__/::::| \\:\\ ''${RESET}"
-      echo -e "''${ORANGE} \\  \\:\\/:/__\\/     \\__\\:\\ \\  \\:\\~~\\__\\/ ''${RESET}"
-      echo -e "''${YELLOW}  \\  \\::/          /  /:/  \\  \\:\\       ''${RESET}"
-      echo -e "''${GREEN}   \\  \\:\\         /__/:/    \\  \\:\\      ''${RESET}"
-      echo -e "''${BLUE}    \\  \\:\\        \\__\\/      \\  \\:\\     ''${RESET}"
-      echo -e "''${INDIGO}     \\__\\/                    \\__\\/     ''${RESET}"
-      echo -e "''${VIOLET}                                        ''${RESET}"
-      echo -e "''${RED}                                        ''${RESET}"
+        echo -e "''${RED}                                        ''${RESET}"
+        echo -e "''${ORANGE}                                        ''${RESET}"
+        echo -e "''${YELLOW}      ___         ___          ___      ''${RESET}"
+        echo -e "''${GREEN}     /  /\\       /  /\\        /__:\\     ''${RESET}"
+        echo -e "''${BLUE}    /  /::\\     /  /:/       |  |::\\    ''${RESET}"
+        echo -e "''${INDIGO}   /  /:/\\:\\   /__/::\\       |  |:|:\\   ''${RESET}"
+        echo -e "''${VIOLET}  /  /:/~/::\\  \\__\\/\\:\\    __|__|:|\\:\\  ''${RESET}"
+        echo -e "''${RED} /__/:/ /:/\\:\\    \\  \\:\\  /__/::::| \\:\\ ''${RESET}"
+        echo -e "''${ORANGE} \\  \\:\\/:/__\\/     \\__\\:\\ \\  \\:\\~~\\__\\/ ''${RESET}"
+        echo -e "''${YELLOW}  \\  \\::/          /  /:/  \\  \\:\\       ''${RESET}"
+        echo -e "''${GREEN}   \\  \\:\\         /__/:/    \\  \\:\\      ''${RESET}"
+        echo -e "''${BLUE}    \\  \\:\\        \\__\\/      \\  \\:\\     ''${RESET}"
+        echo -e "''${INDIGO}     \\__\\/                    \\__\\/     ''${RESET}"
+        echo -e "''${VIOLET}                                        ''${RESET}"
+        echo -e "''${RED}                                        ''${RESET}"
+      fi
     '';
   };
 
