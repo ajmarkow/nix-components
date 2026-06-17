@@ -14,7 +14,14 @@
     paseo ls          # paseo is exempt
     ```
 
-    ## ⚠️ CRITICAL: Use `semble` for Code Search
+    ## ⚠️ CRITICAL: Use `semble` and `rg` for Search — NOT the Search Tool
+
+    **Whenever the user says "search", "find", or asks you to locate code, files, symbols, or text**, use `semble` and/or `rg` (ripgrep). Do NOT reach for the built-in Search or Find tool first — those are secondary fallbacks only, used when semble and rg are both unavailable or clearly unsuitable.
+
+    **Priority order:**
+    1. `semble search` — semantic search across the codebase (default first choice)
+    2. `rg` — exhaustive literal/regex match after semble has identified the area
+    3. Built-in Search/Find tool — **fallback only**, when semble and rg cannot be used
 
     **Always use `semble search` first** when exploring a codebase — before `rg` or file reads. Describe what the code does or name a symbol; semble finds semantically relevant chunks across the entire repo. Reserve `rg` for exhaustive literal matches after semble has identified the area.
 
