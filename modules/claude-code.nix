@@ -226,8 +226,8 @@ in
         url = "https://mcp.context7.com/mcp/oauth";
       };
       playwright = {
-        command = "npx";
-        args = [ "@playwright/mcp@latest" ];
+        command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
+        args = [ "--headless" "--isolated" ];
       };
     };
     settings = {
