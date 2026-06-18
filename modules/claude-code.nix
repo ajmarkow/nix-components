@@ -225,6 +225,10 @@ in
         type = "http";
         url = "https://mcp.context7.com/mcp/oauth";
       };
+      github = {
+        type = "http";
+        url = "https://api.githubcopilot.com/mcp/";
+      };
       playwright = {
         command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
         args = [ "--headless" "--isolated" ];
