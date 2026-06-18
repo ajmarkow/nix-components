@@ -225,6 +225,10 @@ in
         type = "http";
         url = "https://mcp.context7.com/mcp/oauth";
       };
+      playwright = {
+        command = "npx";
+        args = [ "@playwright/mcp@latest" ];
+      };
     };
     settings = {
       hooks = {
