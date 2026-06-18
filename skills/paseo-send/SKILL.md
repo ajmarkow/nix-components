@@ -47,8 +47,9 @@ rtk paseo send <chosen-id> "<message>"
 
 **Zero matches** — no active agent matched. Start a new detached agent automatically:
 ```bash
-rtk paseo run "<message>" --detach --name <name-filter>
+rtk paseo run "<message>" --detach --name <name-filter> --provider claude/claude-sonnet-4-6 --cwd <matched-directory>
 ```
+`--provider` is required (paseo exits with "Provider is required" without it). Infer `--cwd` from the name filter: if the name matches a known repo or directory under `/var/lib/paseo/paseo-projects/`, use that path; otherwise omit `--cwd`.
 
 ## Notes
 

@@ -72,6 +72,12 @@ If the response is not 200, report the error (likely a port conflict) and stop.
 
 ## 6. Start ngrok Tunnel
 
+Always kill any existing ngrok processes first — stale processes may not respond to the API check in step 3 and will cause a 'multiple endpoints without pooling' error:
+```bash
+rtk pkill -f ngrok || true
+```
+
+Wait ~1 second for the process to exit, then launch:
 ```bash
 NIXPKGS_ALLOW_UNFREE=1 rtk nix-shell -p ngrok --run "NGROK_AUTHTOKEN=$NGROK_AUTHTOKEN ngrok http <port>" &
 ```
