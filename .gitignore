@@ -4,6 +4,9 @@ result-*
 .direnv/
 .nix-gc-roots/
 
+# Playwright MCP
+.playwright-mcp/
+
 # Editor
 .vscode/
 .idea/
