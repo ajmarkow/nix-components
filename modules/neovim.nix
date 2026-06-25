@@ -154,8 +154,6 @@ in
           };
           # TypeScript/JavaScript LSP
           ts_ls.enable = true;
-          # Python LSP
-          pylsp.enable = true;
           # Lua LSP
           lua_ls.enable = true;
           # Go LSP
