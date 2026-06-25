@@ -98,6 +98,22 @@
     paseo stop <id>     # terminate
     ```
 
+    ### ⚠️ Always Set the Agent's Working Directory Explicitly
+
+    When spawning a paseo agent that should operate in a specific repo, always pass `--cwd <absolute-repo-path>`. `paseo run` defaults to the *current* directory, NOT the repo named in the prompt — putting a target path in the prompt text alone is not enough; the agent still boots in the wrong tree.
+
+    ```bash
+    # Correct — agent is rooted in the target repo
+    paseo run "remove pylsp from neovim config" \
+      --cwd /var/lib/paseo/paseo-projects/nix-components \
+      --detach --name remove-pylsp --provider claude/claude-sonnet-4-6
+
+    # Wrong — boots in whatever dir the caller is in (e.g. nix-server), even though the prompt mentions nix-components
+    paseo run "in nix-components, remove pylsp ..." --detach ...
+    ```
+
+    Verify after spawning: the CWD column in paseo run's output must match the intended repo. If it doesn't, paseo stop <id> and re-spawn with --cwd.
+
     ## Tool Availability & nix-shell Optimization
 
     Run `which <tool>` before wrapping a command in nix-shell — if it exits 0, use the tool directly.
