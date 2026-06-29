@@ -14,6 +14,7 @@
     direnv
     zoxide
     jq
+    navi
     curl
     ripgrep
     delta
