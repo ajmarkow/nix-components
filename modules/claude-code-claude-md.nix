@@ -219,5 +219,23 @@
 
     Never check a separate dashboard, URL, or service unless the user explicitly names one. GitHub Actions is the source of truth.
 
+    ## Playwright / Screenshots
+
+    When using the Playwright MCP to take screenshots, **always save them to a subdirectory — never to the repository root**. Root-level PNG files accumulate as clutter and are hard to clean up.
+
+    Use `.playwright-mcp/` or a clearly named subdirectory (e.g. `screenshots/`, `tmp/screenshots/`):
+
+    ```
+    # Good
+    .playwright-mcp/login-page.png
+    screenshots/checkout-flow.png
+
+    # Bad
+    login-page.png        # root-level clutter
+    screenshot.png
+    ```
+
+    If the subdirectory does not exist yet, create it before saving. Add ephemeral screenshot directories to `.gitignore` if they should not be committed.
+
   '';
 }
