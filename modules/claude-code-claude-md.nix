@@ -27,7 +27,6 @@
     ```bash
     rtk grep -r "foo" .          # ❌ banned
     rtk find . -name "*.ts"      # ❌ banned
-    rtk ls src/                  # ❌ banned for exploration
     ```
 
     **The right way:**
