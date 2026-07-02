@@ -14,20 +14,27 @@
     paseo ls          # paseo is exempt
     ```
 
-    ## ⚠️ CRITICAL: Use `semble` and `rg` for Search — NOT the Search Tool
+    ## ⚠️ CRITICAL: Use `semble` and `rg` for Search — Never `grep` or `find`
 
-    **Whenever the user says "search", "find", or asks you to locate code, files, symbols, or text**, use `semble` and/or `rg` (ripgrep). Do NOT reach for the built-in Search or Find tool first — those are secondary fallbacks only, used when semble and rg are both unavailable or clearly unsuitable.
+    **Do NOT run `grep`, `find`, or `ls` as Bash commands to search for code, files, or symbols.** These are explicitly banned for search tasks. This applies even when using the Bash tool — `rtk grep ...` and `rtk find ...` are both forbidden for search.
 
-    **Priority order:**
-    1. `semble search` — semantic search across the codebase (default first choice)
-    2. `rg` — exhaustive literal/regex match after semble has identified the area
-    3. Built-in Search/Find tool — **fallback only**, when semble and rg cannot be used
+    **Use these instead — in priority order:**
+    1. `semble search` — semantic search across the codebase (always try this first)
+    2. `rtk rg` — exhaustive literal/regex match via ripgrep (exact-string confirmation)
+    3. Built-in Grep/Glob tools — last resort only, when semble and rg are both unavailable
 
-    **Always use `semble search` first** when exploring a codebase — before `rg` or file reads. Describe what the code does or name a symbol; semble finds semantically relevant chunks across the entire repo. Reserve `rg` for exhaustive literal matches after semble has identified the area.
-
+    **The wrong way (never do this):**
     ```bash
-    rtk semble search "authentication flow" ./my-project
+    rtk grep -r "foo" .          # ❌ banned
+    rtk find . -name "*.ts"      # ❌ banned
+    rtk ls src/                  # ❌ banned for exploration
+    ```
+
+    **The right way:**
+    ```bash
+    rtk semble search "authentication flow" ./my-project          # semantic search
     rtk semble search "save model to disk" ./my-project --top-k 10
+    rtk rg "functionName" src/                                     # exact/regex match
     ```
 
     Use `--content docs`, `--content config`, or `--content all` to search beyond code:
@@ -44,8 +51,6 @@
     ```
 
     The index builds and caches automatically; `path` defaults to `.`. If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
-
-    When `rg` is needed (exact-string confirmation, exhaustive match), always prefer it over `grep` — it respects `.gitignore` and handles directories recursively by default.
 
     ## Context & Session Discipline
 
