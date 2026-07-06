@@ -64,6 +64,7 @@ in
       neofetch = "fastfetch";
       dig = "doggo";
       dog = "doggo";
+      pip = "pip3";
     } // lib.optionalAttrs pkgs.stdenv.isDarwin {
       hsw = "home-manager switch";
       dsw = "source ~/.zshrc && sudo -E darwin-rebuild switch --impure --flake /etc/nix-darwin#AJ-MARKOW-WORK-MACBOOK-PRO";
