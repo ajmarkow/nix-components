@@ -27,6 +27,10 @@ in
           command = "npx";
           args = [ "@playwright/mcp@latest" ];
         };
+        wezterm-mcp = {
+          command = "npx";
+          args = [ "-y" "wezterm-mcp" ];
+        };
         "long-term-memory" = {
           command = "node";
           args = [
