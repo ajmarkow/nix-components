@@ -214,6 +214,12 @@
 
     A prior "update everything" instruction is not standing permission — re-confirm every time.
 
+    ### ⚠️ Never Run `nix flake update` Outside the Current Working Directory
+
+    **Only ever run `nix flake update` (targeted or otherwise) against the flake in your current working directory.** Never pass a path to a different repo, `cd` into another flake to update it, or target a flake elsewhere on disk.
+
+    This agent may have several unrelated flake repos checked out on the same system. Updating a flake you're not actively working in changes `flake.lock` for a repo you have no context on, bypasses review, and can surprise whoever owns that repo. If a flake elsewhere needs updating, tell the user or hand the task to an agent whose working directory is that repo — don't reach out and update it from here.
+
     ## Deploys = GitHub Actions CI
 
     **When the user says "deploy", "monitor deploy", "check the deploy", "did it deploy", "is it deployed", or anything about deployment status — the answer is always the GitHub Actions CI workflows for that repo.**
