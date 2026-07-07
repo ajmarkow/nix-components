@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, backlogMd, ... }:
 {
   home.packages = with pkgs; [
     # Version control & GitHub
@@ -58,5 +58,7 @@
     # Custom packages
     semble
     summarize
+  ] ++ [
+    backlogMd.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

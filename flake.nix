@@ -24,6 +24,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     claude-code-nix.url = "github:sadjow/claude-code-nix";
+    backlog-md.url = "github:MrLesk/Backlog.md";
   };
 
   outputs =

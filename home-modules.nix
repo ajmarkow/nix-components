@@ -12,6 +12,8 @@ let
       _module.args.pyprojectNix = inputs.pyproject-nix;
       _module.args.pyprojectBuildSystems = inputs.pyproject-build-systems;
       _module.args.claudeCodeNix = inputs.claude-code-nix;
+    } // lib.optionalAttrs (name == "packages.nix") {
+      _module.args.backlogMd = inputs.backlog-md;
     }
   );
 in
