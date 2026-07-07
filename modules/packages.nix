@@ -53,6 +53,7 @@
     # Nix tooling
     nil
     nixfmt
+    devenv
 
     # Custom packages
     semble
