@@ -264,6 +264,7 @@ in
         "serverless-eda@aws-skills" = true;
         "aws-agentic-ai@aws-skills" = true;
         "autonomous-agents@antigravity-awesome-skills" = true;
+        "ponytail@ponytail-marketplace" = true;
       };
       extraKnownMarketplaces = {
         "obsidian-skills" = {
@@ -288,6 +289,12 @@ in
           source = {
             source = "github";
             repo = "sickn33/antigravity-awesome-skills";
+          };
+        };
+        "ponytail-marketplace" = {
+          source = {
+            source = "github";
+            repo = "DietrichGebert/ponytail";
           };
         };
       };
