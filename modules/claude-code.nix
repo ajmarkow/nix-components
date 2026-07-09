@@ -245,6 +245,32 @@ in
       };
     };
     settings = {
+      permissions = {
+        allow = [
+          "Bash(nix flake check *)"
+          "Bash(gh run watch *)"
+          "Bash(doggo *)"
+          "Bash(npm view *)"
+          "Bash(defuddle parse *)"
+          "Bash(npm config get *)"
+          "Bash(npm config list*)"
+          "Bash(aws iam list-*)"
+          "Bash(aws iam get-*)"
+          "Bash(aws route53 list-*)"
+          "Bash(dmidecode *)"
+          "Bash(sudo dmidecode *)"
+          "Bash(paseo ls*)"
+          "Bash(npm test)"
+          "Bash(npm run lint)"
+          "Bash(backlog task list*)"
+          "mcp__plugin_claude-code-home-manager_context7__query-docs"
+          "mcp__plugin_claude-code-home-manager_playwright__browser_take_screenshot"
+          "mcp__plugin_claude-code-home-manager_playwright__browser_navigate"
+          "mcp__plugin_claude-code-home-manager_context7__resolve-library-id"
+          "mcp__plugin_claude-code-home-manager_nixos__nix"
+          "mcp__paseo__list_pending_permissions"
+        ];
+      };
       hooks = {
         PreToolUse = [
           {
