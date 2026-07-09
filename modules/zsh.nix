@@ -102,6 +102,10 @@ in
         # Load secrets from Infisical (only when token is present; 3s timeout avoids blocking).
         [[ -f ~/.config/infisical-token ]] && export INFISICAL_TOKEN=$(cat ~/.config/infisical-token)
         output=$(timeout 3 infisical export --format=dotenv-export --projectId=${infisicalProjectId} --env=prod 2>/dev/null) && eval "$output"
+        # Infisical's prod secrets include NODE_ENV=production, which clobbers the
+        # empty value the paseo daemon deliberately sets (see nix-server's paseo.nix)
+        # and causes npm to silently skip devDependencies in every interactive shell.
+        unset NODE_ENV
 
         unalias gcmsg 2>/dev/null; 'gcmsg'() { cz commit; }
 
