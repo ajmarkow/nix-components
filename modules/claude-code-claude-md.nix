@@ -75,6 +75,12 @@
 
     Only fall back to `WebFetch` if defuddle is unavailable or the URL is not a standard web page (e.g. raw JSON APIs, authenticated services).
 
+    ## Decision Points — Use AskUserQuestion
+
+    Default to `AskUserQuestion` (not prose) for major/medium decisions: tradeoffs between approaches, risky/hard-to-reverse actions, or requirement ambiguity that changes the outcome. Skip it for calls you can resolve yourself (style, reading the code) or quick clarifications that don't need structured options. Batch related questions into one call.
+
+    Rule of thumb: if you'd write "Would you like X or Y?" in prose, ask it as `AskUserQuestion` instead.
+
     ## Inter-Agent Messaging
 
     When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism. `paseo` does not need the `rtk` prefix.
