@@ -248,6 +248,10 @@
 
     Never check a separate dashboard, URL, or service unless the user explicitly names one. GitHub Actions is the source of truth.
 
+    ## Branch Merges — main Is Always the Base
+
+    Feature branches merge INTO main — never the reverse. All merges go through a PR (`base: main`). If main has diverged, rebase the feature branch onto main rather than merging main into it.
+
     ## Playwright / Screenshots
 
     When using the Playwright MCP to take screenshots, **always save them to a subdirectory — never to the repository root**. Root-level PNG files accumulate as clutter and are hard to clean up.
