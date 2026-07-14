@@ -1,11 +1,11 @@
 ---
 name: deploy-nix-components
-description: Deploy nix-components changes end-to-end — flake check, commit, push nix-components, then message the nix-server paseo agent to bump the nix-components flake input, push, and watch nix-server CI (Check then Deploy) until the change is live. Use when asked to deploy nix-components, propagate to nix-server, bump nix-components on nix-server, or ship a nix-components change.
+description: Use when asked to deploy, ship, or release a nix-components change, propagate nix-components to nix-server, or bump the nix-components flake input on nix-server.
 ---
 
 # Deploy nix-components → nix-server
 
-Full flow for shipping a nix-components change: verify and push this repo, then have the nix-server agent bump its `nix-components` flake input so nix-server CI deploys it. Every command below was run and verified. All Bash commands use the `rtk` prefix except `paseo`.
+Ship a nix-components change: verify and push this repo, then have the nix-server agent bump its `nix-components` flake input so nix-server CI deploys it. Every command below was run and verified. Prefix all Bash with `rtk` except `paseo`.
 
 ## 1. Verify and push nix-components
 

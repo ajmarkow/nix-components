@@ -1,6 +1,6 @@
 ---
 name: paseo-send
-description: Find a running paseo agent by repo/directory name and send it a message. Resolves the agent ID automatically so you never have to run paseo ls manually.
+description: Use when asked to message, notify, tell, ping, or send something to another paseo agent, or to an agent identified by its repo/directory name rather than an ID.
 argument-hint: <repo-name> "<message>"
 allowed-tools: [Bash]
 user-invocable: true
@@ -24,7 +24,7 @@ Examples:
 ### 1. List active agents
 
 ```bash
-rtk paseo ls -g
+paseo ls -g
 ```
 
 This shows only running/idle agents (no closed). Do not use `-a` — it includes closed agents and adds noise.
@@ -37,22 +37,22 @@ Match lines where the repo/directory name contains the name filter (case-insensi
 
 **Exactly one match** — immediately present the resolved command to the user for approval, then run it:
 ```bash
-rtk paseo send <id> "<message>"
+paseo send <id> "<message>"
 ```
 
 **Multiple matches** — list the matching agents with their IDs and directories, ask the user to pick one, then run:
 ```bash
-rtk paseo send <chosen-id> "<message>"
+paseo send <chosen-id> "<message>"
 ```
 
 **Zero matches** — no active agent matched. Start a new detached agent automatically:
 ```bash
-rtk paseo run "<message>" --detach --name <name-filter> --provider claude/claude-sonnet-4-6 --cwd <matched-directory>
+paseo run "<message>" --detach --name <name-filter> --provider claude/claude-sonnet-4-6 --cwd <matched-directory>
 ```
 `--provider` is required (paseo exits with "Provider is required" without it). Infer `--cwd` from the name filter: if the name matches a known repo or directory under `/var/lib/paseo/paseo-projects/`, use that path; otherwise omit `--cwd`.
 
 ## Notes
 
-- Always use `rtk paseo` (never bare `paseo`) per project bash conventions.
+- Run `paseo` directly (no `rtk` prefix) — `paseo` is exempt from the `rtk` convention.
 - The resolved `paseo send` command must be shown to the user before execution so they can approve or cancel.
 - If the message was not provided in arguments, ask for it before proceeding.

@@ -1,6 +1,6 @@
 ---
 name: serve
-description: Serve a local file or directory publicly via ngrok tunnel. Use when the user wants to preview, share, or test a file/project over the web.
+description: Use when the user wants to preview, share, expose, or test a local file, directory, project, or localhost over the public web — or to stop such a tunnel. Serves via a Python HTTP server and public ngrok tunnel.
 argument-hint: <file-or-directory> [--port PORT]
 allowed-tools: [Read, Bash, Glob]
 user-invocable: true

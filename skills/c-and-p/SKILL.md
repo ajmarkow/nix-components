@@ -1,6 +1,6 @@
 ---
 name: c-and-p
-description: Commit all staged and unstaged changes using a conventional commit message, then push to the current remote branch.
+description: Use when the user wants to commit and push their current changes in one step — e.g. "commit and push", "c and p", "save and push", or "ship this".
 user-invocable: true
 model: sonnet
 ---
