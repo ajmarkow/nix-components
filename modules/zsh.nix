@@ -79,7 +79,7 @@ in
     sessionVariables = {
       EDITOR = "nvim";
       XDG_CONFIG_HOME = "$HOME/.config";
-      ZO_DOCTOR = "0";
+      _ZO_DOCTOR = "0";
     } // lib.optionalAttrs pkgs.stdenv.isDarwin {
       WEZTERM_CONFIG_FILE = "$HOME/.config/wezterm/wezterm.lua";
       TWEAKCC_CC_INSTALLATION_PATH = "/usr/bin/cc";
