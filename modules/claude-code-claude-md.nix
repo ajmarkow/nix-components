@@ -108,21 +108,26 @@
     paseo stop <id>     # terminate
     ```
 
-    ### ⚠️ Always Set the Agent's Working Directory Explicitly
+    ### ⚠️ Spawn Sub-Agents by Workspace, Not `--cwd`
 
-    When spawning a paseo agent that should operate in a specific repo, always pass `--cwd <absolute-repo-path>`. `paseo run` defaults to the *current* directory, NOT the repo named in the prompt — putting a target path in the prompt text alone is not enough; the agent still boots in the wrong tree.
+    **When spawning a paseo agent to work in another repo, target that repo's workspace with `--workspace <wks_id>` — passing `--cwd` alone is silently ignored and the agent boots in the caller's repo.**
+
+    Why: agent-scoped `paseo run` defaults to the *caller's* workspace. `--cwd` sets a process directory but does not switch workspaces, so the child ends up back in the caller's repo.
 
     ```bash
-    # Correct — agent is rooted in the target repo
+    # 1. Find the workspace id (match on the PROJECT / CWD columns)
+    paseo workspace ls
+
+    # 2. Spawn into that workspace
     paseo run "remove pylsp from neovim config" \
-      --cwd /var/lib/paseo/paseo-projects/nix-components \
+      --workspace wks_6d815c666fe4cf4b \
       --detach --name remove-pylsp --provider claude/claude-sonnet-4-6
 
-    # Wrong — boots in whatever dir the caller is in (e.g. nix-server), even though the prompt mentions nix-components
-    paseo run "in nix-components, remove pylsp ..." --detach ...
+    # No workspace exists yet for the repo? Create one:
+    #   paseo run "..." --new-workspace local --cwd /var/lib/paseo/paseo-projects/<repo> ...
     ```
 
-    Verify after spawning: the CWD column in paseo run's output must match the intended repo. If it doesn't, paseo stop <id> and re-spawn with --cwd.
+    Verify: `paseo run` prints `Using workspace <id>` and the CWD column shows the target repo. `--workspace` requires the `wks_` id — a path is rejected.
 
     ## Tool Availability & nix-shell Optimization
 
