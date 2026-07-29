@@ -45,6 +45,8 @@ Custom packages under `pkgs/` are exported as `packages.<system>.<name>`:
 | Package | Description |
 |---------|-------------|
 | `summarize` | CLI tool for summarizing and transcribing URLs, videos, podcasts, and files |
+| `organize-tool` | File management automation tool. Not yet in nixpkgs, so this repo packages it |
+| `semble` | Semantic code search tool, built from the `semble-workspace` uv2nix project |
 
 ## Skills
 
@@ -53,8 +55,19 @@ Claude Code skills under `skills/` are bundled into `claude-code.nix` at build t
 | Skill | Description |
 |-------|-------------|
 | `add-mcp` | Add a new MCP server to the `claude-code.nix` module |
-| `c-and-p` | Commit all staged/unstaged changes with a conventional commit message and push |
+| `adding-to-claude-md` | Add new rules or guidance to `modules/claude-code-claude-md.nix` |
+| `backlog-md` | Guide use of the Backlog.md CLI for task creation, status, and board views |
+| `c-and-p` | Commit all staged and unstaged changes with a conventional commit message and push |
+| `debug-with-llms` | Debug AI-assisted code without looping, patching symptoms, or writing slop |
+| `deploy-nix-components` | Deploy a nix-components change and bump the flake input on nix-server |
+| `git-rewrite-history` | Rewrite git history with `git-filter-repo` instead of `filter-branch` |
 | `paseo-send` | Find a running paseo agent by repo name and send it a message |
-| `serve` | Serve a local file or directory publicly via ngrok tunnel |
+| `ponytail` | Push for the simplest, shortest working solution on any coding task |
+| `ruleset-design` | Design and audit rule files such as AGENTS.md and CLAUDE.md |
+| `serve` | Serve a local file or directory publicly through an ngrok tunnel |
+| `ste-writing` | Write or edit documentation in Simplified Technical English |
 | `summarize` | Summarize or transcribe URLs, YouTube videos, podcasts, PDFs, and local files |
+| `taste-skill` | Design landing pages and portfolios that avoid a templated look |
+| `test-driven-development` | Follow test-driven development before writing implementation code |
 | `tighten` | Refactor AGENTS.md following progressive disclosure principles |
+| `writing-skills` | Create, edit, and verify Claude Code skills before deployment |
