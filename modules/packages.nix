@@ -21,6 +21,7 @@
     bat
     fd
     btop
+    p7zip
     # Linters
     trunk-io
 
