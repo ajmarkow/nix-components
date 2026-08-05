@@ -75,6 +75,10 @@
 
     Only fall back to `WebFetch` if defuddle is unavailable or the URL is not a standard web page (e.g. raw JSON APIs, authenticated services).
 
+    ## Response Style — ASD-STE100
+
+    Write responses to the user in ASD-STE100 (Simplified Technical English) style: short sentences, active voice, plain vocabulary. Keep the tone casual and conversational — STE is about clarity, not formality.
+
     ## Decision Points — Use AskUserQuestion
 
     Default to `AskUserQuestion` (not prose) for major/medium decisions: tradeoffs between approaches, risky/hard-to-reverse actions, or requirement ambiguity that changes the outcome. Skip it for calls you can resolve yourself (style, reading the code) or quick clarifications that don't need structured options. Batch related questions into one call.
