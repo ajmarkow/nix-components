@@ -24,6 +24,7 @@
       config.color_scheme = 'Catppuccin Frappe'
       config.font = preferred_font
       config.font_size = myfontsize
+      config.harfbuzz_features = { "calt=0", "clig=0", "liga=0" }
 
       -- Command palette settings
       config.command_palette_rows = ajrows
