@@ -261,6 +261,8 @@
 
     Never check a separate dashboard, URL, or service unless the user explicitly names one. GitHub Actions is the source of truth.
 
+    If multiple unrelated jobs or repos fail the same way around the same time (e.g. runner-acquisition errors, timeouts), check https://www.githubstatus.com/ for an active incident before debugging the workflow config.
+
     ## ⚠️ Never Remove CI Checks Without Explicit Instruction
 
     **Agents must NEVER remove, disable, or bypass CI checks (e.g. GitHub Actions workflow steps) without explicit instruction from the user to do so.**
