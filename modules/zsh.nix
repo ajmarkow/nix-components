@@ -121,6 +121,8 @@ in
           mkdir -p -- "$1" && cd -- "$1"
         }
 
+        printenv() { echo "Command disabled"; return 1; }
+
         claude-usage() {
           local tmp
           tmp="$(mktemp -t cswap-export.XXXXXX.json)"
