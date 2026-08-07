@@ -278,6 +278,14 @@
 
     Feature branches merge INTO main — never the reverse. All merges go through a PR (`base: main`). If main has diverged, rebase the feature branch onto main rather than merging main into it.
 
+    ## ⚠️ NEVER Print Infisical Secrets as Plaintext
+
+    Never run an `infisical` command that outputs secret values in plaintext, including `infisical export` (default, and with `--format=dotenv-export`, `json`, or `yaml`) and `infisical secrets get ... --plain`. These print secret values to stdout unless piped straight to a consumer that doesn't echo them.
+
+    ## ⚠️ AWS CLI Requires a Plan First
+
+    Before running any `aws` command, present a full plan first: every step in order, with the exact command for each. Wait for user confirmation before executing.
+
     ## Playwright / Screenshots
 
     When using the Playwright MCP to take screenshots, **always save them to a subdirectory — never to the repository root**. Root-level PNG files accumulate as clutter and are hard to clean up.
