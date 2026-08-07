@@ -56,7 +56,13 @@ S3 + `rclone` is the standard, known-good combo for "push files to cloud storage
     - **macOS (launchd, via home-manager's `launchd.agents`):** equivalent `StartInterval = 300` running the same `rclone move` command.
     - `rclone move` deletes local files after a successful upload (per the "delete after upload" decision), so the outbox stays empty between syncs.
     - `--min-age 30s` avoids racing a file that's still being written by an agent.
-- No changes needed in nix-server or nix-mac repos themselves — importing nix-components' home modules already picks this up.
+
+### 6a. Downstream wiring (nix-server, nix-mac)
+nix-server does **not** auto-import every nix-components home module — `hosts/nixos-host/default.nix` lists them explicitly per user (`users.root` and `users.paseo` each have their own `imports = [ inputs.nix-components.homeModules.* ... ]` list, currently: `zsh`, `git`, `starship`, `claude-code`, `claude-code-claude-md`, `neovim`, `packages`). nix-mac almost certainly follows the same explicit-import pattern. So after this module lands in nix-components:
+- Bump the `nix-components` flake input in both nix-server and nix-mac (`nix flake update nix-components`, or user-approved equivalent per each repo's flake-update rules).
+- Add `inputs.nix-components.homeModules.agent-dropbox` to the relevant `imports` list(s) — for nix-server, both `users.root` and `users.paseo` in `hosts/nixos-host/default.nix` (only `paseo` needs it for agent use, but match existing per-user symmetry unless told otherwise).
+- Provision the `agent-dropbox.env` secret file on each host (out-of-band, per the existing pattern) before/after the rebuild.
+- This is a **separate follow-up task per downstream repo**, done by an agent running in that repo's own workspace — not part of the nix-components implementation task itself. After the nix-components module is merged, message the nix-server agent (and nix-mac agent) with the wiring steps above.
 
 ### 6. Claude Code skill (nix-components/skills/agent-dropbox/)
 - `SKILL.md` describing: "use when the user asks to drop/upload/send a file to the shared dropbox."
