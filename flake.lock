@@ -210,11 +210,11 @@
     "paseo-skills": {
       "flake": false,
       "locked": {
-        "lastModified": 1785091645,
-        "narHash": "sha256-pp9sZ2Q96FDsT4el1VtlWG/SN+dfqConchS1EHOQqZo=",
+        "lastModified": 1786356069,
+        "narHash": "sha256-DlEe692ze6xbTLEXKFCmrj4dsM98P3sFsXirJbrWuwQ=",
         "owner": "getpaseo",
         "repo": "paseo",
-        "rev": "fe28850fad140f88243e4cdcc74d89a8ea2d62e7",
+        "rev": "b7f137c2a0001e02536eb733d9a054f3500069c0",
         "type": "github"
       },
       "original": {
