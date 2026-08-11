@@ -117,6 +117,26 @@ in
 
 } // claudeCodeClaudeMd // {
 
+  home.file.".claude/hooks/block-ssh-rg-cd.sh" = {
+    executable = true;
+    text = ''
+      #!/usr/bin/env bash
+      # Claude Code PreToolUse hook — blocks ssh/scp, bare rg, and cd in Bash commands.
+      # ssh/scp: this agent must never connect to remote hosts directly (see CLAUDE.md).
+      # bare rg: use `rtk semble search` instead of ripgrep for code search.
+      # cd: use absolute paths instead of changing directory mid-command.
+
+      CMD=$(jq -r '.tool_input.command // empty')
+
+      if echo "$CMD" | grep -Eq '(^|[^a-z])(ssh|scp)\b|^\s*rg\b|(^|;|&&)\s*cd\s'; then
+        echo "Blocked: no ssh/scp, use rtk semble search instead of rg, use absolute paths instead of cd." >&2
+        exit 2
+      fi
+
+      exit 0
+    '';
+  };
+
   home.file.".claude/hooks/rtk-rewrite.sh" = {
     executable = true;
     text = ''
@@ -279,6 +299,10 @@ in
               {
                 type = "command";
                 command = "${config.home.homeDirectory}/.claude/hooks/rtk-rewrite.sh";
+              }
+              {
+                type = "command";
+                command = "${config.home.homeDirectory}/.claude/hooks/block-ssh-rg-cd.sh";
               }
             ];
           }

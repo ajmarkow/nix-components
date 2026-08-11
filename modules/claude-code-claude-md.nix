@@ -51,6 +51,10 @@
 
     The index builds and caches automatically; `path` defaults to `.`. If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
 
+    ## Shell & Command Conventions
+
+    **Always use absolute repository paths in Bash commands** (e.g. `rtk -C /abs/path/to/repo nix flake check --no-build`). Never rely on `cd`, relative paths, or an agent `--cwd` flag to establish the working directory.
+
     ## Context & Session Discipline
 
     ### Two-Strike Rule
@@ -78,6 +82,8 @@
     ## Response Style — ASD-STE100
 
     Write responses to the user in ASD-STE100 (Simplified Technical English) style: short sentences, active voice, plain vocabulary. Keep the tone casual and conversational — STE is about clarity, not formality.
+
+    This applies to written documentation and CLAUDE.md content too: short declarative sentences, no formal or hedging register, no framing the user did not ask for.
 
     ## Decision Points — Use AskUserQuestion
 
@@ -173,7 +179,7 @@
 
     ## ⚠️ NEVER SSH to a Host
 
-    **Do not `ssh` into any host, for any reason.** If a host needs to be reached directly, ask the user to SSH in themselves.
+    **Do not `ssh` into any host, for any reason** — including to inspect or verify state. If a host needs to be reached directly, print the exact command and ask the user to run it manually and paste the output.
 
     ## ⚠️ Claude Config Files Are Generated — Edit the Nix Source
 
@@ -239,6 +245,14 @@
 
     This agent may have several unrelated flake repos checked out on the same system. Updating a flake you're not actively working in changes `flake.lock` for a repo you have no context on, bypasses review, and can surprise whoever owns that repo. If a flake elsewhere needs updating, tell the user or hand the task to an agent whose working directory is that repo — don't reach out and update it from here.
 
+    ### Flake Input Bumps — Check Upstream First
+
+    **When a flake input bump is meant to fix an issue, first check whether a newer upstream input already fixes it** before investigating internals or planning a manual API migration. Never run a full package build just to prove installability — `rtk nix flake check --no-build` is sufficient.
+
+    ## Build Verification — Never Trust a Pipe's Exit Code
+
+    **Never interpret the exit code of a piped or backgrounded command as build success** — the exit code is the last command in the pipe, not the build. Grep the log for explicit success/failure markers instead.
+
     ## Deploys = GitHub Actions CI
 
     **When the user says "deploy", "monitor deploy", "check the deploy", "did it deploy", "is it deployed", or anything about deployment status — the answer is always the GitHub Actions CI workflows for that repo.**
@@ -273,6 +287,10 @@
     1. Diagnose why the step is failing.
     2. Fix the underlying issue so the step passes.
     3. If the step genuinely needs to be removed, ask the user explicitly before touching it.
+
+    ## Git Workflow
+
+    **Before committing, show the full `rtk git diff --staged` and wait for approval.** Include every modified file in the working tree (including AGENTS.md, `backlog/`, and docs) unless the user says to exclude it.
 
     ## Branch Merges — main Is Always the Base
 
