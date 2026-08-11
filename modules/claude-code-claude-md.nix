@@ -59,7 +59,7 @@
 
     ### Two-Strike Rule
 
-    After **two failed attempts on the same issue**, stop. Inspect the invariant and the latest error, then restart with a smaller scope rather than iterating on the same failing approach.
+    After **two failed attempts on the same issue**, stop. **Do not try a third fix.** Invoke the `debug-with-llms` skill and follow it. It replaces more attempts.
 
     ### Cap Shell Output
 
