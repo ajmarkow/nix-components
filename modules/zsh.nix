@@ -64,7 +64,11 @@ in
       neofetch = "fastfetch";
       dig = "doggo";
       dog = "doggo";
-      pip = "pip3";
+      # Interactive-shell aliases only; project work uses 'uv run', not these.
+      pip = "uv pip";
+      pip3 = "uv pip";
+      python = "${pkgs.python3}/bin/python3";
+      python3 = "${pkgs.python3}/bin/python3";
     } // lib.optionalAttrs pkgs.stdenv.isDarwin {
       hsw = "home-manager switch";
       dsw = "source ~/.zshrc && sudo -E darwin-rebuild switch --impure --flake /etc/nix-darwin#AJ-MARKOW-WORK-MACBOOK-PRO";
