@@ -1,4 +1,4 @@
-{ pkgs, backlogMd, ... }:
+{ pkgs, pkgs-unstable, backlogMd, ... }:
 {
   home.packages = with pkgs; [
     # Version control & GitHub
@@ -59,7 +59,13 @@
     # Custom packages
     semble
     summarize
+
+    # Search / process / text tools
+    nix-index
+    lsof
+    gawk
   ] ++ [
     backlogMd.packages.${pkgs.stdenv.hostPlatform.system}.default
+    pkgs-unstable.rtk
   ];
 }
