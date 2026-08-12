@@ -1,23 +1,11 @@
 { config
 , pkgs
-, pkgs-unstable
 , lib
 , paseoSkillsSource
-, uv2nix
-, pyprojectNix
-, pyprojectBuildSystems
 , claudeCodeNix
 , ...
 }:
 let
-  # CLAUDE.md configuration is split into its own module
-  claudeCodeClaudeMd = import ./claude-code-claude-md.nix;
-  summarize = import ../pkgs/summarize.nix { inherit pkgs; };
-  semble = import ../pkgs/semble.nix {
-    inherit pkgs uv2nix;
-    pyproject-nix = pyprojectNix;
-    pyproject-build-systems = pyprojectBuildSystems;
-  };
   # Recursively discovers skills under `dir`: any directory containing a
   # SKILL.md is a skill (keyed by its own folder name); directories without
   # one are treated as containers and searched for skills inside them.
@@ -35,19 +23,18 @@ let
     (readSkills ../skills) //
     (readSkills (paseoSkillsSource + "/skills"));
 in
+# One attrset, deliberately. This module used to be three attrsets joined with `//`,
+# which is a shallow update: each block's `home` replaced the previous one, so all but
+# the last block's home.file and home.packages were silently discarded. Keep everything
+# in a single attrset so that cannot happen again.
+#
+# CLAUDE.md is NOT defined here. It lives in ./claude-code-claude-md.nix, which is
+# exported as its own home module and imported separately by consumers. Merging it in
+# would define home.file.".claude/CLAUDE.md" twice and fail the switch.
+#
+# The statusline and hooks below need `jq`, `gh`, and `git` on PATH. Those come from
+# ./packages.nix, which owns tool packages for all hosts.
 {
-  home.packages = [
-    pkgs-unstable.rtk
-    pkgs.defuddle
-    pkgs.nix-index
-    pkgs.ripgrep
-    pkgs.uv
-    semble
-    summarize
-  ];
-
-} // claudeCodeClaudeMd // {
-
   home.file.".claude/statusline-command.sh" = {
     executable = true;
     text = ''
