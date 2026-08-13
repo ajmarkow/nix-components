@@ -1,4 +1,4 @@
-{ pkgs, pkgs-unstable, backlogMd, ... }:
+{ pkgs, backlogMd, ... }:
 {
   home.packages = with pkgs; [
     # Version control & GitHub
@@ -66,6 +66,6 @@
     gawk
   ] ++ [
     backlogMd.packages.${pkgs.stdenv.hostPlatform.system}.default
-    pkgs-unstable.rtk
+    rtk
   ];
 }
