@@ -245,6 +245,10 @@
 
     This agent may have several unrelated flake repos checked out on the same system. Updating a flake you're not actively working in changes `flake.lock` for a repo you have no context on, bypasses review, and can surprise whoever owns that repo. If a flake elsewhere needs updating, tell the user or hand the task to an agent whose working directory is that repo — don't reach out and update it from here.
 
+    ### nixpkgs Pin Is Shared Across Repos — Never Bump Independently
+
+    **Never bump the `nixpkgs` input in nix-components, nix-mac, nix-server, or nix-pixelbook independently.** All four repos must stay on the same nixpkgs pin. If `nixpkgs` needs updating, tell the user so it can be coordinated across all four repos together.
+
     ### Flake Input Bumps — Check Upstream First
 
     **When a flake input bump is meant to fix an issue, first check whether a newer upstream input already fixes it** before investigating internals or planning a manual API migration. Never run a full package build just to prove installability — `rtk nix flake check --no-build` is sufficient.
