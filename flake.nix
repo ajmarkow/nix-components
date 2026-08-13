@@ -2,7 +2,7 @@
   description = "Reusable Nix modules shared across multiple host configurations";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-parts.url = "github:hercules-ci/flake-parts";
     paseo-skills = {
       url = "github:getpaseo/paseo";
