@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 let
   cfg = config.nix-components.mcp;
   requireEnv = name: builtins.getEnv name;
@@ -15,6 +15,12 @@ in
         nixos = {
           command = "uvx";
           args = [ "mcp-nixos" ];
+          # uvx defaults to downloading its own dynamically-linked CPython build,
+          # which can't run on NixOS without nix-ld. Point it at a nixpkgs Python
+          # instead so it works on every host without extra system config.
+          env = {
+            UV_PYTHON = "${pkgs.python3}/bin/python3";
+          };
         };
         context7 = {
           type = "http";
