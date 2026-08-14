@@ -41,6 +41,13 @@
             "nemotron-3.5-lightning-free"
           ];
         };
+        # Amazon Bedrock auto-enables whenever AWS credentials are present
+        # in the environment (see opencode docs), which surfaces it in the
+        # /models picker unintentionally. Empty whitelist hides every model
+        # for this provider without needing to enumerate Bedrock model IDs.
+        amazon-bedrock = {
+          whitelist = [ ];
+        };
       };
       mcp = {
         nixos = {
