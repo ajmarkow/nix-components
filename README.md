@@ -27,7 +27,8 @@ All files under `modules/` are auto-exported as `homeModules.<name>` (filename w
 | Module | Description |
 |--------|-------------|
 | `claude-code.nix` | Claude Code with statusline, rtk-rewrite hook, plugins, and skill marketplaces |
-| `claude-code-claude-md.nix` | Manages `~/.claude/CLAUDE.md` with shared global Claude Code instructions |
+| `claude-code-claude-md.nix` | Writes `~/.claude/CLAUDE.md` from `modules/lib/claude-md-content.nix` |
+| `opencode.nix` | opencode with the Muse contributor provider; writes `~/.config/opencode/AGENTS.md` from the same `modules/lib/claude-md-content.nix` |
 | `firefox.nix` | Firefox with dark theme, extensions, and policies |
 | `git.nix` | Git with GPG commit signing and gpg-agent |
 | `mcp.nix` | MCP server configuration (nixos, context7, long-term-memory) |
@@ -37,6 +38,8 @@ All files under `modules/` are auto-exported as `homeModules.<name>` (filename w
 | `starship.nix` | Starship prompt |
 | `wezterm.nix` | Wezterm with Catppuccin, smart-splits, and Fira Code |
 | `zsh.nix` | Zsh with oh-my-zsh, vi-mode, direnv, zoxide, and shared aliases |
+
+`modules/lib/` is not scanned into `homeModules` (only top-level files under `modules/` are) — it holds `claude-md-content.nix`, the shared CLAUDE.md/AGENTS.md prose imported by both `claude-code-claude-md.nix` and `opencode.nix`. Edit prose there, not in either consuming module.
 
 ## Packages
 
@@ -55,7 +58,7 @@ Claude Code skills under `skills/` are bundled into `claude-code.nix` at build t
 | Skill | Description |
 |-------|-------------|
 | `add-mcp` | Add a new MCP server to the `claude-code.nix` module |
-| `adding-to-claude-md` | Add new rules or guidance to `modules/claude-code-claude-md.nix` |
+| `adding-to-claude-md` | Add new rules or guidance to `modules/lib/claude-md-content.nix` |
 | `backlog-md` | Guide use of the Backlog.md CLI for task creation, status, and board views |
 | `c-and-p` | Commit all staged and unstaged changes with a conventional commit message and push |
 | `debug-with-llms` | Debug AI-assisted code without looping, patching symptoms, or writing slop |

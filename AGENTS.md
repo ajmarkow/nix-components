@@ -23,9 +23,9 @@ inputs.nix-components.packages.${system}.summarize
 
 To add a new per-system output, either extend `packages.nix` or add a new file and import it in `flake.nix`.
 
-## CLAUDE.md is Nix-generated — never edit it directly
+## CLAUDE.md / AGENTS.md are Nix-generated — never edit them directly
 
-The global `~/.claude/CLAUDE.md` is built by `modules/claude-code-claude-md.nix`. Do not edit the markdown file directly. Any changes to Claude's system instructions must go into that Nix file instead.
+The global `~/.claude/CLAUDE.md` (Claude Code) and `~/.config/opencode/AGENTS.md` (opencode) share one source string in `modules/lib/claude-md-content.nix`, imported by `modules/claude-code-claude-md.nix` and `modules/opencode.nix` respectively. Do not edit the generated markdown files directly, and do not inline the text back into either consuming module — read `modules/lib/claude-md-content.nix`'s own header comment for why (it caused an infinite-recursion eval failure once). Any changes to the shared system instructions must go into `modules/lib/claude-md-content.nix`.
 
 ## New files must be git-tracked before `nix flake check`
 

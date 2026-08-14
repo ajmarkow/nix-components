@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 # opencode is the second agent backend Paseo surfaces natively (alongside
 # claude-code and codex — see @getpaseo/server's AGENT_HOOK_PROVIDERS). Paseo
 # discovers opencode's models dynamically from opencode's own provider
@@ -6,14 +6,20 @@
 # in Paseo's model picker as `opencode/<providerId>/<modelId>` with no
 # Paseo-side changes.
 #
-# AGENTS.md content is sourced from the same CLAUDE.md text defined in
-# ./claude-code-claude-md.nix, so the two agents share one set of rules.
+# AGENTS.md content is imported from ./lib/claude-md-content.nix, the same
+# plain string ./claude-code-claude-md.nix uses for CLAUDE.md — so the two
+# agents share one set of rules. Import the shared string directly rather
+# than reading it back out of `config.home.file.".claude/CLAUDE.md".text`:
+# home-manager's programs.opencode.context folds into xdg.configFile, which
+# folds back into home.file, so reading home.file here creates a real
+# infinite-recursion cycle (home.file can't finish evaluating while it's
+# still evaluating itself).
 {
   programs.opencode = {
     enable = true;
     package = pkgs.opencode;
     enableMcpIntegration = true;
-    context = config.home.file.".claude/CLAUDE.md".text;
+    context = import ./lib/claude-md-content.nix;
     settings = {
       provider = {
         muse = {

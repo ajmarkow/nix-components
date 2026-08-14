@@ -30,7 +30,9 @@ in
 #
 # CLAUDE.md is NOT defined here. It lives in ./claude-code-claude-md.nix, which is
 # exported as its own home module and imported separately by consumers. Merging it in
-# would define home.file.".claude/CLAUDE.md" twice and fail the switch.
+# would define home.file.".claude/CLAUDE.md" twice and fail the switch. The prose itself
+# lives in ./lib/claude-md-content.nix (shared with opencode.nix's AGENTS.md) — edit
+# that file, not this one or claude-code-claude-md.nix.
 #
 # The statusline and hooks below need `jq`, `gh`, and `git` on PATH. Those come from
 # ./packages.nix, which owns tool packages for all hosts.

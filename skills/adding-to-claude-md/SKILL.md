@@ -1,6 +1,6 @@
 ---
 name: adding-to-claude-md
-description: Use when adding new rules, instructions, or guidance to modules/claude-code-claude-md.nix before writing the addition to the file.
+description: Use when adding new rules, instructions, or guidance to modules/lib/claude-md-content.nix (shared by claude-code-claude-md.nix and opencode.nix) before writing the addition to the file.
 ---
 
 # Adding to CLAUDE.md
