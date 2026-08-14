@@ -2,9 +2,10 @@
 # opencode is the second agent backend Paseo surfaces natively (alongside
 # claude-code and codex — see @getpaseo/server's AGENT_HOOK_PROVIDERS). Paseo
 # discovers opencode's models dynamically from opencode's own provider
-# registry, so adding a custom provider here (e.g. Muse) makes it selectable
-# in Paseo's model picker as `opencode/<providerId>/<modelId>` with no
-# Paseo-side changes.
+# registry, so adding a custom provider here makes it selectable in Paseo's
+# model picker as `opencode/<providerId>/<modelId>` with no Paseo-side
+# changes. Meta Muse ships as a built-in opencode provider already, so it
+# does not need to be defined by hand here — only the whitelist below.
 #
 # AGENTS.md content is imported from ./lib/claude-md-content.nix, the same
 # plain string ./claude-code-claude-md.nix uses for CLAUDE.md — so the two
@@ -22,20 +23,23 @@
     context = import ./lib/claude-md-content.nix;
     settings = {
       provider = {
+        # Only Muse Spark 1.2 Contributor should show in the /models picker
+        # for the built-in Muse provider.
         muse = {
-          npm = "@ai-sdk/anthropic";
-          name = "Meta Muse";
-          options = {
-            baseURL = "https://api.meta.ai";
-            # Synced from Infisical (META_MUSE_KEY) into INFISICAL_META_MUSE_KEY
-            # by nix-server — never hardcode the key here.
-            apiKey = "{env:INFISICAL_META_MUSE_KEY}";
-          };
-          models = {
-            "muse-spark-1.2-contributor" = {
-              name = "Muse Spark 1.2 Contributor";
-            };
-          };
+          whitelist = [ "muse-spark-1.2-contributor" ];
+        };
+        # Only the free OpenCode Zen models should show in the /models
+        # picker for the built-in opencode (Zen) provider.
+        opencode = {
+          whitelist = [
+            "big-pickle"
+            "deepseek-v4-flash-free"
+            "mimo-v2.5-free"
+            "hy3-free"
+            "laguna-s-2.1-free"
+            "nemotron-3-ultra-free"
+            "nemotron-3.5-lightning-free"
+          ];
         };
       };
       mcp = {
