@@ -5,7 +5,7 @@
 # registry, so adding a custom provider here makes it selectable in Paseo's
 # model picker as `opencode/<providerId>/<modelId>` with no Paseo-side
 # changes. Meta Muse ships as a built-in opencode provider already, so it
-# does not need to be defined by hand here — only the whitelist below.
+# does not need to be defined by hand here.
 #
 # AGENTS.md content is imported from ./lib/claude-md-content.nix, the same
 # plain string ./claude-code-claude-md.nix uses for CLAUDE.md — so the two
@@ -23,11 +23,6 @@
     context = import ./lib/claude-md-content.nix;
     settings = {
       provider = {
-        # Only Muse Spark 1.2 Contributor should show in the /models picker
-        # for the built-in Muse provider.
-        muse = {
-          whitelist = [ "muse-spark-1.2-contributor" ];
-        };
         # Only the free OpenCode Zen models should show in the /models
         # picker for the built-in opencode (Zen) provider.
         opencode = {
