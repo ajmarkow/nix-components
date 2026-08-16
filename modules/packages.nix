@@ -1,4 +1,10 @@
-{ pkgs, backlogMd, ... }:
+{ pkgs, lib, backlogMd, ... }:
+let
+  # Auto-discover scripts/*.nix so new files there need no edits here.
+  scripts = map (f: import f { inherit pkgs; })
+    (lib.filter (f: lib.hasSuffix ".nix" (toString f))
+      (lib.filesystem.listFilesRecursive ../scripts));
+in
 {
   home.packages = with pkgs; [
     # Version control & GitHub
@@ -67,5 +73,5 @@
   ] ++ [
     backlogMd.packages.${pkgs.stdenv.hostPlatform.system}.default
     rtk
-  ];
+  ] ++ scripts;
 }
