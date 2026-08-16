@@ -12,16 +12,20 @@
 ''
   # Bash Tool Guidelines — MANDATORY
 
-  ## ⚠️ CRITICAL: Every Bash command MUST start with `rtk`
+  ## ⚠️ CRITICAL: Use `rtk` only for its supported subcommands — everything else runs directly
 
-  **No exceptions.** Prefix every single Bash tool call with `rtk`. This applies to ALL commands: git, cp, mkdir, ls, grep, cat, find, npm, nix, gh — everything. `paseo` is exempt; run it directly.
+  `rtk` is a proxy with a **fixed, closed set of subcommands** (run `rtk --help` for the current list). Prefixing a command it doesn't recognize (e.g. `rtk nix ...`, `rtk mkdir ...`) fails outright with "No such file or directory" — there is no generic passthrough.
+
+  **Prefix with `rtk` only for:** `ls, tree, read, smart, git, gh, glab, aws, psql, pnpm, err, test, json, deps, env, find, diff, log, dotnet, docker, kubectl, summary, grep, init, wget, wc, gain, cc-economics, config, jest, vitest, prisma, tsc, next, lint, prettier, format, playwright, cargo, npm, npx, curl, discover, session, telemetry, learn, ruff, pytest, mypy, rake, rubocop, rspec, pip, go, gt, golangci-lint, gradlew`.
+
+  **Everything else runs directly, no `rtk` prefix** — including `nix`, `mkdir`, `rm`, `cp`, `cat`, `sed`, `awk`, and `paseo`. To get rtk's tracking on an unlisted command anyway, use `rtk run "<command>"` or `rtk proxy <command>` — never guess a subcommand that isn't in the list.
 
   ```bash
   rtk git status
   rtk git push origin main
-  rtk cp file.txt dest/
-  rtk mkdir -p .github/workflows
-  paseo ls          # paseo is exempt
+  nix flake check --no-build   # not an rtk subcommand — run directly
+  mkdir -p .github/workflows   # not an rtk subcommand — run directly
+  paseo ls                     # paseo is exempt
   ```
 
   ## ⚠️ CRITICAL: Use `semble` and `rg` for Search — Never `grep` or `find`
@@ -313,6 +317,10 @@
   ## ⚠️ NEVER Print Infisical Secrets as Plaintext
 
   Never run an `infisical` command that outputs secret values in plaintext, including `infisical export` (default, and with `--format=dotenv-export`, `json`, or `yaml`) and `infisical secrets get ... --plain`. These print secret values to stdout unless piped straight to a consumer that doesn't echo them.
+
+  ## Plans Must List Required Secrets
+
+  **Any plan that introduces or changes a secret must include a "Secrets" list**: each secret name, plus whether it is Required or Optional. Keep it a simple list — no extra detail unless the secret's purpose is non-obvious.
 
   ## ⚠️ AWS CLI Requires a Plan First
 
