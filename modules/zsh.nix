@@ -105,7 +105,7 @@ in
       (lib.mkOrder 1000 ''
         # Load secrets from Infisical. Errors print to stderr so failures are visible.
         [[ -f ~/.config/infisical-token ]] && export INFISICAL_TOKEN=$(cat ~/.config/infisical-token)
-        if _inf_out=$(timeout 5 infisical export --format=dotenv-export --projectId=${infisicalProjectId} --env=prod 2>&1); then
+        if _inf_out=$(timeout 5 infisical export --silent --format=dotenv-export --projectId=${infisicalProjectId} --env=prod 2>&1); then
           eval "$_inf_out"
         else
           echo "[zsh] infisical secrets failed to load: $_inf_out" >&2
