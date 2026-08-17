@@ -26,6 +26,8 @@
         ];
       };
 
-      packages = customPackages;
+      packages = customPackages // {
+        mcpm = inputs.mcpm-sh.packages.${pkgs.stdenv.hostPlatform.system}.default;
+      };
     };
 }

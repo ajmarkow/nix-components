@@ -65,6 +65,7 @@ in
     # Custom packages
     semble
     summarize
+    mcpm
 
     # Search / process / text tools
     nix-index
