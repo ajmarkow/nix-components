@@ -30,5 +30,11 @@ in
 # with system packages. Wrap to expose only the mcpm binary.
 pkgs.runCommand "mcpm" { meta.mainProgram = "mcpm"; } ''
   mkdir -p $out/bin
-  ln -s ${mcpm-env}/bin/mcpm $out/bin/mcpm
+  cat > $out/bin/mcpm <<'EOF'
+#!/bin/sh
+# Suppress authlib.jose DeprecationWarning from fastmcp — fixed upstream, not yet released.
+export PYTHONWARNINGS="ignore:::authlib.jose${PYTHONWARNINGS:+,$PYTHONWARNINGS}"
+exec ${mcpm-env}/bin/mcpm "$@"
+EOF
+  chmod +x $out/bin/mcpm
 ''
