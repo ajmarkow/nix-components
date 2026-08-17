@@ -27,8 +27,6 @@
     claude-code-nix.inputs.nixpkgs.follows = "nixpkgs";
     backlog-md.url = "github:MrLesk/Backlog.md";
     backlog-md.inputs.nixpkgs.follows = "nixpkgs";
-    mcpm-sh.url = "github:pathintegral-institute/mcpm.sh";
-    mcpm-sh.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =

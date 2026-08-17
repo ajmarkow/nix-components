@@ -16,9 +16,5 @@ in
         (nixComponentsPkgs.callPackage (pkgsDir + "/${name}") extraArgs))
       (lib.filterAttrs
         (name: type: type == "regular" && lib.hasSuffix ".nix" name)
-        (builtins.readDir pkgsDir))) // {
-      mcpm = (inputs.mcpm-sh.packages.${final.stdenv.hostPlatform.system}.default).overrideAttrs (_: {
-        dontCheckRuntimeDeps = true;
-      });
-    };
+        (builtins.readDir pkgsDir)));
 }
