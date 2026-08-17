@@ -198,15 +198,24 @@ in
     executable = true;
     text = ''
       #!/usr/bin/env bash
-      # Claude Code PreToolUse hook — blocks ssh/scp, bare rg, and cd in Bash commands.
-      # ssh/scp: this agent must never connect to remote hosts directly (see CLAUDE.md).
+      # Claude Code PreToolUse hook — blocks direct host connections, bare rg, and cd.
+      # ssh/scp/sftp: this agent must never open a connection to a remote host (see
+      #   CLAUDE.md). Only the connecting form matches — the command name must be
+      #   followed by whitespace or end-of-line. Local helpers (ssh-add, ssh-keygen,
+      #   ssh-agent) and ~/.ssh/ paths stay allowed so the agent can diagnose its own
+      #   SSH identity; blocking those is what made a past failure undebuggable.
       # bare rg: use `rtk semble search` instead of ripgrep for code search.
       # cd: use absolute paths instead of changing directory mid-command.
 
       CMD=$(jq -r '.tool_input.command // empty')
 
-      if echo "$CMD" | grep -Eq '(^|[^a-z])(ssh|scp)\b|^\s*rg\b|(^|;|&&)\s*cd\s'; then
-        echo "Blocked: no ssh/scp, use rtk semble search instead of rg, use absolute paths instead of cd." >&2
+      # GIT_SSH_COMMAND="ssh -i key" only configures git's transport, so it is a git
+      # operation rather than an interactive host connection. Strip the assignment
+      # before scanning; a bare `ssh` elsewhere in the command still matches.
+      SCAN=$(printf '%s' "$CMD" | sed -E 's/GIT_SSH_COMMAND=("[^"]*"|[^[:space:]]*)//g')
+
+      if echo "$SCAN" | grep -Eq '(^|[^[:alnum:]._-])(ssh|scp|sftp)([[:space:]]|$)|^\s*rg\b|(^|;|&&)\s*cd\s'; then
+        echo "Blocked: no direct ssh/scp/sftp to a host. ssh-add, ssh-keygen, .ssh/ paths and git-over-SSH are allowed. Use rtk semble search instead of rg. Use absolute paths instead of cd." >&2
         exit 2
       fi
 
