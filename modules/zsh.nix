@@ -103,9 +103,14 @@ in
       ''))
 
       (lib.mkOrder 1000 ''
-        # Load secrets from Infisical (only when token is present; 3s timeout avoids blocking).
+        # Load secrets from Infisical. Errors print to stderr so failures are visible.
         [[ -f ~/.config/infisical-token ]] && export INFISICAL_TOKEN=$(cat ~/.config/infisical-token)
-        output=$(timeout 3 infisical export --format=dotenv-export --projectId=${infisicalProjectId} --env=prod 2>/dev/null) && eval "$output"
+        if _inf_out=$(timeout 5 infisical export --format=dotenv-export --projectId=${infisicalProjectId} --env=prod 2>&1); then
+          eval "$_inf_out"
+        else
+          echo "[zsh] infisical secrets failed to load: $_inf_out" >&2
+        fi
+        unset _inf_out
         # Infisical's prod secrets include NODE_ENV=production, which clobbers the
         # empty value the paseo daemon deliberately sets (see nix-server's paseo.nix)
         # and causes npm to silently skip devDependencies in every interactive shell.
