@@ -6,19 +6,9 @@
 , ...
 }:
 let
-  # Recursively discovers skills under `dir`: any directory containing a
-  # SKILL.md is a skill (keyed by its own folder name); directories without
-  # one are treated as containers and searched for skills inside them.
-  readSkills = dir:
-    let
-      entries = lib.filterAttrs (_: type: type == "directory") (builtins.readDir dir);
-      collect = name: _:
-        let subdir = dir + "/${name}"; in
-        if builtins.pathExists (subdir + "/SKILL.md")
-        then { ${name} = builtins.readFile (subdir + "/SKILL.md"); }
-        else readSkills subdir;
-    in
-    lib.foldl' (acc: entry: acc // entry) { } (lib.mapAttrsToList collect entries);
+  # readSkills is shared with opencode.nix (./lib/skills.nix) so both agents
+  # expose the same set of skills as slash commands.
+  readSkills = import ./lib/skills.nix { inherit lib; };
   skillCommands =
     (readSkills ../skills) //
     (readSkills (paseoSkillsSource + "/skills"));

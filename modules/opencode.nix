@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, paseoSkillsSource, ... }:
 # opencode is the second agent backend Paseo surfaces natively (alongside
 # claude-code and codex — see @getpaseo/server's AGENT_HOOK_PROVIDERS). Paseo
 # discovers opencode's models dynamically from opencode's own provider
@@ -15,6 +15,17 @@
 # folds back into home.file, so reading home.file here creates a real
 # infinite-recursion cycle (home.file can't finish evaluating while it's
 # still evaluating itself).
+let
+  # Same skills that feed programs.claude-code.commands in claude-code.nix
+  # (via the shared ./lib/skills.nix), reshaped into opencode's `command`
+  # settings schema (each skill's SKILL.md becomes a command template) so
+  # both agents expose the identical set of skills as slash commands.
+  readSkills = import ./lib/skills.nix { inherit lib; };
+  skillCommands =
+    (readSkills ../skills) //
+    (readSkills (paseoSkillsSource + "/skills"));
+  opencodeCommands = lib.mapAttrs (_: template: { inherit template; }) skillCommands;
+in
 {
   programs.opencode = {
     enable = true;
@@ -22,6 +33,7 @@
     enableMcpIntegration = true;
     context = import ./lib/claude-md-content.nix;
     settings = {
+      command = opencodeCommands;
       provider = {
         # Only the free OpenCode Zen models should show in the /models
         # picker for the built-in opencode (Zen) provider.
