@@ -30,11 +30,23 @@ in
 # with system packages. Wrap to expose only the mcpm binary.
 pkgs.runCommand "mcpm" { meta.mainProgram = "mcpm"; } ''
   mkdir -p $out/bin
-  cat > $out/bin/mcpm <<'EOF'
-#!/bin/sh
-# Suppress authlib.jose DeprecationWarning from fastmcp — fixed upstream, not yet released.
-export PYTHONWARNINGS="ignore:::authlib.jose${PYTHONWARNINGS:+,$PYTHONWARNINGS}"
-exec ${mcpm-env}/bin/mcpm "$@"
+  cat > $out/bin/mcpm <<EOF
+#!${mcpm-env}/bin/python3
+# authlib.deprecate installs its own "always" filter for
+# AuthlibDeprecationWarning as a side effect of import, which outranks any
+# PYTHONWARNINGS-based ignore filter (or one set before this import runs).
+# Importing it first, then adding our ignore filter, then triggering the
+# actual warning via the authlib.jose import puts our filter in front.
+import warnings
+import authlib.deprecate
+warnings.filterwarnings("ignore", category=authlib.deprecate.AuthlibDeprecationWarning)
+import authlib.jose
+
+import sys
+from mcpm.cli import main
+
+if __name__ == "__main__":
+    sys.exit(main())
 EOF
   chmod +x $out/bin/mcpm
 ''
