@@ -109,6 +109,15 @@
 
   When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism. `paseo` does not need the `rtk` prefix.
 
+  **Remote daemon:** The paseo daemon runs on paseo.aj-cloud.cc, not this host. Bare `paseo` commands reach it from any host — `PASEO_HOST` and `PASEO_PASSWORD` are already set via nix and Infisical shell-init.
+
+  ### ⚠️ Never Put the Paseo Password on a Command Line
+
+  **Never put the password in a `--host` URI, print `PASEO_PASSWORD`, or write it to a file — the env vars are the only sanctioned channel.**
+
+  - If paseo reports unauthorized or unreachable, run `infisical login`, or confirm the token file exists with `test -s ~/.config/infisical-token` — never print its contents. Retry in a fresh shell.
+  - Headless contexts without shell init (cron, launchd): use `paseo-headless <args>` — it sets `PASEO_HOST`/`PASEO_PASSWORD` itself. Never fetch the password by hand.
+
   **Agent Selection Strategy:**
   - **Use existing agent** if it is directly relevant to the task/message being sent (same repo, same module, immediate follow-up, or closely related work)
   - **Spawn new agent** otherwise (different context, different area, unrelated work)
