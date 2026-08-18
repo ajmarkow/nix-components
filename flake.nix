@@ -8,6 +8,18 @@
       url = "github:getpaseo/paseo";
       flake = false;
     };
+    superpowers-skills = {
+      url = "github:obra/superpowers";
+      flake = false;
+    };
+    obsidian-skills = {
+      url = "github:kepano/obsidian-skills";
+      flake = false;
+    };
+    aws-skills = {
+      url = "github:zxkane/aws-skills";
+      flake = false;
+    };
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
       inputs.nixpkgs.follows = "nixpkgs";
