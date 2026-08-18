@@ -4,6 +4,9 @@ result-*
 .direnv/
 .nix-gc-roots/
 
+# Worktrees
+.worktrees/
+
 # Playwright MCP
 .playwright-mcp/
 
