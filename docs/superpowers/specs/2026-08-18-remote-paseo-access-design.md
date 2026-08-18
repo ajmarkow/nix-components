@@ -96,6 +96,14 @@ Amend the existing paseo section:
 
 ## Failure modes
 
+- "invalid or duplicated subprotocol" on connect: the stored
+  `PASEO_PASSWORD` value contains a trailing newline (usually from
+  copy-paste into Infisical). The password rides in a WebSocket
+  subprotocol header, which forbids newlines. Re-save the secret as a
+  single line with no trailing break. Command-substitution consumers
+  (`$(...)`, paseo-headless) strip the newline and mask the problem;
+  the shell-init env path does not.
+
 - Password missing: the existing Infisical loader prints a visible
   stderr warning at shell init.
 - Password rotated but Infisical stale: paseo auth error; guidance in
