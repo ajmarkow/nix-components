@@ -33,9 +33,14 @@ let
     skillCommands;
 
   # Codex CLI's MCP config lives in ~/.codex/config.toml under
-  # [mcp_servers.<name>] tables. stdio servers use command/args(/env); remote
-  # HTTP servers use url. Mirrors claude-code.nix's mcpServers and
-  # opencode.nix's settings.mcp values exactly.
+  # [mcp_servers.<name>] tables. stdio servers use command/args(/env) here,
+  # which is Codex's documented stdio schema. For remote HTTP servers
+  # (context7, github) the `url = "..."` key is NOT independently verified
+  # against Codex's actual schema for remote/HTTP MCP servers -- it's a
+  # best-effort translation of claude-code.nix's mcpServers / opencode.nix's
+  # settings.mcp values (both confirmed to hold the same URLs). Verify this
+  # against current Codex CLI docs before relying on context7/github MCP
+  # working through Codex.
   configToml = ''
     [mcp_servers.nixos]
     command = "uvx"
