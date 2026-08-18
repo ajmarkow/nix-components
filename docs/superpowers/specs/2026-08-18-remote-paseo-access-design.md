@@ -42,12 +42,12 @@ tooling never store or print the value.
 
 New home-manager module `modules/paseo-remote.nix` in nix-components:
 
-- Declares `aj.paseo.remoteHost` (`types.nullOr types.str`), default
+- Declares `nix-components.paseo.remoteHost` (`types.nullOr types.str`), default
   `"tcp://paseo.aj-cloud.cc:443?ssl=true"`.
 - When non-null, appends `export PASEO_HOST=<value>` to
   `programs.zsh.initContent`, ordered after the Infisical eval so the
   nix-declared value always wins.
-- The paseo server host (nix-server) sets `aj.paseo.remoteHost = null`
+- The paseo server host (nix-server) sets `nix-components.paseo.remoteHost = null`
   so on-server agents keep the local socket.
 
 This is the repo's first `mkOption` — keep it minimal (one option, one
@@ -64,10 +64,13 @@ Amend the existing paseo section:
 - If paseo reports unauthorized or unreachable: check
   `infisical login` / `~/.config/infisical-token`, then open a fresh
   shell. Do not hunt for the password.
-- Headless/non-zsh contexts (cron, launchd) are the one sanctioned
-  exception: inline
-  `PASEO_PASSWORD=$(infisical secrets get PASEO_PASSWORD --plain --projectId=0bd4a4d8-f58e-4bad-9d65-c16ee9aeae7e --env=prod) paseo ...`
-  — substitution direct into the consumer, never echoed.
+- Headless/non-zsh contexts (cron, launchd) use the nix-built
+  `paseo-headless` wrapper (shipped by `modules/paseo-remote.nix`), which
+  sets PASEO_HOST/PASEO_PASSWORD internally and execs paseo. Agents never
+  compose infisical commands; the raw fetch exists only inside the
+  reviewed wrapper. (Revised during implementation review from an inline
+  command example, which would have taught agents a reusable
+  secret-fetching pattern.)
 
 ### Secrets
 
@@ -112,5 +115,5 @@ daemon.
 - `nix-components/modules/zsh.nix` or the module list that imports it
   (wire-up only, if needed)
 - `nix-components/modules/lib/claude-md-content.nix` (paseo section)
-- `nix-server` host config: `aj.paseo.remoteHost = null` (separate repo,
+- `nix-server` host config: `nix-components.paseo.remoteHost = null` (separate repo,
   after the nix-components bump)
