@@ -8,6 +8,9 @@ let
       imports = [ (moduleDir + "/${name}") ];
     } // lib.optionalAttrs (name == "claude-code.nix") {
       _module.args.paseoSkillsSource = inputs.paseo-skills;
+      _module.args.superpowersSkillsSource = inputs.superpowers-skills;
+      _module.args.obsidianSkillsSource = inputs.obsidian-skills;
+      _module.args.awsSkillsSource = inputs.aws-skills;
       _module.args.uv2nix = inputs.uv2nix;
       _module.args.pyprojectNix = inputs.pyproject-nix;
       _module.args.pyprojectBuildSystems = inputs.pyproject-build-systems;

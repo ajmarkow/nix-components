@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "aws-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1781534251,
+        "narHash": "sha256-vPFAEQsaeAegdYjOE6oO/LHo/HRkNSZlPaxz4U8M7GY=",
+        "owner": "zxkane",
+        "repo": "aws-skills",
+        "rev": "68530c6f296ccd2f5e99c79782f3e0fbf962c51a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zxkane",
+        "repo": "aws-skills",
+        "type": "github"
+      }
+    },
     "backlog-md": {
       "inputs": {
         "bun2nix": "bun2nix",
@@ -179,6 +195,22 @@
         "type": "github"
       }
     },
+    "obsidian-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1780935121,
+        "narHash": "sha256-/Kr3cMaN81WXFxgWMNt/QQhEMzuu3e3WJpspqjrnPss=",
+        "owner": "kepano",
+        "repo": "obsidian-skills",
+        "rev": "a1dc48e68138490d522c04cbf5822214c6eb1202",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kepano",
+        "repo": "obsidian-skills",
+        "type": "github"
+      }
+    },
     "paseo-skills": {
       "flake": false,
       "locked": {
@@ -243,14 +275,33 @@
     },
     "root": {
       "inputs": {
+        "aws-skills": "aws-skills",
         "backlog-md": "backlog-md",
         "claude-code-nix": "claude-code-nix",
         "flake-parts": "flake-parts",
         "nixpkgs": "nixpkgs",
+        "obsidian-skills": "obsidian-skills",
         "paseo-skills": "paseo-skills",
         "pyproject-build-systems": "pyproject-build-systems",
         "pyproject-nix": "pyproject-nix",
+        "superpowers-skills": "superpowers-skills",
         "uv2nix": "uv2nix"
+      }
+    },
+    "superpowers-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786553601,
+        "narHash": "sha256-EsGNO0dULWf5Bx6bGrCv2kI2Z8aKH0kRvGiuN23wChQ=",
+        "owner": "obra",
+        "repo": "superpowers",
+        "rev": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+        "type": "github"
+      },
+      "original": {
+        "owner": "obra",
+        "repo": "superpowers",
+        "type": "github"
       }
     },
     "systems": {

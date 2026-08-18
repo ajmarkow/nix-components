@@ -2,16 +2,26 @@
 , pkgs
 , lib
 , paseoSkillsSource
+, superpowersSkillsSource
+, obsidianSkillsSource
+, awsSkillsSource
 , claudeCodeNix
 , ...
 }:
 let
   # readSkills is shared with opencode.nix (./lib/skills.nix) so both agents
-  # expose the same set of skills as slash commands.
+  # expose the same set of skills as slash commands. Merge precedence (later
+  # wins on name collision): paseo-skills -> superpowers -> obsidian ->
+  # aws-skills -> local ../skills. Local always wins, so any skill this repo
+  # already ships (e.g. test-driven-development) keeps its local version even
+  # though upstream sources also define a skill with the same name.
   readSkills = import ./lib/skills.nix { inherit lib; };
   skillCommands =
-    (readSkills ../skills) //
-    (readSkills (paseoSkillsSource + "/skills"));
+    (readSkills (paseoSkillsSource + "/skills")) //
+    (readSkills (superpowersSkillsSource + "/skills")) //
+    (readSkills (obsidianSkillsSource + "/skills")) //
+    (readSkills awsSkillsSource) //
+    (readSkills ../skills);
 in
 # One attrset, deliberately. This module used to be three attrsets joined with `//`,
 # which is a shallow update: each block's `home` replaced the previous one, so all but
@@ -394,51 +404,6 @@ in
         type = "command";
         command = "${config.home.homeDirectory}/.claude/statusline-command.sh";
         padding = 0;
-      };
-      enabledPlugins = {
-        "ruby-lsp@claude-plugins-official" = true;
-        "claude-md-management@claude-plugins-official" = true;
-        "claude-code-setup@claude-plugins-official" = true;
-        "superpowers@claude-plugins-official" = true;
-        "obsidian@obsidian-skills" = true;
-        "ralph-skills@ralph-marketplace" = true;
-        "aws-common@aws-skills" = true;
-        "serverless-eda@aws-skills" = true;
-        "aws-agentic-ai@aws-skills" = true;
-        "autonomous-agents@antigravity-awesome-skills" = true;
-        "ponytail@ponytail-marketplace" = true;
-      };
-      extraKnownMarketplaces = {
-        "obsidian-skills" = {
-          source = {
-            source = "github";
-            repo = "kepano/obsidian-skills";
-          };
-        };
-        "ralph-marketplace" = {
-          source = {
-            source = "github";
-            repo = "snarktank/ralph";
-          };
-        };
-        "aws-skills" = {
-          source = {
-            source = "github";
-            repo = "zxkane/aws-skills";
-          };
-        };
-        "antigravity-awesome-skills" = {
-          source = {
-            source = "github";
-            repo = "sickn33/antigravity-awesome-skills";
-          };
-        };
-        "ponytail-marketplace" = {
-          source = {
-            source = "github";
-            repo = "DietrichGebert/ponytail";
-          };
-        };
       };
     };
   };
