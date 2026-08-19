@@ -5,7 +5,7 @@ description: Use when asked to deploy, ship, or release a nix-components change,
 
 # Deploy nix-components → nix-server
 
-Ship a nix-components change: verify and push this repo, then have the nix-server agent bump its `nix-components` flake input so nix-server CI deploys it. Every command below was run and verified. Prefix all Bash with `rtk` except `paseo`.
+Ship a nix-components change: verify and push this repo, then bump the `nix-components` flake input on nix-server so its CI deploys it. Every command below was run and verified.
 
 ## 1. Verify and push nix-components
 
@@ -22,39 +22,38 @@ rtk git add <files> && rtk git commit -m "..." && rtk git push origin main
 rtk git rev-parse --short HEAD   # note this SHA — you'll verify the bump against it
 ```
 
-## 2. Message nix-server via paseo
+## 2. Bump the input on nix-server
 
-Find an existing nix-server agent (CWD `~/paseo-projects/nix-server`):
-
-```bash
-paseo ls -a -g
-```
-
-- If an idle/running agent exists there, reuse it: `paseo send <id> "<prompt>"`.
-- Otherwise spawn one — **always** with `--cwd`:
+Run `bump-nix-components` from the nix-server repo. It updates only the `nix-components` input, runs `nix flake check --no-build`, commits `flake.lock`, and pushes to trigger CI:
 
 ```bash
-paseo run "<prompt>" --cwd /var/lib/paseo/paseo-projects/nix-server \
-  --detach --name bump-nix-components --model sonnet
+cd /var/lib/paseo/paseo-projects/nix-server && bump-nix-components --push
 ```
 
-Verified prompt:
+Drop `--push` to stop at the commit, or add `--dry-run` to see the pending rev change without touching the repo. It refuses to run outside a repo that already locks `nix-components`, so it cannot rewrite the wrong flake.
 
-```
-Bump the nix-components flake input in this repo: run 'rtk nix flake update nix-components',
-verify with 'rtk nix flake check --no-build', then commit the flake.lock change with a
-conventional commit message and push to main to trigger CI. Report the pushed commit SHA when done.
-```
+Two non-failures to expect:
 
-## 3. Wait for the agent and confirm the bump
+- `already up to date at <sha>` (exit 0) — step 1's push hasn't propagated to GitHub yet, or you never pushed it. Re-check step 1, then retry.
+- `flake.lock has uncommitted changes` (exit 1) — commit or discard that edit first; the script won't fold it into the bump commit.
+
+If a `nix flake check` failure aborts the bump, the modified `flake.lock` is left in place on purpose so you can inspect it — the script prints the exact revert command.
+
+**If `bump-nix-components` is not on PATH**, that host hasn't deployed a nix-components generation containing it yet (it ships via `scripts/`, which `modules/packages.nix` auto-installs — it is not a flake package, so `nix run` won't reach it). Fall back to the manual sequence once, then it'll be present:
 
 ```bash
-paseo wait <id>
+cd /var/lib/paseo/paseo-projects/nix-server && rtk nix flake update nix-components
+cd /var/lib/paseo/paseo-projects/nix-server && rtk nix flake check --no-build
+cd /var/lib/paseo/paseo-projects/nix-server && rtk git commit -m "chore(flake): bump nix-components" flake.lock && rtk git push origin main
 ```
 
-**Gotcha:** `paseo wait` returns when the agent goes *idle*, which can happen mid-task (e.g. while its background `nix flake check` is still running). Check its last activity; if it hasn't pushed yet, run `paseo wait <id>` again.
+## 3. Confirm the bump
 
-Confirm the bumped input SHA matches the SHA you noted in step 1 (the agent reports it, e.g. "bumped to `f7646bc`"). Get the nix-server commit SHA from the agent's report.
+`bump-nix-components` prints the bump on success, e.g. `Committed: nix-components e9f0716 -> bfa6b1f`. Confirm the new rev matches the SHA you noted in step 1. Get the nix-server commit SHA for step 4:
+
+```bash
+cd /var/lib/paseo/paseo-projects/nix-server && rtk git rev-parse --short HEAD
+```
 
 ## 4. Watch nix-server CI until deployed
 
@@ -79,8 +78,7 @@ cd /var/lib/paseo/paseo-projects/nix-server && rtk gh run watch <deploy-run-id> 
 ## Gotchas
 
 - **Never rebuild locally** (`home-manager switch` etc.) — this is a management server; CI is the only deploy path.
-- The shell CWD resets between Bash tool calls — prefix each `gh` command with `cd /var/lib/paseo/paseo-projects/nix-server &&`, or the run lookup hits the wrong repo.
-- `paseo run` defaults to the caller's directory; a repo path in the prompt text does **not** set the agent's CWD — `--cwd` is mandatory.
+- The shell CWD resets between Bash tool calls — prefix each `gh` command with `cd /var/lib/paseo/paseo-projects/nix-server &&`, or the run lookup hits the wrong repo. The same applies to `bump-nix-components`, which acts on the current repo.
 - Old Deploy runs for previous SHAs may show `success` — always match `headSha` to the new nix-server commit before declaring victory.
 
 ## Troubleshooting
