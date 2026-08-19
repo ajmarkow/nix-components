@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.services.diffViewer;
   outputDir = "${config.home.homeDirectory}/diff-viewer";
@@ -49,10 +54,18 @@ let
   # any remaining malformed input into a loud non-zero exit.
   git = "${pkgs.git}/bin/git";
   diff2html = "${pkgs.diff2html-cli}/bin/diff2html";
+  decorateHtml = pkgs.writeText "diff-viewer-header.py" (
+    builtins.readFile ../scripts/diff-viewer-header.py
+  );
 
   renderScript = pkgs.writeShellApplication {
     name = "diff-viewer-render";
-    runtimeInputs = [ pkgs.coreutils pkgs.gnugrep pkgs.python3 pkgs.tailscale ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.python3
+      pkgs.tailscale
+    ];
     text = ''
       outputDir="${outputDir}"
       cssFile="$outputDir/frappe.css"
@@ -67,6 +80,8 @@ let
         exit 1
       fi
       repo=$(basename "$toplevel")
+      branch=$(${git} symbolic-ref --quiet --short HEAD || printf 'detached')
+      commit=$(${git} rev-parse --short=7 HEAD)
 
       # Arguments are spliced into `git diff`, so they must be literal
       # git-diff arguments (--staged, main..HEAD, a path filter, or nothing).
@@ -103,34 +118,31 @@ let
       if [ -n "$slug" ]; then slug="-$slug"; fi
       filename="$repo$slug-$(date +%Y%m%dT%H%M%S).html"
       target="$outputDir/$filename"
+      targetTmp="$outputDir/.$filename"
+      trap 'rm -f "$tmp" "$targetTmp"' EXIT
 
       ${diff2html} -i stdin -o stdout -s side --cs dark \
-        -t "$repo: git diff $*" <"$tmp" >"$target"
+        -t "$repo: git diff $*" <"$tmp" >"$targetTmp"
 
-      # diff2html injects its Catppuccin-less default theme, so splice the
-      # Frappé override in before </head>.
-      if [ -f "$cssFile" ]; then
-        python3 -c "
-import sys
-html = open(sys.argv[1]).read()
-css = open(sys.argv[2]).read()
-html = html.replace('</head>', f'<style>{css}</style></head>', 1)
-open(sys.argv[1], 'w').write(html)
-" "$target" "$cssFile"
-      else
+      # Add repository context and the Catppuccin Frappé theme to the
+      # generated page. The commit button uses the browser clipboard API.
+      if [ ! -f "$cssFile" ]; then
         echo "diff-viewer: warning — $cssFile missing, page will use the default theme." >&2
       fi
+      python3 ${decorateHtml} "$targetTmp" \
+        --css "$cssFile" --repo "$repo" --branch "$branch" --commit "$commit"
 
       # Post-render verification: a served 200 is not proof the render worked.
       # diff2html exits 0 and writes a full-size page even when it parsed zero
       # files, so confirm a real changed path actually reached the HTML.
       firstFile=$(${git} diff --name-only "$@" | head -n 1)
-      if [ -n "$firstFile" ] && ! grep -qF "$(basename "$firstFile")" "$target"; then
+      if [ -n "$firstFile" ] && ! grep -qF "$(basename "$firstFile")" "$targetTmp"; then
         echo "diff-viewer: render verification FAILED — '$(basename "$firstFile")' is not in the generated HTML." >&2
-        echo "diff-viewer: diff2html parsed no files; refusing to serve a misleading page. Removing $target" >&2
-        rm -f "$target"
+        echo "diff-viewer: diff2html parsed no files; refusing to serve a misleading page." >&2
         exit 1
       fi
+
+      mv "$targetTmp" "$target"
 
       host=$(tailscale status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)
       if [ -z "$host" ]; then
@@ -191,7 +203,11 @@ in
       launchd.agents.diff-viewer-cleanup = {
         enable = true;
         config = {
-          ProgramArguments = [ "${pkgs.bash}/bin/bash" "-c" cleanupCmd ];
+          ProgramArguments = [
+            "${pkgs.bash}/bin/bash"
+            "-c"
+            cleanupCmd
+          ];
           StartInterval = 86400;
           RunAtLoad = false;
         };

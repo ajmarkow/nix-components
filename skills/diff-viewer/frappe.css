@@ -17,13 +17,128 @@
 }
 
 body {
+  margin: 0;
   background-color: var(--ctp-crust);
   color: var(--ctp-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.dv-page-header {
+  border-bottom: 1px solid var(--ctp-surface0);
+  background-color: var(--ctp-mantle);
+  color: var(--ctp-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-align: left;
+}
+
+.dv-page-header__inner {
+  display: flex;
+  align-items: stretch;
+  gap: 32px;
+  padding: 18px 24px;
+}
+
+.dv-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dv-meta--repo {
+  flex: 1;
+}
+
+.dv-meta__label {
+  color: var(--ctp-overlay0);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.dv-meta__value {
+  overflow-wrap: anywhere;
+  color: var(--ctp-text);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.dv-copy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 4px 5px 4px 10px;
+  border: 1px solid var(--ctp-surface1);
+  border-radius: 6px;
+  background: var(--ctp-surface0);
+  color: var(--ctp-text);
+  cursor: pointer;
+}
+
+.dv-copy:hover {
+  border-color: var(--ctp-overlay0);
+}
+
+.dv-copy:focus-visible {
+  outline: 2px solid var(--ctp-blue);
+  outline-offset: 2px;
+}
+
+.dv-copy:active {
+  transform: translateY(1px);
+}
+
+.dv-copy.is-copied {
+  border-color: var(--ctp-green);
+}
+
+.dv-meta__hash {
+  color: var(--ctp-peach);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.dv-copy__status {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--ctp-mantle);
+  color: var(--ctp-subtext0);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dv-copy.is-copied .dv-copy__status {
+  color: var(--ctp-green);
+}
+
+@media (max-width: 700px) {
+  .dv-page-header__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px 24px;
+    padding: 16px;
+  }
+
+  .dv-meta--repo {
+    grid-column: 1 / -1;
+  }
 }
 
 .d2h-wrapper {
+  padding: 24px;
   background-color: var(--ctp-base);
   color: var(--ctp-text);
+}
+
+body > h1 {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .d2h-wrapper {
+    padding: 16px;
+  }
 }
 
 .d2h-file-header {
@@ -92,17 +207,102 @@ body {
 }
 
 .d2h-file-list-wrapper {
+  margin: 0;
+  border-bottom: 1px solid var(--ctp-surface0);
   background-color: var(--ctp-mantle);
+  color: var(--ctp-text);
+  text-align: left;
+}
+
+.d2h-file-list-header {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 24px;
+}
+
+.d2h-file-list-title {
+  color: var(--ctp-text);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.d2h-file-list {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--ctp-surface0);
+  background-color: var(--ctp-mantle);
+  list-style: none;
+}
+
+.d2h-file-list-line {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
   color: var(--ctp-text);
 }
 
-.d2h-file-list-title,
-.d2h-file-list-line {
-  color: var(--ctp-text);
+.d2h-file-list-line:hover {
+  background-color: var(--ctp-surface0);
+}
+
+.d2h-file-list-line .d2h-file-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.d2h-file-list-line .d2h-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d2h-file-list-line .d2h-file-stats {
+  display: flex;
+  flex: none;
+  gap: 10px;
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
 }
 
 .d2h-file-switch {
-  color: var(--ctp-blue);
+  margin-left: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--ctp-surface1);
+  border-radius: 6px;
+  background-color: var(--ctp-surface0);
+  color: var(--ctp-subtext0);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+.d2h-file-switch:hover {
+  border-color: var(--ctp-overlay0);
+  color: var(--ctp-text);
+}
+
+@media (max-width: 700px) {
+  .d2h-file-list-header {
+    min-height: 48px;
+    padding: 0 16px;
+  }
+
+  .d2h-file-list {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
 }
 
 .d2h-tag {
