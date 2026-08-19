@@ -35,13 +35,14 @@ Render a diff as HTML and serve it from this host's diff-viewer service, so the 
    " ~/diff-viewer/<filename> ~/diff-viewer/frappe.css
    ```
 
-4. Resolve this host's tailnet URL and report it to the user:
+4. Resolve this host's tailnet URL and report it to the user. The diff-viewer module serves on a non-443 tailnet HTTPS port (default `8443`, host-configurable via `services.diffViewer.tailnetPort` — never 443, see the comment in `modules/diff-viewer.nix` for why), so read the actual registered port from `tailscale serve status` rather than assuming it:
    ```bash
    tailscale status --json | python3 -c "import json,sys; print(json.load(sys.stdin)['Self']['DNSName'].rstrip('.'))"
+   tailscale serve status --json | python3 -c "import json,sys; print(next(iter(json.load(sys.stdin).get('TCP',{}))))"
    ```
-   The full URL is `https://<that-dns-name>/diffs/<filename>`.
+   The full URL is `https://<that-dns-name>:<that-port>/diffs/<filename>`.
 
-5. Mention, briefly, that the directory listing at `https://<that-dns-name>/diffs/` shows past diffs, and that files expire automatically after 30 days.
+5. Mention, briefly, that the directory listing at `https://<that-dns-name>:<that-port>/diffs/` shows past diffs, and that files expire automatically after 30 days.
 
 ## Notes
 
