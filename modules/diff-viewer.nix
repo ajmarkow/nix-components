@@ -33,6 +33,115 @@ let
   '';
 
   cleanupCmd = "${pkgs.findutils}/bin/find ${outputDir} -name '*.html' -mtime +30 -delete";
+
+  # The whole render pipeline lives here rather than as steps in SKILL.md so
+  # the agent never invokes `git` itself. That is load-bearing, not tidiness:
+  # `git diff | diff2html` is silently corrupted on these hosts by two
+  # independent wrappers. The rtk PreToolUse hook (modules/claude-code.nix)
+  # rewrites a bare `git diff` to `rtk git diff`, and an interactive shell also
+  # carries a `git` function. rtk's pretty-printer emits a human-readable
+  # summary (stat lines, a "--- Changes ---" header, "+3 -3" footers) with no
+  # `diff --git` headers, so diff2html parses zero files and still writes a
+  # ~298KB page containing only its template. The file is written, served, and
+  # returns HTTP 200 — the failure is completely silent until someone opens the
+  # page and reads "Files changed (0)". Pinning git and diff2html to store
+  # paths makes both wrappers unreachable, and the two assertions below turn
+  # any remaining malformed input into a loud non-zero exit.
+  git = "${pkgs.git}/bin/git";
+  diff2html = "${pkgs.diff2html-cli}/bin/diff2html";
+
+  renderScript = pkgs.writeShellApplication {
+    name = "diff-viewer-render";
+    runtimeInputs = [ pkgs.coreutils pkgs.gnugrep pkgs.python3 pkgs.tailscale ];
+    text = ''
+      outputDir="${outputDir}"
+      cssFile="$outputDir/frappe.css"
+
+      if [ ! -d "$outputDir" ]; then
+        echo "diff-viewer: $outputDir is missing — the diff-viewer home-manager module is not applied on this host." >&2
+        exit 1
+      fi
+
+      if ! toplevel=$(${git} rev-parse --show-toplevel 2>&1); then
+        echo "diff-viewer: not inside a git repository." >&2
+        exit 1
+      fi
+      repo=$(basename "$toplevel")
+
+      # Arguments are spliced into `git diff`, so they must be literal
+      # git-diff arguments (--staged, main..HEAD, a path filter, or nothing).
+      # A prose description makes the command malformed; let git reject it and
+      # surface its own error rather than rendering something meaningless.
+      tmp=$(mktemp)
+      trap 'rm -f "$tmp"' EXIT
+      if ! ${git} diff "$@" >"$tmp" 2>"$tmp.err"; then
+        echo "diff-viewer: 'git diff $*' failed:" >&2
+        cat "$tmp.err" >&2
+        echo "diff-viewer: arguments must be literal git-diff arguments (e.g. --staged, main..HEAD, a path filter, or none) — not a prose description." >&2
+        rm -f "$tmp.err"
+        exit 1
+      fi
+      rm -f "$tmp.err"
+
+      if [ ! -s "$tmp" ]; then
+        echo "diff-viewer: diff is empty — nothing to render."
+        exit 3
+      fi
+
+      # Precondition: an empty diff is not the only bad input. A wrapper's
+      # human-readable summary is non-empty but unparseable, so require the
+      # one marker that proves this is real unified-diff format.
+      if ! grep -q '^diff --git' "$tmp"; then
+        echo "diff-viewer: refusing to render — input is not unified diff format (no 'diff --git' header found)." >&2
+        echo "diff-viewer: this is what a wrapped/pretty-printed git produces. Never pipe 'rtk git diff' into a parser." >&2
+        echo "diff-viewer: first lines received:" >&2
+        head -n 5 "$tmp" >&2
+        exit 1
+      fi
+
+      slug=$(printf '%s' "$*" | tr -c 'A-Za-z0-9._-' '-' | sed -e 's/-\+/-/g' -e 's/^-//' -e 's/-$//')
+      if [ -n "$slug" ]; then slug="-$slug"; fi
+      filename="$repo$slug-$(date +%Y%m%dT%H%M%S).html"
+      target="$outputDir/$filename"
+
+      ${diff2html} -i stdin -o stdout -s side --cs dark \
+        -t "$repo: git diff $*" <"$tmp" >"$target"
+
+      # diff2html injects its Catppuccin-less default theme, so splice the
+      # Frappé override in before </head>.
+      if [ -f "$cssFile" ]; then
+        python3 -c "
+import sys
+html = open(sys.argv[1]).read()
+css = open(sys.argv[2]).read()
+html = html.replace('</head>', f'<style>{css}</style></head>', 1)
+open(sys.argv[1], 'w').write(html)
+" "$target" "$cssFile"
+      else
+        echo "diff-viewer: warning — $cssFile missing, page will use the default theme." >&2
+      fi
+
+      # Post-render verification: a served 200 is not proof the render worked.
+      # diff2html exits 0 and writes a full-size page even when it parsed zero
+      # files, so confirm a real changed path actually reached the HTML.
+      firstFile=$(${git} diff --name-only "$@" | head -n 1)
+      if [ -n "$firstFile" ] && ! grep -qF "$(basename "$firstFile")" "$target"; then
+        echo "diff-viewer: render verification FAILED — '$(basename "$firstFile")' is not in the generated HTML." >&2
+        echo "diff-viewer: diff2html parsed no files; refusing to serve a misleading page. Removing $target" >&2
+        rm -f "$target"
+        exit 1
+      fi
+
+      host=$(tailscale status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)
+      if [ -z "$host" ]; then
+        echo "diff-viewer: rendered $target but could not resolve this host's tailnet name." >&2
+        exit 1
+      fi
+
+      echo "https://$host:${toString cfg.tailnetPort}${servePath}/$filename"
+      echo "index: https://$host:${toString cfg.tailnetPort}${servePath}/"
+    '';
+  };
 in
 {
   options.services.diffViewer.tailnetPort = lib.mkOption {
@@ -60,7 +169,15 @@ in
         }
       ];
 
+      home.packages = [ renderScript ];
+
       home.file."diff-viewer/.keep".text = "";
+
+      # Skills are deployed as slash commands (modules/lib/skills.nix reads
+      # only SKILL.md), so files sitting next to a SKILL.md never reach the
+      # host. Install the Catppuccin Frappé stylesheet the skill injects here
+      # instead. The cleanup timer only deletes *.html, so this survives.
+      home.file."diff-viewer/frappe.css".source = ../skills/diff-viewer/frappe.css;
     }
     (lib.mkIf pkgs.stdenv.isDarwin {
       launchd.agents.diff-viewer-server = {
