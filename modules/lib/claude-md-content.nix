@@ -324,6 +324,8 @@
 
   **Before committing, show the full `rtk git diff --staged` and wait for approval.** Include every modified file in the working tree (including AGENTS.md, `backlog/`, and docs) unless the user says to exclude it.
 
+  **Always render any diff through the `diff-viewer` skill — never ask first.** This applies to every diff shown to the user (staged, working-tree, or arbitrary), not just pre-commit ones.
+
   **Commits do not require approval, but `git push` always does** — state the push command and wait for explicit user approval before running it.
 
   ## Branch Merges — main Is Always the Base
