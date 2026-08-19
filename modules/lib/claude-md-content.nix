@@ -319,6 +319,8 @@
 
   **Before committing, show the full `rtk git diff --staged` and wait for approval.** Include every modified file in the working tree (including AGENTS.md, `backlog/`, and docs) unless the user says to exclude it.
 
+  **Commits do not require approval, but `git push` always does** — state the push command and wait for explicit user approval before running it.
+
   ## Branch Merges — main Is Always the Base
 
   Feature branches merge INTO main — never the reverse. All merges go through a PR (`base: main`). If main has diverged, rebase the feature branch onto main rather than merging main into it.
