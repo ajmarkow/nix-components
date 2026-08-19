@@ -6,9 +6,7 @@ Do not create `mcp.json` files manually. This repo manages MCP configuration dec
 
 ## nixpkgs searches
 
-Use `nix search <package>` to query nixpkgs from the CLI. Do NOT spawn agents to search nixpkgs or clone the repo—it's massive. Always check for official packages before installing globally via npm.
-
-Example: `nix search serverless` to see if an npm package has a nixpkgs equivalent.
+Prefer the `nixos` MCP server (`nix` / `nix_versions` tools) to query nixpkgs — it hits live APIs and is more current than the CLI. Fall back to `nix search <package>` when the MCP server is unavailable. Do NOT spawn agents to search nixpkgs or clone the repo—it's massive. Always check for official packages before installing globally via npm.
 
 ## Flake structure (flake-parts)
 
@@ -31,13 +29,9 @@ The global `~/.claude/CLAUDE.md` (Claude Code) and `~/.config/opencode/AGENTS.md
 
 Nix will refuse to evaluate files that are not tracked by Git, even if they exist on disk. After creating a new `.nix` file, run `git add <file>` before running `nix flake check` or any `nix build`.
 
-## Inter-agent messaging via paseo
-
-When dispatching work to another agent, prefer `paseo send <id> "..."` if an agent for that repo is already running. Only use `paseo run` to start a new agent when none exists. Default to the Sonnet model when spawning new agents.
+## Companion repo
 
 The companion server repo is named **`nix-server`** (at `~/paseo-projects/nix-server`). Do not use the old name `server-2-config`.
-
-Never run `find /nix/store` — the store is massive and the command will hang indefinitely. Use `which`, `nix-env -q`, or PATH inspection to locate binaries instead.
 
 ## Claude Code skills
 
@@ -78,7 +72,7 @@ Run both before committing any Nix changes. Fix `statix` warnings manually if `s
 
 This project uses Backlog.md for task and project management.
 
-**For every user request in this project, run `backlog instructions overview` before answering or taking action.**
+**When a request involves creating, updating, planning, searching, or finalizing tasks, run `backlog instructions overview` first.**
 
 Use the overview to decide whether to search, read, create, or update Backlog tasks.
 
