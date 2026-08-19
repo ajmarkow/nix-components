@@ -7,9 +7,25 @@
 # opencode.nix uses for programs.opencode.context — so all three agents
 # share one set of rules.
 #
-# Skills are reshaped into flat ~/.codex/prompts/<name>.md files: Codex CLI
-# reads that directory and exposes each file as a `/name` slash command,
-# mirroring claude-code.nix's `commands` and opencode.nix's `command` maps.
+# Skills are installed as native Codex skills: each skill directory (SKILL.md
+# plus any scripts/references/assets) is symlinked whole into
+# ~/.codex/skills/<name>/, which is Codex CLI's own skill directory — Codex
+# reads each SKILL.md's frontmatter (name/description) at session start and
+# auto-triggers the skill's body when a request matches, with no explicit
+# invocation needed. Verified empirically (2026-08-19): `codex exec` (the
+# runtime paseo drives) correctly matched 5 built-in .system skills *and* a
+# manually-installed copy of the superpowers `subagent-driven-development`
+# skill by description alone — but only once that skill sat directly at
+# ~/.codex/skills/subagent-driven-development/SKILL.md. A one-level-deeper
+# path (~/.codex/skills/<scope>/<name>/SKILL.md) was silently ignored, so
+# skills here are installed flat, not scoped.
+#
+# This replaces the older approach of flattening skills into
+# ~/.codex/prompts/<name>.md `/name` slash commands: that mechanism is
+# TUI-only (confirmed via `codex exec --help`, which has no slash-command
+# support at all), so it was invisible to paseo and to any non-interactive
+# Codex session — dead weight now that skills cover the same ground and work
+# in both interactive and non-interactive sessions.
 #
 # lib.generators.toTOML is not available in this nixpkgs pin (checked via
 # `nix eval ... lib.generators` — no toTOML attribute), so config.toml is
@@ -20,17 +36,17 @@ let
   # Merge precedence (later wins on name collision): paseo-skills ->
   # superpowers -> obsidian -> aws-skills -> local ../skills. Local always
   # wins. Kept identical to claude-code.nix/opencode.nix's skillCommands chain.
-  readSkills = import ./lib/skills.nix { inherit lib; };
-  skillCommands =
-    (readSkills (paseoSkillsSource + "/skills")) //
-    (readSkills (superpowersSkillsSource + "/skills")) //
-    (readSkills (obsidianSkillsSource + "/skills")) //
-    (readSkills awsSkillsSource) //
-    (readSkills ../skills);
+  inherit (import ./lib/skills.nix { inherit lib; }) readSkillDirs;
+  skillDirs =
+    (readSkillDirs (paseoSkillsSource + "/skills")) //
+    (readSkillDirs (superpowersSkillsSource + "/skills")) //
+    (readSkillDirs (obsidianSkillsSource + "/skills")) //
+    (readSkillDirs awsSkillsSource) //
+    (readSkillDirs ../skills);
 
-  promptFiles = lib.mapAttrs'
-    (name: template: lib.nameValuePair ".codex/prompts/${name}.md" { text = template; })
-    skillCommands;
+  skillFiles = lib.mapAttrs'
+    (name: path: lib.nameValuePair ".codex/skills/${name}" { source = path; })
+    skillDirs;
 
   # Codex CLI's MCP config lives in ~/.codex/config.toml under
   # [mcp_servers.<name>] tables. stdio servers use command/args(/env) here,
@@ -65,10 +81,10 @@ in
 
   # One attrset, deliberately — see claude-code.nix's comment on why joining
   # separate home.file attrsets with `//` at the top level silently drops
-  # entries. promptFiles is merged in here via `//` on the single top-level
+  # entries. skillFiles is merged in here via `//` on the single top-level
   # home.file value, not merged with a second home.file option definition.
   home.file = {
     ".codex/AGENTS.md".text = import ./lib/claude-md-content.nix;
     ".codex/config.toml".text = configToml;
-  } // promptFiles;
+  } // skillFiles;
 }

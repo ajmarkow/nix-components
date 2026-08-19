@@ -23,7 +23,7 @@ let
   # Merge precedence (later wins on name collision): paseo-skills ->
   # superpowers -> obsidian -> aws-skills -> local ../skills. Local always
   # wins. Kept identical to claude-code.nix's skillCommands chain.
-  readSkills = import ./lib/skills.nix { inherit lib; };
+  inherit (import ./lib/skills.nix { inherit lib; }) readSkills;
   skillCommands =
     (readSkills (paseoSkillsSource + "/skills")) //
     (readSkills (superpowersSkillsSource + "/skills")) //

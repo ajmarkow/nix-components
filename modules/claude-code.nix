@@ -15,7 +15,7 @@ let
   # aws-skills -> local ../skills. Local always wins, so any skill this repo
   # already ships (e.g. test-driven-development) keeps its local version even
   # though upstream sources also define a skill with the same name.
-  readSkills = import ./lib/skills.nix { inherit lib; };
+  inherit (import ./lib/skills.nix { inherit lib; }) readSkills;
   skillCommands =
     (readSkills (paseoSkillsSource + "/skills")) //
     (readSkills (superpowersSkillsSource + "/skills")) //
