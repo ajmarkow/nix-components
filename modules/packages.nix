@@ -25,6 +25,7 @@ in
     ripgrep
     delta
     bat
+    diff2html-cli
     fd
     btop
     p7zip
