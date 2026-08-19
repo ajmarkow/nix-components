@@ -1,4 +1,11 @@
 {
+  nixConfig = {
+    extra-substituters = [ "https://codex-cli.cachix.org" ];
+    extra-trusted-public-keys = [
+      "codex-cli.cachix.org-1:1Br3H1hHoRYG22n//cGKJOk3cQXgYobUel6O8DgSing="
+    ];
+  };
+
   description = "Reusable Nix modules shared across multiple host configurations";
 
   inputs = {
@@ -37,6 +44,8 @@
     };
     claude-code-nix.url = "github:sadjow/claude-code-nix";
     claude-code-nix.inputs.nixpkgs.follows = "nixpkgs";
+    codex-cli-nix.url = "github:sadjow/codex-cli-nix";
+    codex-cli-nix.inputs.nixpkgs.follows = "nixpkgs";
     backlog-md.url = "github:MrLesk/Backlog.md";
     backlog-md.inputs.nixpkgs.follows = "nixpkgs";
   };
