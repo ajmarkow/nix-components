@@ -20,9 +20,20 @@ Render a diff as HTML and serve it from this host's diff-viewer service, so the 
 
 3. Render straight into the served directory:
    ```bash
-   rtk git diff $ARGUMENTS | diff2html -i stdin -o stdout -s side -t "<repo-name>: <short description>" > ~/diff-viewer/<filename>
+   rtk git diff $ARGUMENTS | diff2html -i stdin -o stdout -s side --cs dark -t "<repo-name>: <short description>" > ~/diff-viewer/<filename>
    ```
-   `-s side` gives a side-by-side view; drop it for the default line-by-line view if the diff is very wide. `diff2html` is a plain binary — do not prefix it with `rtk`.
+   `-s side` gives a side-by-side view; drop it for the default line-by-line view if the diff is very wide. `--cs dark` keeps diff2html's own dark-mode structure so the Catppuccin Frappé override in the next step reads cleanly. `diff2html` is a plain binary — do not prefix it with `rtk`.
+
+   diff2html has no built-in Catppuccin theme, so inject one as a `<style>` block before `</head>`. Make sure `frappe.css` (shipped alongside this skill) is copied to `~/diff-viewer/frappe.css` once (`cp -n <skill-dir>/frappe.css ~/diff-viewer/frappe.css`), then splice it in:
+   ```bash
+   python3 -c "
+   import sys
+   html = open(sys.argv[1]).read()
+   css = open(sys.argv[2]).read()
+   html = html.replace('</head>', f'<style>{css}</style></head>', 1)
+   open(sys.argv[1], 'w').write(html)
+   " ~/diff-viewer/<filename> ~/diff-viewer/frappe.css
+   ```
 
 4. Resolve this host's tailnet URL and report it to the user:
    ```bash

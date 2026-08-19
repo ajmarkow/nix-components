@@ -1,0 +1,143 @@
+/* Catppuccin Frappé theme for diff2html output */
+:root {
+  --ctp-base: #303446;
+  --ctp-mantle: #292c3c;
+  --ctp-crust: #232634;
+  --ctp-surface0: #414559;
+  --ctp-surface1: #51576d;
+  --ctp-overlay0: #737994;
+  --ctp-text: #c6d0f5;
+  --ctp-subtext0: #a5adce;
+  --ctp-red: #e78284;
+  --ctp-green: #a6d189;
+  --ctp-yellow: #e5c890;
+  --ctp-blue: #8caaee;
+  --ctp-mauve: #ca9ee6;
+  --ctp-peach: #ef9f76;
+}
+
+body {
+  background-color: var(--ctp-crust);
+  color: var(--ctp-text);
+}
+
+.d2h-wrapper {
+  background-color: var(--ctp-base);
+  color: var(--ctp-text);
+}
+
+.d2h-file-header {
+  background-color: var(--ctp-mantle);
+  border-bottom: 1px solid var(--ctp-surface0);
+  color: var(--ctp-text);
+}
+
+.d2h-file-wrapper {
+  border: 1px solid var(--ctp-surface0);
+  background-color: var(--ctp-base);
+}
+
+.d2h-file-name {
+  color: var(--ctp-text);
+}
+
+.d2h-file-stats .d2h-lines-added {
+  color: var(--ctp-green);
+}
+
+.d2h-file-stats .d2h-lines-deleted {
+  color: var(--ctp-red);
+}
+
+.d2h-ins {
+  background-color: rgba(166, 209, 137, 0.15);
+}
+
+.d2h-ins .d2h-code-line-ctn ins,
+.d2h-ins ins {
+  background-color: rgba(166, 209, 137, 0.35);
+  text-decoration: none;
+}
+
+.d2h-del {
+  background-color: rgba(231, 130, 132, 0.15);
+}
+
+.d2h-del .d2h-code-line-ctn del,
+.d2h-del del {
+  background-color: rgba(231, 130, 132, 0.35);
+  text-decoration: none;
+}
+
+.d2h-code-line-prefix,
+.d2h-code-line-ctn {
+  color: var(--ctp-text);
+  background-color: transparent;
+}
+
+.d2h-code-side-linenumber,
+.d2h-code-linenumber {
+  color: var(--ctp-overlay0);
+  background-color: var(--ctp-base);
+  border-right: 1px solid var(--ctp-surface0);
+}
+
+.d2h-code-line-prefix {
+  color: var(--ctp-subtext0);
+}
+
+.d2h-info {
+  background-color: var(--ctp-surface0);
+  color: var(--ctp-subtext0);
+}
+
+.d2h-file-list-wrapper {
+  background-color: var(--ctp-mantle);
+  color: var(--ctp-text);
+}
+
+.d2h-file-list-title,
+.d2h-file-list-line {
+  color: var(--ctp-text);
+}
+
+.d2h-file-switch {
+  color: var(--ctp-blue);
+}
+
+.d2h-tag {
+  background-color: var(--ctp-surface0);
+  color: var(--ctp-text);
+}
+
+.d2h-deleted-tag {
+  border: 1px solid var(--ctp-red);
+  color: var(--ctp-red);
+}
+
+.d2h-added-tag {
+  border: 1px solid var(--ctp-green);
+  color: var(--ctp-green);
+}
+
+.d2h-changed-tag {
+  border: 1px solid var(--ctp-yellow);
+  color: var(--ctp-yellow);
+}
+
+.d2h-moved-tag {
+  border: 1px solid var(--ctp-mauve);
+  color: var(--ctp-mauve);
+}
+
+.d2h-cntx {
+  background-color: var(--ctp-base);
+}
+
+.d2h-emptyplaceholder {
+  background-color: var(--ctp-mantle);
+}
+
+a {
+  color: var(--ctp-blue);
+}
