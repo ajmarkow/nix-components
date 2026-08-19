@@ -239,7 +239,7 @@
   - ❌ Manual `.env` setup → ✅ Define in `devenv.nix`
   - ❌ Imperative `mkdir` or `ln -s` → ✅ Use Nix `home.file` or `home.sessionVariables`
 
-  **Run `rtk nix flake check` before every commit when working in a flake repo.** The check must pass before the commit proceeds.
+  **A managed pre-commit hook runs `nix flake check --no-build` automatically when a commit stages `.nix` files in a flake repo — do not run it by hand unless the user asks.** The commit is blocked if the check fails, so a successful commit already means the flake evaluates. Still run `nix flake check --no-build` manually when you need to verify evaluation *before* committing (e.g. mid-task) or when explicitly asked.
 
   ## Flake Updates — Targeted by Default
 
