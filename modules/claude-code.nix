@@ -360,9 +360,21 @@ in
         type = "http";
         url = "https://mcp.context7.com/mcp/oauth";
       };
+      # The endpoint 401s without a Bearer token and its authorization server
+      # (github.com/login/oauth) has no dynamic client registration, so Claude
+      # Code cannot self-register an OAuth client the way it does for context7
+      # — it just drops the server at connect time, silently. A PAT in the
+      # header is the only way this server ever loads.
+      #
+      # ${GITHUB_MCP_TOKEN} is expanded by Claude Code from the process env at
+      # load time, NOT by Nix — this literal string lands in the generated
+      # JSON unresolved, same pattern as the n8n server nix-server adds in
+      # hosts/nixos-host/default.nix. Each host is responsible for getting
+      # GITHUB_MCP_TOKEN into the environment Claude Code actually runs in.
       github = {
         type = "http";
         url = "https://api.githubcopilot.com/mcp/";
+        headers = { Authorization = "Bearer \${GITHUB_MCP_TOKEN}"; };
       };
       playwright = {
         command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
