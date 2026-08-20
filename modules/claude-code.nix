@@ -1,11 +1,9 @@
 { config
-, pkgs
 , lib
 , paseoSkillsSource
 , superpowersSkillsSource
 , obsidianSkillsSource
 , awsSkillsSource
-, claudeCodeNix
 , ...
 }:
 let
@@ -342,45 +340,8 @@ in
 
   programs.claude-code = {
     enable = true;
-    package = claudeCodeNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
-    enableMcpIntegration = true;
+    package = null;
     commands = skillCommands;
-    mcpServers = {
-      nixos = {
-        command = "uvx";
-        args = [ "mcp-nixos" ];
-        # uvx defaults to downloading its own dynamically-linked CPython build,
-        # which can't run on NixOS without nix-ld. Point it at a nixpkgs Python
-        # instead so it works on every host without extra system config.
-        env = {
-          UV_PYTHON = "${pkgs.python3}/bin/python3";
-        };
-      };
-      context7 = {
-        type = "http";
-        url = "https://mcp.context7.com/mcp/oauth";
-      };
-      # The endpoint 401s without a Bearer token and its authorization server
-      # (github.com/login/oauth) has no dynamic client registration, so Claude
-      # Code cannot self-register an OAuth client the way it does for context7
-      # — it just drops the server at connect time, silently. A PAT in the
-      # header is the only way this server ever loads.
-      #
-      # ${GITHUB_MCP_TOKEN} is expanded by Claude Code from the process env at
-      # load time, NOT by Nix — this literal string lands in the generated
-      # JSON unresolved, same pattern as the n8n server nix-server adds in
-      # hosts/nixos-host/default.nix. Each host is responsible for getting
-      # GITHUB_MCP_TOKEN into the environment Claude Code actually runs in.
-      github = {
-        type = "http";
-        url = "https://api.githubcopilot.com/mcp/";
-        headers = { Authorization = "Bearer \${GITHUB_MCP_TOKEN}"; };
-      };
-      playwright = {
-        command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
-        args = [ "--headless" "--isolated" ];
-      };
-    };
     settings = {
       permissions = {
         allow = [

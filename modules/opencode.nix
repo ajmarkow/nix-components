@@ -36,7 +36,6 @@ in
   programs.opencode = {
     enable = true;
     package = pkgs.opencode;
-    enableMcpIntegration = true;
     context = import ./lib/claude-md-content.nix;
     settings = {
       command = opencodeCommands;
@@ -67,27 +66,6 @@ in
         # for this provider without needing to enumerate Bedrock model IDs.
         amazon-bedrock = {
           whitelist = [ ];
-        };
-      };
-      mcp = {
-        nixos = {
-          type = "local";
-          command = [ "uvx" "mcp-nixos" ];
-          environment = {
-            UV_PYTHON = "${pkgs.python3}/bin/python3";
-          };
-        };
-        context7 = {
-          type = "remote";
-          url = "https://mcp.context7.com/mcp/oauth";
-        };
-        github = {
-          type = "remote";
-          url = "https://api.githubcopilot.com/mcp/";
-        };
-        playwright = {
-          type = "local";
-          command = [ "${pkgs.playwright-mcp}/bin/playwright-mcp" "--headless" "--isolated" ];
         };
       };
     };
