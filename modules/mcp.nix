@@ -1,7 +1,8 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, claudeCodeNix, codexCliNix, ... }:
 let
   cfg = config.nix-components.mcp;
   mcpLib = import ./lib/mcp.nix { inherit lib pkgs; };
+  system = pkgs.stdenv.hostPlatform.system;
 
   # extraProfiles lets a consuming host (e.g. nix-server's n8n server, which only
   # makes sense on that one host) merge in host-local profiles alongside the
@@ -121,15 +122,26 @@ in
       [ (pkgs.callPackage ../pkgs/mcp-profile.nix { inherit profileNames fragmentDir; }) ]
       # Only install each wrapper when that agent is actually enabled in this
       # home config -- e.g. nix-server's root user imports claude-code but not
-      # codex, so config.programs.codex.finalPackage there is unusable and
-      # installing a broken `codex` wrapper would be pointless.
+      # codex, so a `codex` wrapper there would be pointless.
+      #
+      # Wrap the RAW claude-code-nix/codex-cli-nix package directly, not
+      # config.programs.{claude-code,codex}.finalPackage -- those modules'
+      # own `package` option is set to null (claude-code.nix / codex.nix)
+      # specifically so upstream home-manager's own
+      # `home.packages = lib.mkIf (cfg.package != null) [ cfg.finalPackage ];`
+      # (modules/programs/claude-code.nix in home-manager) does NOT also try
+      # to install the raw binary -- that would collide with the wrapper
+      # below, since both provide bin/claude. finalPackage is therefore
+      # null/unusable here by design.
       ++ lib.optional (config.programs.claude-code.enable or false) (
         pkgs.callPackage ../pkgs/claude-mcp-wrapper.nix {
-          claudeCodePackage = config.programs.claude-code.finalPackage;
+          claudeCodePackage = claudeCodeNix.packages.${system}.default;
         }
       )
       ++ lib.optional (config.programs.codex.enable or false) (
-        pkgs.callPackage ../pkgs/codex-mcp-wrapper.nix { codexPackage = config.programs.codex.finalPackage; }
+        pkgs.callPackage ../pkgs/codex-mcp-wrapper.nix {
+          codexPackage = codexCliNix.packages.${system}.default;
+        }
       );
   };
 }
