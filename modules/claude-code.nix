@@ -209,13 +209,26 @@ in
 
       CMD=$(jq -r '.tool_input.command // empty')
 
-      # GIT_SSH_COMMAND="ssh -i key" only configures git's transport, so it is a git
-      # operation rather than an interactive host connection. Strip the assignment
-      # before scanning; a bare `ssh` elsewhere in the command still matches.
-      SCAN=$(printf '%s' "$CMD" | sed -E 's/GIT_SSH_COMMAND=("[^"]*"|[^[:space:]]*)//g')
+      # Stage 1 — cd and bare rg. Checked for every command, git included.
+      if echo "$CMD" | grep -Eq '^\s*rg\b|(^|;|&&)\s*cd\s'; then
+        echo "Blocked: use rtk semble search instead of rg. Use absolute paths instead of cd." >&2
+        exit 2
+      fi
 
-      if echo "$SCAN" | grep -Eq '(^|[^[:alnum:]._-])(ssh|scp|sftp)([[:space:]]|$)|^\s*rg\b|(^|;|&&)\s*cd\s'; then
-        echo "Blocked: no direct ssh/scp/sftp to a host. ssh-add, ssh-keygen, .ssh/ paths and git-over-SSH are allowed. Use rtk semble search instead of rg. Use absolute paths instead of cd." >&2
+      # Stage 2 — ssh/scp/sftp. Skipped for git, which cannot open an interactive
+      # host connection and routinely carries "ssh" as free text (commit messages,
+      # grep patterns, branch names). Trying to tell argument from message text with
+      # one regex is what kept blocking legitimate commits.
+      # GIT_SSH_COMMAND="ssh -i key" only configures git's transport, so drop the
+      # assignment before deciding whether this is a git command.
+      SCAN=$(printf '%s' "$CMD" | sed -E 's/^[[:space:]]*GIT_SSH_COMMAND=("[^"]*"|[^[:space:]]*)[[:space:]]*//')
+
+      case "$SCAN" in
+        git\ *|rtk\ git\ *|/*/git\ *) exit 0 ;;
+      esac
+
+      if echo "$SCAN" | grep -Eq '(^|[^[:alnum:]._-])(ssh|scp|sftp)([[:space:]]|$)'; then
+        echo "Blocked: no direct ssh/scp/sftp to a host. ssh-add, ssh-keygen, .ssh/ paths and git commands are allowed." >&2
         exit 2
       fi
 
