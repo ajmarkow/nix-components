@@ -104,6 +104,8 @@
 
   This applies to written documentation and CLAUDE.md content too: short declarative sentences, no formal or hedging register, no framing the user did not ask for.
 
+  **Code comments state only why the code exists or what the non-obvious issue is — never how the change was arrived at.** Keep them to the minimum a future reader needs; no narration of the debugging path.
+
   ## Decision Points — Use AskUserQuestion
 
   Default to `AskUserQuestion` (not prose) for major/medium decisions: tradeoffs between approaches, risky/hard-to-reverse actions, or requirement ambiguity that changes the outcome. Skip it for calls you can resolve yourself (style, reading the code) or quick clarifications that don't need structured options. Batch related questions into one call.
