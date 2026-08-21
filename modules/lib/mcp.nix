@@ -55,6 +55,16 @@
       };
     };
 
+    # OpenRouter MCP -- model catalog, credit lookup, live benchmarks, and test
+    # inference. Uses browser OAuth on first connect; no static API key needed.
+    # Activate explicitly: `mcp-profile openrouter` (or add to enabledProfiles).
+    openrouter = {
+      servers.openrouter = {
+        kind = "oauth-http";
+        url = "https://mcp.openrouter.ai/mcp";
+      };
+    };
+
     # Personal-workflow tooling -- deliberately excluded from the `full` profile
     # set: not something every general coding session should connect to by
     # default. Activate explicitly: `mcp-profile productivity`.
@@ -107,6 +117,11 @@
             # its own runtime -- never resolved by Nix, never written to the store.
             headers.${s.headerName} = "${s.valuePrefix}\${${s.envVar}}";
           }
+        else if s.kind == "oauth-http" then
+          {
+            type = "http";
+            url = s.url;
+          }
         else
           {
             # auth-stdio
@@ -131,6 +146,11 @@
             url = s.url;
             # opencode's own documented convention -- distinct from claude-code's.
             headers.${s.headerName} = "${s.valuePrefix}{env:${s.envVar}}";
+          }
+        else if s.kind == "oauth-http" then
+          {
+            type = "remote";
+            url = s.url;
           }
         else
           {
@@ -166,6 +186,11 @@
 
             [mcp_servers.${name}.env_http_headers]
             ${s.headerName} = "${s.envVar}"
+          ''
+        else if s.kind == "oauth-http" then
+          ''
+            [mcp_servers.${name}]
+            url = "${s.url}"
           ''
         else
           ''
