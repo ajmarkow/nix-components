@@ -67,6 +67,9 @@ in
         amazon-bedrock = {
           whitelist = [ ];
         };
+        openrouter = {
+          options.apiKey = "{env:OPENROUTER_API_KEY}";
+        };
       };
     };
   };
