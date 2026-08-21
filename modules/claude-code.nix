@@ -2,6 +2,8 @@
 , lib
 , pkgs
 , claudeCodeNix
+, codexCliNix
+, codexPluginCcSource
 , paseoSkillsSource
 , superpowersSkillsSource
 , obsidianSkillsSource
@@ -37,6 +39,10 @@ in
 # The statusline and hooks below need `jq`, `gh`, and `git` on PATH. Those come from
 # ./packages.nix, which owns tool packages for all hosts.
 {
+  # codex-plugin-cc's hooks/commands shell out to the `codex` CLI, so it must
+  # be on PATH regardless of whether ./codex.nix is also imported.
+  home.packages = [ codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default ];
+
   home.file.".claude/statusline-command.sh" = {
     executable = true;
     text = ''
@@ -344,6 +350,10 @@ in
     enable = true;
     package = claudeCodeNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     commands = skillCommands;
+    # Lets Claude Code delegate tasks to / request review from the codex CLI.
+    # Claude-only: opencode.nix and codex.nix don't understand the
+    # .claude-plugin format, so this isn't fed through skills.nix.
+    plugins = [ "${codexPluginCcSource}/plugins/codex" ];
     settings = {
       permissions = {
         allow = [

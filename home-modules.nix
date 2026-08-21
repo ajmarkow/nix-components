@@ -26,21 +26,38 @@ let
     "opencode.nix"
   ];
 
+  # claude-code.nix, codex.nix, and mcp.nix all need the raw claude/codex CLI
+  # packages (mcp.nix's reason is below). Same dedupe-by-key rationale as
+  # skillSourceArgs above: three separate homeModules independently setting
+  # `_module.args.claudeCodeNix`/`codexCliNix` collide when co-imported.
+  cliPackageArgs = {
+    key = "nix-components-cli-package-args";
+    config._module.args = {
+      claudeCodeNix = inputs.claude-code-nix;
+      codexCliNix = inputs.codex-cli-nix;
+    };
+  };
+  namesNeedingCliPackageArgs = [
+    "claude-code.nix"
+    "codex.nix"
+    "mcp.nix"
+  ];
+
   toEntry =
     name:
     lib.nameValuePair (lib.removeSuffix ".nix" name) (
       { ... }:
       {
-        imports = [ (moduleDir + "/${name}") ] ++ lib.optional (builtins.elem name namesNeedingSkillArgs) skillSourceArgs;
+        imports =
+          [ (moduleDir + "/${name}") ]
+          ++ lib.optional (builtins.elem name namesNeedingSkillArgs) skillSourceArgs
+          ++ lib.optional (builtins.elem name namesNeedingCliPackageArgs) cliPackageArgs;
       }
       // lib.optionalAttrs (name == "claude-code.nix") {
         _module.args.uv2nix = inputs.uv2nix;
         _module.args.pyprojectNix = inputs.pyproject-nix;
         _module.args.pyprojectBuildSystems = inputs.pyproject-build-systems;
-        _module.args.claudeCodeNix = inputs.claude-code-nix;
-      }
-      // lib.optionalAttrs (name == "codex.nix") {
-        _module.args.codexCliNix = inputs.codex-cli-nix;
+        _module.args.codexPluginCcSource = inputs.codex-plugin-cc;
       }
       // lib.optionalAttrs (name == "packages.nix") {
         _module.args.backlogMd = inputs.backlog-md;
@@ -55,8 +72,6 @@ let
         # install the raw binary -- that would collide with mcp.nix's wrapper,
         # since both provide bin/claude. finalPackage is therefore null/unset
         # for our purposes and unusable here.
-        _module.args.claudeCodeNix = inputs.claude-code-nix;
-        _module.args.codexCliNix = inputs.codex-cli-nix;
       }
     );
 in

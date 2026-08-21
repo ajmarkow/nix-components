@@ -27,6 +27,10 @@
       url = "github:zxkane/aws-skills";
       flake = false;
     };
+    codex-plugin-cc = {
+      url = "github:openai/codex-plugin-cc";
+      flake = false;
+    };
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
       inputs.nixpkgs.follows = "nixpkgs";
