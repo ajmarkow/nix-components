@@ -129,6 +129,7 @@
   - **Use existing agent** if it is directly relevant to the task/message being sent (same repo, same module, immediate follow-up, or closely related work)
   - **Spawn new agent** otherwise (different context, different area, unrelated work)
   - **Default model:** Use Sonnet when spawning new agents
+  - **Always tell spawned agents to report back:** any agent you spawn (paseo agent, subagent, workflow) must be instructed to send its results back to you when done — the user should never have to ask you to manually relay them
 
   Find the target agent, then send:
   ```bash
