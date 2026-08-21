@@ -41,27 +41,25 @@
       };
     };
 
-    context7 = {
-      servers.context7 = {
-        kind = "auth-http";
-        # The /mcp/oauth endpoint requires an interactive OAuth flow that never
-        # completes for a non-interactive session. The plain /mcp endpoint works
-        # fully unauthenticated and additionally accepts an API key header for a
-        # higher rate limit -- no OAuth involved either way.
-        url = "https://mcp.context7.com/mcp";
-        headerName = "Context7-API-Key";
-        envVar = "CONTEXT7_API_KEY";
-        valuePrefix = "";
-      };
-    };
-
-    # OpenRouter MCP -- model catalog, credit lookup, live benchmarks, and test
-    # inference. Uses browser OAuth on first connect; no static API key needed.
-    # Activate explicitly: `mcp-profile openrouter` (or add to enabledProfiles).
-    openrouter = {
-      servers.openrouter = {
-        kind = "oauth-http";
-        url = "https://mcp.openrouter.ai/mcp";
+    # extras: additional developer tools beyond the primary stdio servers --
+    # remote HTTP servers useful in most sessions but not strictly required.
+    extras = {
+      servers = {
+        context7 = {
+          kind = "auth-http";
+          # The /mcp/oauth endpoint requires an interactive OAuth flow that never
+          # completes for a non-interactive session. The plain /mcp endpoint works
+          # fully unauthenticated and additionally accepts an API key header for a
+          # higher rate limit -- no OAuth involved either way.
+          url = "https://mcp.context7.com/mcp";
+          headerName = "Context7-API-Key";
+          envVar = "CONTEXT7_API_KEY";
+          valuePrefix = "";
+        };
+        openrouter = {
+          kind = "oauth-http";
+          url = "https://mcp.openrouter.ai/mcp";
+        };
       };
     };
 

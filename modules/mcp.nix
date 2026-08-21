@@ -57,7 +57,7 @@ in
       type = lib.types.listOf lib.types.str;
       # = current per-agent behavior before this module existed; also what every
       # deploy resets a runtime `mcp-profile` swap back to.
-      default = [ "core" "github" "context7" ];
+      default = [ "core" "github" "extras" ];
       description = ''
         Default MCP server profiles activated on deploy. Names must exist in
         modules/lib/mcp.nix's `profiles` or in `extraProfiles`. Override at
