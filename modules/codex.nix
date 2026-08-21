@@ -1,5 +1,7 @@
 {
   lib,
+  pkgs,
+  codexCliNix,
   paseoSkillsSource,
   superpowersSkillsSource,
   obsidianSkillsSource,
@@ -19,7 +21,7 @@ in
 {
   programs.codex = {
     enable = true;
-    package = null;
+    package = codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     context = import ./lib/claude-md-content.nix;
     skills = skillDirs;
   };

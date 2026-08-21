@@ -1,5 +1,7 @@
 { config
 , lib
+, pkgs
+, claudeCodeNix
 , paseoSkillsSource
 , superpowersSkillsSource
 , obsidianSkillsSource
@@ -340,7 +342,7 @@ in
 
   programs.claude-code = {
     enable = true;
-    package = null;
+    package = claudeCodeNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     commands = skillCommands;
     settings = {
       permissions = {

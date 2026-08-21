@@ -169,15 +169,11 @@
           ''
         else
           ''
-            # auth-stdio -- codex may inherit its own process env into the spawned
-            # subprocess automatically; this explicit mapping is the conservative
-            # fallback verified to at least not break anything.
+            # auth-stdio -- env_vars forwards these names from codex's environment.
             [mcp_servers.${name}]
             command = "${s.command}"
             args = ${builtins.toJSON s.args}
-
-            [mcp_servers.${name}.env]
-            ${s.envVar} = "${s.envVar}"
+            env_vars = ${builtins.toJSON [ s.envVar ]}
           ''
       ) profile.servers
     );

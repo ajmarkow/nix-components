@@ -48,9 +48,8 @@ let
       // lib.optionalAttrs (name == "mcp.nix") {
         # mcp.nix's claude/codex wrapper packages need the raw claude/codex
         # binaries directly, NOT via config.programs.claude-code.finalPackage /
-        # config.programs.codex.finalPackage -- those modules set
-        # programs.{claude-code,codex}.package = null (see claude-code.nix /
-        # codex.nix) specifically so home-manager's own `home.packages =
+        # config.programs.codex.finalPackage. mcp.nix forces those package
+        # options to null while enabled so home-manager's own `home.packages =
         # lib.mkIf (cfg.package != null) [ cfg.finalPackage ];` (upstream
         # home-manager, modules/programs/claude-code.nix) does NOT also try to
         # install the raw binary -- that would collide with mcp.nix's wrapper,

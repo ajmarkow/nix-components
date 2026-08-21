@@ -31,12 +31,22 @@ writeShellApplication {
       return 1
     }
 
+    profiles=()
     for profile in "$@"; do
       if ! is_known_profile "$profile"; then
         echo "Unknown MCP profile: $profile" >&2
         echo "Valid profiles: ${lib.concatStringsSep ", " profileNames}" >&2
         exit 1
       fi
+
+      already_selected=false
+      for selected_profile in "''${profiles[@]}"; do
+        if [[ "$profile" == "$selected_profile" ]]; then
+          already_selected=true
+          break
+        fi
+      done
+      [[ "$already_selected" == true ]] || profiles+=("$profile")
     done
 
     if [[ ! -d "$fragment_dir" ]]; then
@@ -47,7 +57,7 @@ writeShellApplication {
     claude_fragments=()
     opencode_fragments=()
     codex_fragments=()
-    for profile in "$@"; do
+    for profile in "''${profiles[@]}"; do
       claude_fragment="$fragment_dir/claude-code/$profile.json"
       opencode_fragment="$fragment_dir/opencode/$profile.json"
       codex_fragment="$fragment_dir/codex/$profile.toml"
@@ -87,7 +97,7 @@ writeShellApplication {
     mv "$opencode_temp" "$claude_dir/opencode-active.json"
     mv "$codex_temp" "$codex_dir/active.config.toml"
 
-    echo "Active MCP profiles: $*"
+    echo "Active MCP profiles: ''${profiles[*]}"
     echo "Start a new agent session for this change to take effect. MCP servers connect at session start."
     echo "This is a session-scoped override. The Nix-declared default returns on the next deploy."
   '';

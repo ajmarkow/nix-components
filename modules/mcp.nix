@@ -19,18 +19,21 @@ let
 
   fragmentDir = "${config.home.homeDirectory}/.local/share/nix-components/mcp-profiles";
 
-  # One fragment file per agent per profile, installed read-only into the store.
-  # These never contain resolved secret VALUES -- only literal ${VAR}/{env:VAR}
-  # placeholders or env-var *names* -- so they're safe to live in the world-
-  # readable Nix store like everything else here.
-  fragmentFiles = lib.concatMapAttrs (name: profile: {
-    ".local/share/nix-components/mcp-profiles/claude-code/${name}.json".source =
+  # One store artifact per agent per profile. These never contain resolved
+  # secret values, only placeholders or environment variable names.
+  perProfileArtifacts = lib.mapAttrs (name: profile: {
+    claudeJson =
       (pkgs.formats.json { }).generate "claude-mcp-${name}.json" (mcpLib.toClaudeCodeFragment profile);
-    ".local/share/nix-components/mcp-profiles/opencode/${name}.json".source =
+    opencodeJson =
       (pkgs.formats.json { }).generate "opencode-mcp-${name}.json" (mcpLib.toOpencodeFragment profile);
-    ".local/share/nix-components/mcp-profiles/codex/${name}.toml".text =
-      mcpLib.toCodexFragment profile;
+    codexToml = pkgs.writeText "codex-mcp-${name}.toml" (mcpLib.toCodexFragment profile);
   }) allProfiles;
+
+  fragmentFiles = lib.concatMapAttrs (name: artifacts: {
+    ".local/share/nix-components/mcp-profiles/claude-code/${name}.json".source = artifacts.claudeJson;
+    ".local/share/nix-components/mcp-profiles/opencode/${name}.json".source = artifacts.opencodeJson;
+    ".local/share/nix-components/mcp-profiles/codex/${name}.toml".source = artifacts.codexToml;
+  }) perProfileArtifacts;
 
   # Shared "merge these profile names into one agent-active file" logic --
   # pkgs/mcp-profile.nix (the runtime swap script) re-implements the same
@@ -38,11 +41,11 @@ let
   # and a runtime swap always produce byte-identical output for the same input.
   renderClaudeActive = names: pkgs.runCommand "claude-mcp-active.json" { nativeBuildInputs = [ pkgs.jq ]; } ''
     jq -s '{mcpServers: (map(.mcpServers) | add)}' \
-      ${lib.concatMapStringsSep " " (n: "${fragmentDir}/claude-code/${n}.json") names} > $out
+      ${lib.concatMapStringsSep " " (n: "${perProfileArtifacts.${n}.claudeJson}") names} > $out
   '';
   renderOpencodeActive = names: pkgs.runCommand "opencode-mcp-active.json" { nativeBuildInputs = [ pkgs.jq ]; } ''
     jq -s '{mcp: (map(.mcp) | add)}' \
-      ${lib.concatMapStringsSep " " (n: "${fragmentDir}/opencode/${n}.json") names} > $out
+      ${lib.concatMapStringsSep " " (n: "${perProfileArtifacts.${n}.opencodeJson}") names} > $out
   '';
   renderCodexActive = names: lib.concatMapStringsSep "\n" (n: mcpLib.toCodexFragment allProfiles.${n}) names;
 in
@@ -93,7 +96,21 @@ in
         assertion = builtins.all (n: builtins.elem n profileNames) cfg.enabledProfiles;
         message = "nix-components.mcp.enabledProfiles references a profile name that doesn't exist in modules/lib/mcp.nix's profiles or nix-components.mcp.extraProfiles";
       }
+      {
+        assertion = lib.length cfg.enabledProfiles == lib.length (lib.unique cfg.enabledProfiles);
+        message = "nix-components.mcp.enabledProfiles contains duplicate profile names";
+      }
+      {
+        assertion =
+          lib.length (lib.attrNames mcpLib.profiles) + lib.length (lib.attrNames cfg.extraProfiles)
+          == lib.length (lib.attrNames allProfiles);
+        message = "nix-components.mcp.extraProfiles defines a profile name that collides with a built-in profile in modules/lib/mcp.nix";
+      }
     ];
+
+    programs.claude-code.package =
+      lib.mkIf (config.programs.claude-code.enable or false) (lib.mkForce null);
+    programs.codex.package = lib.mkIf (config.programs.codex.enable or false) (lib.mkForce null);
 
     home.file = fragmentFiles // {
       # "Active" files -- dedicated, agent-read-only, never written by the agent
@@ -125,9 +142,8 @@ in
       # codex, so a `codex` wrapper there would be pointless.
       #
       # Wrap the RAW claude-code-nix/codex-cli-nix package directly, not
-      # config.programs.{claude-code,codex}.finalPackage -- those modules'
-      # own `package` option is set to null (claude-code.nix / codex.nix)
-      # specifically so upstream home-manager's own
+      # config.programs.{claude-code,codex}.finalPackage. The package options
+      # are forced to null above so upstream home-manager's own
       # `home.packages = lib.mkIf (cfg.package != null) [ cfg.finalPackage ];`
       # (modules/programs/claude-code.nix in home-manager) does NOT also try
       # to install the raw binary -- that would collide with the wrapper
