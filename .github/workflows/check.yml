@@ -1,0 +1,100 @@
+name: Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/**'
+      - '**.md'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/**'
+      - '**.md'
+
+jobs:
+  build:
+    name: nix flake check (${{ matrix.system }})
+    # Unlike the host repos there is no single deploy target to match: this
+    # flake is consumed by nix-mac (aarch64-darwin) and by nix-server plus
+    # nix-pixelbook (x86_64-linux). `nix flake check` only covers the runner's
+    # OWN system and prints "omitted these incompatible systems" for the rest,
+    # so a single runner would leave the other arch unguarded. Both are checked
+    # because breakage here really is per-system: the bin/claude wrapper
+    # collision fixed in 4e422ba only surfaced on darwin.
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      # Report both arches on a failure rather than cancelling the sibling —
+      # knowing whether a break is one-arch or both is the first thing worth
+      # knowing here.
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubicloud-standard-2
+          - system: aarch64-darwin
+            runner: avrea-macos-latest-8-vcpu
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            # Authenticate github: flake-input fetches so they use the API's
+            # higher authenticated rate limit — unauthenticated tarball fetches
+            # get HTTP 429 (Too Many Requests) on busy runners.
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            # Honour this flake's own nixConfig (codex-cli.cachix.org), which
+            # Nix otherwise refuses with "ignoring untrusted flake
+            # configuration setting 'extra-substituters'" and then rebuilds the
+            # codex CLI from source.
+            accept-flake-config = true
+
+      # Same cache and pattern as nix-server's deploy.yml. Pushing matters more
+      # here than in the host repos: this flake's packages are what they all
+      # pull in, so a populated cache turns their builds into downloads.
+      - uses: cachix/cachix-action@v17
+        with:
+          name: ajmarkow
+          authToken: ${{ secrets.INFISICAL_CACHIX_AUTH_TOKEN }}
+
+      # No --no-build: a full check is what actually runs
+      # checks.<system>.diff-viewer (the tests/ unittest), which --no-build
+      # silently reduces to "derivation evaluated to ...drv" without executing
+      # a thing. No --impure either, unlike nix-mac's Check — nothing in this
+      # repo reads builtins.getEnv.
+      - name: Check flake
+        run: nix flake check
+
+      # `nix flake check` builds `checks` but only *evaluates* `packages`, so
+      # without this a package that evaluates fine and fails to compile would
+      # pass. Enumerated dynamically rather than hardcoded because
+      # per-system.nix callPackage's every pkgs/*.nix automatically — a
+      # hardcoded list would silently stop covering newly added packages.
+      # Deliberately jq-free: nix's own --raw + concatStringsSep avoids
+      # depending on jq being present on both runner images.
+      - name: Build packages
+        run: |
+          pkgs=$(nix eval --raw ".#packages.${{ matrix.system }}" \
+            --apply 'ps: builtins.concatStringsSep " " (builtins.attrNames ps)')
+          echo "Building: $pkgs"
+          for p in $pkgs; do
+            echo "::group::$p"
+            nix build --no-link --print-out-paths ".#packages.${{ matrix.system }}.$p"
+            echo "::endgroup::"
+          done
+
+  notify:
+    needs: build
+    if: always()
+    uses: ajmarkow/utilities/.github/workflows/telegram-notify.yml@main
+    with:
+      # Aggregated across the matrix: 'success' only when both arches pass.
+      status: ${{ needs.build.result }}
+    secrets:
+      TELEGRAM_TOKEN: ${{ secrets.INFISICAL_AJ_ALERTS_TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.INFISICAL_TELEGRAM_CHAT_ID }}
