@@ -41,7 +41,17 @@ in
 {
   # codex-plugin-cc's hooks/commands shell out to the `codex` CLI, so it must
   # be on PATH regardless of whether ./codex.nix is also imported.
-  home.packages = [ codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default ];
+  #
+  # Only add the raw package when nothing else already provides bin/codex,
+  # otherwise buildEnv fails with "two given paths contain a conflicting
+  # subpath: .../codex-<ver>/bin/codex and .../codex/bin/codex". When
+  # ./codex.nix is imported it sets programs.codex.enable = true, and either
+  # upstream home-manager (via programs.codex.package) or ./mcp.nix's
+  # codex-mcp-wrapper -- which is gated on that same option -- installs codex
+  # already. The two conditions are exact complements, so codex is always on
+  # PATH exactly once.
+  home.packages = lib.optional (!(config.programs.codex.enable or false))
+    codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
   home.file.".claude/statusline-command.sh" = {
     executable = true;

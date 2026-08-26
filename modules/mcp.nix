@@ -48,6 +48,13 @@ let
       ${lib.concatMapStringsSep " " (n: "${perProfileArtifacts.${n}.opencodeJson}") names} > $out
   '';
   renderCodexActive = names: lib.concatMapStringsSep "\n" (n: mcpLib.toCodexFragment allProfiles.${n}) names;
+
+  # Claude Code pinned to the active MCP profile file. Installed via
+  # programs.claude-code.package rather than home.packages -- see the comment
+  # on that assignment below for why the two wrappers have to nest.
+  claudeMcpWrapper = pkgs.callPackage ../pkgs/claude-mcp-wrapper.nix {
+    claudeCodePackage = claudeCodeNix.packages.${system}.default;
+  };
 in
 {
   options.nix-components.mcp = {
@@ -108,8 +115,35 @@ in
       }
     ];
 
+    # Hand upstream home-manager our MCP wrapper AS its claude-code package,
+    # instead of nulling the package out and installing the wrapper ourselves
+    # via home.packages. Two wrappers both want to own bin/claude, and only
+    # nesting them satisfies both:
+    #
+    #   upstream finalPackage  ->  claudeMcpWrapper  ->  raw claude-code-nix
+    #
+    # Upstream builds `plugins` (modules/claude-code.nix sets one for
+    # codex-plugin-cc) by symlinkJoin'ing cfg.package, renaming bin/claude to
+    # .claude-wrapped, and re-execing it with `--plugin-dir <path>` args
+    # (home-manager modules/programs/claude-code.nix). That is impossible with a
+    # null package, which is why it asserts "`programs.claude-code.package`
+    # cannot be null when `mcpServers`, `lspServers`, `enableMcpIntegration`, or
+    # `plugins` is configured". Nulling it here therefore broke the moment a
+    # plugin was added.
+    #
+    # Nesting keeps one bin/claude on PATH and lands both flag sets on the real
+    # binary: upstream's script execs `.claude-wrapped --plugin-dir X "$@"`, and
+    # claudeMcpWrapper execs `claude --strict-mcp-config --mcp-config <active>
+    # --plugin-dir X <user args>`. Upstream's own
+    # `home.packages = mkIf (cfg.package != null) [ cfg.finalPackage ]` now
+    # installs the nested result, so home.packages below must NOT also add
+    # claudeMcpWrapper -- that would reintroduce the collision.
     programs.claude-code.package =
-      lib.mkIf (config.programs.claude-code.enable or false) (lib.mkForce null);
+      lib.mkIf (config.programs.claude-code.enable or false) (lib.mkForce claudeMcpWrapper);
+    # Codex needs no equivalent: upstream's modules/programs/codex.nix has no
+    # package-null assertion and no home.packages/finalPackage wiring, so it
+    # never installs a competing bin/codex and the wrapper below is the only
+    # provider.
     programs.codex.package = lib.mkIf (config.programs.codex.enable or false) (lib.mkForce null);
 
     home.file = fragmentFiles // {
@@ -137,23 +171,15 @@ in
 
     home.packages =
       [ (pkgs.callPackage ../pkgs/mcp-profile.nix { inherit profileNames fragmentDir; }) ]
-      # Only install each wrapper when that agent is actually enabled in this
-      # home config -- e.g. nix-server's root user imports claude-code but not
-      # codex, so a `codex` wrapper there would be pointless.
+      # No claude entry here on purpose: claudeMcpWrapper goes in via
+      # programs.claude-code.package (see above), and upstream home-manager
+      # installs the nested finalPackage itself. Adding it here too would put
+      # two bin/claude in the profile.
       #
-      # Wrap the RAW claude-code-nix/codex-cli-nix package directly, not
-      # config.programs.{claude-code,codex}.finalPackage. The package options
-      # are forced to null above so upstream home-manager's own
-      # `home.packages = lib.mkIf (cfg.package != null) [ cfg.finalPackage ];`
-      # (modules/programs/claude-code.nix in home-manager) does NOT also try
-      # to install the raw binary -- that would collide with the wrapper
-      # below, since both provide bin/claude. finalPackage is therefore
-      # null/unusable here by design.
-      ++ lib.optional (config.programs.claude-code.enable or false) (
-        pkgs.callPackage ../pkgs/claude-mcp-wrapper.nix {
-          claudeCodePackage = claudeCodeNix.packages.${system}.default;
-        }
-      )
+      # Codex still needs its wrapper installed directly, since upstream's codex
+      # module installs nothing. Only when that agent is actually enabled in
+      # this home config -- e.g. nix-server's root user imports claude-code but
+      # not codex, so a `codex` wrapper there would be pointless.
       ++ lib.optional (config.programs.codex.enable or false) (
         pkgs.callPackage ../pkgs/codex-mcp-wrapper.nix {
           codexPackage = codexCliNix.packages.${system}.default;
