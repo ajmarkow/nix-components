@@ -66,6 +66,7 @@
 
       imports = [
         ./home-modules.nix
+        ./os-modules.nix
         ./overlays.nix
         ./per-system.nix
       ];
