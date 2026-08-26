@@ -91,7 +91,11 @@ jobs:
   notify:
     needs: build
     if: always()
-    uses: ajmarkow/utilities/.github/workflows/telegram-notify.yml@main
+    # ci-workflows, not the private utilities repo: GitHub resolves a reusable
+    # workflow with the CALLER's token, and this repo is public (consumed as a
+    # flake input via github:ajmarkow/nix-components), so it cannot read a
+    # private one — dispatching failed with "workflow was not found".
+    uses: ajmarkow/ci-workflows/.github/workflows/telegram-notify.yml@main
     with:
       # Aggregated across the matrix: 'success' only when both arches pass.
       status: ${{ needs.build.result }}
