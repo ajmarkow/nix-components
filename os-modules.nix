@@ -1,5 +1,7 @@
-{ lib, ... }:
+{ lib, inputs, ... }:
 let
+  determinate = import ./os-modules/determinate.nix { inherit inputs; };
+
   # OS-level (NixOS / nix-darwin) home-manager defaults shared by every host
   # repo: nix-mac, nix-server, nix-pixelbook.
   #
@@ -27,6 +29,13 @@ let
   };
 in
 {
-  flake.darwinModules.home-manager-backup = homeManagerBackup;
-  flake.nixosModules.home-manager-backup = homeManagerBackup;
+  flake.darwinModules = {
+    home-manager-backup = homeManagerBackup;
+    determinate = determinate.darwin;
+  };
+
+  flake.nixosModules = {
+    home-manager-backup = homeManagerBackup;
+    determinate = determinate.nixos;
+  };
 }

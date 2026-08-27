@@ -52,6 +52,17 @@
     codex-cli-nix.inputs.nixpkgs.follows = "nixpkgs";
     backlog-md.url = "github:MrLesk/Backlog.md";
     backlog-md.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Determinate Nix, consumed by os-modules/determinate.nix. FlakeHub semver
+    # URL per upstream docs; `/3` tracks the 3.x line and flake.lock pins the
+    # exact release.
+    #
+    # Deliberately NO `inputs.nixpkgs.follows` here. The nix-darwin module
+    # builds no Nix at all (macOS installs come from Determinate's own .pkg),
+    # and on NixOS a follows would rebuild Determinate Nix from source instead
+    # of substituting it from install.determinate.systems. It also keeps this
+    # input clear of the shared nixpkgs pin.
+    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
   };
 
   outputs =
