@@ -86,6 +86,7 @@ in
       EDITOR = "nvim";
       XDG_CONFIG_HOME = "$HOME/.config";
       _ZO_DOCTOR = "0";
+      CLAUDE_CODE_DISABLE_AUTO_MEMORY = "1";
     }
     // lib.optionalAttrs pkgs.stdenv.isDarwin {
       WEZTERM_CONFIG_FILE = "$HOME/.config/wezterm/wezterm.lua";
