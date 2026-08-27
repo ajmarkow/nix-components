@@ -123,6 +123,7 @@
   **Never put the password in a `--host` URI, print `PASEO_PASSWORD`, or write it to a file — the env vars are the only sanctioned channel.**
 
   - If paseo reports unauthorized or unreachable, run `infisical login`, or confirm the token file exists with `test -s ~/.config/infisical-token` — never print its contents. Retry in a fresh shell.
+  - If the remote host itself is down, `env -u PASEO_HOST <cmd>` targets a local daemon when one is running. `paseo status` is local-only, so it succeeds regardless and does not prove the remote is reachable.
   - Headless contexts without shell init (cron, launchd): use `paseo-headless <args>` — it sets `PASEO_HOST`/`PASEO_PASSWORD` itself. Never fetch the password by hand.
 
   **Agent Selection Strategy:**
@@ -151,7 +152,7 @@
 
   ### ⚠️ Spawn Sub-Agents by Workspace, Not `--cwd`
 
-  **When spawning a paseo agent to work in another repo, target that repo's workspace with `--workspace <wks_id>` — passing `--cwd` alone is silently ignored and the agent boots in the caller's repo.**
+  **When spawning a paseo agent to work in another repo, target that repo's workspace with `--workspace <id>` — passing `--cwd` alone is silently ignored and the agent boots in the caller's repo.**
 
   Why: agent-scoped `paseo run` defaults to the *caller's* workspace. `--cwd` sets a process directory but does not switch workspaces, so the child ends up back in the caller's repo.
 
@@ -168,7 +169,7 @@
   #   paseo run "..." --new-workspace local --cwd /var/lib/paseo/paseo-projects/<repo> ...
   ```
 
-  Verify: `paseo run` prints `Using workspace <id>` and the CWD column shows the target repo. `--workspace` requires the `wks_` id — a path is rejected.
+  Verify: `paseo run` prints `Using workspace <id>` and the CWD column shows the target repo. Pass the ID exactly as `paseo workspace ls` prints it — it may be a `wks_` id or a path.
 
   ## Tool Availability & nix-shell Optimization
 
