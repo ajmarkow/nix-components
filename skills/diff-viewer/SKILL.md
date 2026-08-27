@@ -34,4 +34,4 @@ That is the whole skill. Do not assemble the pipeline by hand — `diff-viewer-r
 ## Notes
 
 - Diffs only leave the tailnet if a device is on it — there's no public/LAN exposure and no separate auth layer, matching Tailscale's own access model.
-- If the diff renders but the URL 404s, the local server may be up but not yet registered with `tailscale serve` — this happens when the host's tailscaled operator hasn't been granted for this user yet (`services.tailscale.extraSetFlags = [ "--operator=<user>" ]` on the system side). Report this rather than trying to grant it yourself.
+- If the diff renders but the URL 404s, the local server may be up but not yet registered with `tailscale serve` — this happens when the host's tailscaled operator hasn't been granted for this user yet (`nix-components.tailscale.operator = "<user>"` on the system side). Report this rather than trying to grant it yourself.

@@ -56,6 +56,7 @@ modules = [
 |--------|-----------|-------------|
 | `home-manager-backup` | darwin, nixos | Shared `backupFileExtension` + `overwriteBackup` so activation replaces a stale `<file>.backup` instead of aborting on it |
 | `determinate` | darwin, nixos | Determinate Nix, plus the shared binary caches and trusted users for every host |
+| `tailscale` | darwin, nixos | Tailscale client daemon, the tailscaled operator grant the `diff-viewer` module needs, and an opt-in health watchdog |
 
 ### `determinate`
 
@@ -79,6 +80,28 @@ Two things differ by platform, both because of upstream:
 - **Garbage collection is not the same setting.** On darwin, `nix.enable = false` makes `nix.gc` and `nix.optimise` silently inert, so GC is delegated to determinate-nixd (`garbageCollector.strategy = "automatic"`, free-space driven). On NixOS `nix.*` still works and upstream exposes no GC option, so the module sets `nix.gc` to weekly / `--delete-older-than 14d`. Override per host with `nix.gc`; every value is a `mkDefault`.
 
 A host that adopts this module should delete its own `nix.settings.experimental-features`, `nix.gc`, `nix.optimise`, and `nix.settings.trusted-users`. Determinate enables `nix-command` and `flakes` by default, and on darwin the rest is dead code that still reads as live config.
+
+### `tailscale`
+
+Enables `services.tailscale` and grants a user "operator" rights over the local tailscaled. The grant is what lets the [`diff-viewer`](#modules) module run `tailscale serve` as a normal user — without it, diff URLs 404 and tailscaled logs `Access denied: serve config denied`. Importing the module enables tailscale; there is no `enable` option.
+
+| Option | Description |
+|--------|-------------|
+| `nix-components.tailscale.operator` | User granted tailscaled operator rights. `null` (the default) grants nobody |
+| `nix-components.tailscale.healthcheck.enable` | Poll `tailscale status` every 2 minutes, restart tailscaled when down or hung, alert after 3 consecutive failures. NixOS only, off by default |
+| `nix-components.tailscale.healthcheck.secretsFile` | File defining `SHOUTRRR_URL` for those alerts. Defaults to `/etc/nixos/secrets/tailscale-alert.env`, root-owned 0600, optional at run time |
+
+```nix
+nix-components.tailscale.operator = "ajmarkow";
+```
+
+Three things differ by platform:
+
+- **The operator grant uses a different mechanism.** NixOS has `services.tailscale.extraSetFlags`; nix-darwin declares only `enable`, `package` and `overrideLocalDns`, so darwin runs `tailscale set --operator=` from `system.activationScripts` instead. Idempotent, and non-fatal if tailscaled is not up yet on first activation.
+- **darwin pins `package = pkgs.tailscale`.** The sandboxed Mac App Store Tailscale app cannot run `tailscale serve`, and `homebrew.onActivation.cleanup` will not remove a MAS-installed app — so remove it by hand if one is present.
+- **The healthcheck is NixOS-only.** It is a systemd service plus timer, and the darwin variant asserts the option is off rather than ignoring it. `Restart=on-failure` / `RestartSec=5s` on tailscaled is set on NixOS unconditionally; it covers crashes, while the watchdog covers a hung-but-alive daemon and a stalled tailnet link.
+
+Firewall rules, sshd gating, and per-service tailnet port exposure stay host-specific — they name each host's own services and there is nothing shared to factor out.
 
 ## Packages
 

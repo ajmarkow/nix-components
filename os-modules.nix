@@ -1,6 +1,7 @@
 { lib, inputs, ... }:
 let
   determinate = import ./os-modules/determinate.nix { inherit inputs; };
+  tailscale = import ./os-modules/tailscale.nix;
 
   # OS-level (NixOS / nix-darwin) home-manager defaults shared by every host
   # repo: nix-mac, nix-server, nix-pixelbook.
@@ -32,10 +33,12 @@ in
   flake.darwinModules = {
     home-manager-backup = homeManagerBackup;
     determinate = determinate.darwin;
+    tailscale = tailscale.darwin;
   };
 
   flake.nixosModules = {
     home-manager-backup = homeManagerBackup;
     determinate = determinate.nixos;
+    tailscale = tailscale.nixos;
   };
 }

@@ -14,8 +14,8 @@ let
   # (re)register the tailscale serve path on every start (idempotent — safe
   # to repeat), then exec the local file server. `tailscale serve` requires
   # operator permission on the local tailscaled (system config:
-  # services.tailscale.extraSetFlags = [ "--operator=<user>" ]) — until that's
-  # provisioned this silently no-ops (`|| true`) so the local server still
+  # nix-components.tailscale.operator, from os-modules/tailscale.nix) — until
+  # that's provisioned this silently no-ops (`|| true`) so the local server still
   # comes up, it's just unreachable over the tailnet until the grant lands.
   #
   # `--https=${tailnetPort}` is load-bearing: never let this default back to
