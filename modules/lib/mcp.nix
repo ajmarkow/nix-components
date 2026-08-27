@@ -119,14 +119,13 @@
       _: s:
       if s.kind == "plain" then
         {
-          command = s.command;
-          args = s.args;
+          inherit (s) command args;
         }
-        // (lib.optionalAttrs (s ? env) { env = s.env; })
+        // (lib.optionalAttrs (s ? env) { inherit (s) env; })
       else if s.kind == "auth-http" then
         {
           type = "http";
-          url = s.url;
+          inherit (s) url;
           # Literal ${VAR}, expanded by claude-code from its own process env at
           # its own runtime -- never resolved by Nix, never written to the store.
           headers.${s.headerName} = "${s.valuePrefix}\${${s.envVar}}";
@@ -134,13 +133,12 @@
       else if s.kind == "oauth-http" then
         {
           type = "http";
-          url = s.url;
+          inherit (s) url;
         }
       else
         {
           # auth-stdio
-          command = s.command;
-          args = s.args;
+          inherit (s) command args;
           env.${s.envVar} = "\${${s.envVar}}";
         }
     ) profile.servers;
@@ -158,14 +156,14 @@
       else if s.kind == "auth-http" then
         {
           type = "remote";
-          url = s.url;
+          inherit (s) url;
           # opencode's own documented convention -- distinct from claude-code's.
           headers.${s.headerName} = "${s.valuePrefix}{env:${s.envVar}}";
         }
       else if s.kind == "oauth-http" then
         {
           type = "remote";
-          url = s.url;
+          inherit (s) url;
         }
       else
         {

@@ -11,7 +11,7 @@ in
     let
       nixComponentsPkgs = inputs.nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system};
     in
-    (lib.mapAttrs'
+    lib.mapAttrs'
       (
         name: _:
         lib.nameValuePair (lib.removeSuffix ".nix" name) (
@@ -22,6 +22,5 @@ in
         lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nix" name) (
           builtins.readDir pkgsDir
         )
-      )
-    );
+      );
 }
