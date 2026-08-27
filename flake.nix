@@ -53,16 +53,29 @@
     backlog-md.url = "github:MrLesk/Backlog.md";
     backlog-md.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Determinate Nix, consumed by os-modules/determinate.nix. FlakeHub semver
-    # URL per upstream docs; `/3` tracks the 3.x line and flake.lock pins the
-    # exact release.
+    # Determinate Nix, consumed by os-modules/determinate.nix.
+    #
+    # `github:` rather than the FlakeHub semver URL upstream documents. FlakeHub
+    # serves a tarball whose locked `url` Determinate Nix records WITH
+    # `?rev=...&revCount=...` query params, while upstream Nix normalizes the
+    # same URL without them and then refuses the lock outright:
+    #
+    #   error: mismatch in field 'url' of input '{... source.tar.gz?rev=...}',
+    #   got '{... source.tar.gz}'
+    #
+    # That breaks any repo locked on a Determinate host and checked in CI on
+    # upstream Nix -- which is every host repo here, since the hosts run
+    # Determinate and CI uses cachix/install-nix-action. `github:` locks as
+    # type/owner/repo/rev with no URL canonicalization, so both agree. The
+    # version is still pinned exactly by flake.lock; bump with
+    # `nix flake update determinate` like every other input.
     #
     # Deliberately NO `inputs.nixpkgs.follows` here. The nix-darwin module
     # builds no Nix at all (macOS installs come from Determinate's own .pkg),
     # and on NixOS a follows would rebuild Determinate Nix from source instead
     # of substituting it from install.determinate.systems. It also keeps this
     # input clear of the shared nixpkgs pin.
-    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
+    determinate.url = "github:DeterminateSystems/determinate";
   };
 
   outputs =
