@@ -1,8 +1,30 @@
 {
+  # The same six caches os-modules/determinate.nix gives every host, so that
+  # commands run *inside* this repo get them too — CI, a fresh machine, or a
+  # checkout on a host that has not applied the module yet. A flake input's
+  # nixConfig does not apply to consumers, so this only ever affects work done
+  # in this repo; keep it in step with the module's lists by hand.
+  #
+  # Honoured only for a trusted user, or with `--accept-flake-config` (which is
+  # what nix-components' own Check passes). Otherwise nix prints "ignoring
+  # untrusted flake configuration setting 'extra-substituters'" and, before
+  # this list existed, rebuilt the codex CLI from source.
   nixConfig = {
-    extra-substituters = [ "https://codex-cli.cachix.org" ];
+    extra-substituters = [
+      "https://cache.nixos.org"
+      "https://nix-community.cachix.org"
+      "https://ajmarkow.cachix.org"
+      "https://claude-code.cachix.org"
+      "https://codex-cli.cachix.org"
+      "https://devenv.cachix.org"
+    ];
     extra-trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCUSeBc="
+      "ajmarkow.cachix.org-1:6HxkDVfkPWy2esadGzUIj6vGzmMuQOgz3mimKT7J9sw="
+      "claude-code.cachix.org-1:YeXf2aNu7UTX8Vwrze0za1WEDS+4DuI2kVeWEE4fsRk="
       "codex-cli.cachix.org-1:1Br3H1hHoRYG22n//cGKJOk3cQXgYobUel6O8DgSing="
+      "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
     ];
   };
 

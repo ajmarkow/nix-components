@@ -22,11 +22,54 @@ let
   # A plain `listOf str` option merges across definitions, which is what we
   # want: nix-components sets the baseline, hosts append.
   sharedSettings =
-    { lib, ... }:
+    { lib, pkgs, ... }:
     {
       key = "nix-components-determinate-shared-settings";
 
       options.nix-components.determinate = {
+        pushCache = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = ''
+              Push every locally built store path to
+              {option}`nix-components.determinate.pushCache.name` via a
+              `post-build-hook`.
+
+              Off by default: it needs a `CACHIX_AUTH_TOKEN` provisioned
+              out-of-band on the host, and a host that pushes nothing useful
+              (or has no token) should not be running the hook at all.
+
+              Enabled on the two x86_64-linux hosts, which share an
+              architecture and so actually serve each other. The Mac is
+              deliberately pull-only — its aarch64-darwin paths would only ever
+              serve itself and nix-components' darwin CI leg, which does its
+              own pushing from the runner.
+            '';
+          };
+
+          name = lib.mkOption {
+            type = lib.types.str;
+            default = "ajmarkow";
+            description = "Cachix cache name to push to.";
+          };
+
+          secretsFile = lib.mkOption {
+            type = lib.types.str;
+            default =
+              if pkgs.stdenv.isDarwin then
+                "/etc/nix-darwin/secrets/cachix.env"
+              else
+                "/etc/nixos/secrets/cachix.env";
+            defaultText = "/etc/nixos/secrets/cachix.env (/etc/nix-darwin/... on darwin)";
+            description = ''
+              File defining `CACHIX_AUTH_TOKEN`, sourced by the hook at build
+              time so the token never enters the Nix store. Root-owned 0600.
+              Path convention follows modules/agent-dropbox.nix.
+            '';
+          };
+        };
+
         substituters = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [ ];
@@ -87,6 +130,42 @@ let
         trustedUsers = [ "root" ];
       };
     };
+
+  # The cachix push hook, shared because both platforms need the same script and
+  # only the option it lands in differs: nix-darwin's whole `nix.*` tree is inert
+  # under `nix.enable = false`, so on darwin this has to go into
+  # `determinateNix.customSettings` instead of `nix.settings`. `post-build-hook`
+  # is not in Determinate's disallowedOptions list, so the custom conf accepts it.
+  #
+  # Script copied verbatim from nix-server's modules/common.nix, which was the
+  # only host doing this, with the cache name and secrets path parameterised:
+  #   - `set -f` + `IFS=' '` because $OUT_PATHS is a space-separated list that
+  #     must not be glob-expanded.
+  #   - guarded on the secrets file so a host without a token is a no-op rather
+  #     than a failed build.
+  #   - `|| true` so a cachix outage never fails a build.
+  pushHook =
+    {
+      lib,
+      pkgs,
+      config,
+    }:
+    let
+      cfg = config.nix-components.determinate.pushCache;
+    in
+    lib.mkIf cfg.enable (
+      toString (
+        pkgs.writeShellScript "cachix-push" ''
+          set -f
+          export IFS=' '
+          if [ -f ${cfg.secretsFile} ]; then
+            . ${cfg.secretsFile}
+            export CACHIX_AUTH_TOKEN
+            echo "$OUT_PATHS" | xargs -r ${pkgs.cachix}/bin/cachix push ${cfg.name} || true
+          fi
+        ''
+      )
+    );
 in
 {
   # macOS. Determinate manages the Nix installation itself, entirely outside
@@ -105,7 +184,12 @@ in
   # with no warning. A host's leftover `nix.settings` / `nix.gc` /
   # `nix.optimise` blocks are dead code and should be deleted, not kept.
   darwin =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     {
       _file = ./determinate.nix;
       key = "nix-components-determinate-darwin";
@@ -130,6 +214,12 @@ in
           # in the baseline. (nix always trusts root regardless, but being
           # explicit here means the rendered nix.conf reads correctly.)
           trusted-users = config.nix-components.determinate.trustedUsers;
+
+          # Into customSettings rather than nix.settings, because nix-darwin's
+          # whole nix tree is inert under `nix.enable = false`. No darwin host
+          # enables pushCache today (the Mac is pull-only), so this branch is
+          # for symmetry rather than current use.
+          post-build-hook = pushHook { inherit lib pkgs config; };
         };
       };
     };
@@ -147,7 +237,12 @@ in
   #   --option extra-trusted-public-keys cache.flakehub.com-3:hJuILl5sVK4iKm86JzgdXW12Y2Hwd5G07qKtHTOcDCM=
   # or it builds Determinate Nix from source.
   nixos =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     {
       _file = ./determinate.nix;
       key = "nix-components-determinate-nixos";
@@ -171,6 +266,11 @@ in
           # "root" from the baseline would weaken the darwin side, where this
           # same list replaces Determinate's own value instead of merging.
           trusted-users = config.nix-components.determinate.trustedUsers;
+
+          # nix.settings works normally here: unlike the nix-darwin module, the
+          # NixOS one does not disable `nix.*`. Enabled on this repo's two
+          # x86_64-linux hosts; previously this hook lived only in nix-server.
+          post-build-hook = pushHook { inherit lib pkgs config; };
         };
 
         # Garbage collection, and why it does not look like the darwin side.
