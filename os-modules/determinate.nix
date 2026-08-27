@@ -190,13 +190,16 @@ in
         # nix-server has had no GC policy at all, and an age bound we can read
         # beats depending on determinate-nixd's undocumented default.
         #
-        # 30d/weekly matches what nix-pixelbook already did, the only NixOS
-        # host with a policy today. nix-mac's old 14d was a response to a
-        # 78%-full data volume and does not apply to these hosts.
+        # 14d/weekly carries over the shortest policy any host had: nix-mac's
+        # 14d, originally a response to a 78%-full data volume. It tightens
+        # nix-pixelbook's previous 30d, and nix-server gains a policy where it
+        # had none. Tighter is the safer default for a shared baseline -- a
+        # host that wants to keep generations longer can say so, since every
+        # value below is a mkDefault.
         gc = {
           automatic = lib.mkDefault true;
           dates = lib.mkDefault "weekly";
-          options = lib.mkDefault "--delete-older-than 30d";
+          options = lib.mkDefault "--delete-older-than 14d";
         };
 
         optimise.automatic = lib.mkDefault true;
