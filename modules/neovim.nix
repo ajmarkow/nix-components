@@ -1,4 +1,10 @@
-{ pkgs, config, lib, options, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  options,
+  ...
+}:
 let
   stylixActive = (options ? stylix) && config.stylix.enable;
 in
@@ -240,7 +246,6 @@ in
           ];
         };
       };
-
 
       # Which-key - show keybindings in popup
       which-key.enable = true;

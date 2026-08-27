@@ -1,9 +1,10 @@
-{ writeShellApplication
-, jq
-, coreutils
-, findutils
-, gnugrep
-, ...
+{
+  writeShellApplication,
+  jq,
+  coreutils,
+  findutils,
+  gnugrep,
+  ...
 }:
 
 # Verifies that a host lost no packages across the claude-code.nix -> packages.nix
@@ -14,7 +15,12 @@
 #   verify-packages check      # run AFTER each deploy
 writeShellApplication {
   name = "verify-packages";
-  runtimeInputs = [ jq coreutils findutils gnugrep ];
+  runtimeInputs = [
+    jq
+    coreutils
+    findutils
+    gnugrep
+  ];
   text = ''
     snapshot_file="''${XDG_CACHE_HOME:-$HOME/.cache}/nix-components/pkg-snapshot.json"
 

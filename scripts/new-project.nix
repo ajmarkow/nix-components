@@ -1,7 +1,12 @@
 { pkgs }:
 pkgs.writeShellApplication {
   name = "new-project";
-  runtimeInputs = [ pkgs.git pkgs.gh pkgs.coreutils pkgs.jq ];
+  runtimeInputs = [
+    pkgs.git
+    pkgs.gh
+    pkgs.coreutils
+    pkgs.jq
+  ];
   text = ''
     usage() {
       echo "Usage: new-project <name> [--public] [--parent <dir>] [--desc <text>] [--json]" >&2

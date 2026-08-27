@@ -9,7 +9,10 @@
 }:
 writeShellApplication {
   name = "mcp-profile";
-  runtimeInputs = [ jq coreutils ];
+  runtimeInputs = [
+    jq
+    coreutils
+  ];
   text = ''
     known_profiles=(${lib.concatMapStringsSep " " lib.escapeShellArg profileNames})
     fragment_dir=${lib.escapeShellArg fragmentDir}

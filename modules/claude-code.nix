@@ -1,14 +1,15 @@
-{ config
-, lib
-, pkgs
-, claudeCodeNix
-, codexCliNix
-, codexPluginCcSource
-, paseoSkillsSource
-, superpowersSkillsSource
-, obsidianSkillsSource
-, awsSkillsSource
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  claudeCodeNix,
+  codexCliNix,
+  codexPluginCcSource,
+  paseoSkillsSource,
+  superpowersSkillsSource,
+  obsidianSkillsSource,
+  awsSkillsSource,
+  ...
 }:
 let
   # readSkills is shared with opencode.nix (./lib/skills.nix) so both agents
@@ -19,11 +20,11 @@ let
   # though upstream sources also define a skill with the same name.
   inherit (import ./lib/skills.nix { inherit lib; }) readSkills;
   skillCommands =
-    (readSkills (paseoSkillsSource + "/skills")) //
-    (readSkills (superpowersSkillsSource + "/skills")) //
-    (readSkills (obsidianSkillsSource + "/skills")) //
-    (readSkills awsSkillsSource) //
-    (readSkills ../skills);
+    (readSkills (paseoSkillsSource + "/skills"))
+    // (readSkills (superpowersSkillsSource + "/skills"))
+    // (readSkills (obsidianSkillsSource + "/skills"))
+    // (readSkills awsSkillsSource)
+    // (readSkills ../skills);
 in
 # One attrset, deliberately. This module used to be three attrsets joined with `//`,
 # which is a shallow update: each block's `home` replaced the previous one, so all but
@@ -50,8 +51,9 @@ in
   # codex-mcp-wrapper -- which is gated on that same option -- installs codex
   # already. The two conditions are exact complements, so codex is always on
   # PATH exactly once.
-  home.packages = lib.optional (!(config.programs.codex.enable or false))
-    codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  home.packages = lib.optional (
+    !(config.programs.codex.enable or false)
+  ) codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
   home.file.".claude/statusline-command.sh" = {
     executable = true;

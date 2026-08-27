@@ -1,4 +1,9 @@
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 {
   options.nix-components.paseo.remoteHost = lib.mkOption {
     type = lib.types.nullOr lib.types.str;

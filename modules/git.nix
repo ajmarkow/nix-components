@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   signingKey = "B9076853EC110207A2EE0D5D3D19E49D0F3BD0FA";
 in

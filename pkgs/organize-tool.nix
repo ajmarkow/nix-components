@@ -1,10 +1,11 @@
 # organize-tool - The file management automation tool
 # https://github.com/tfeldmann/organize
 # Not yet in nixpkgs, so we package it here.
-{ lib
-, python3
-, fetchPypi
-, ...
+{
+  lib,
+  python3,
+  fetchPypi,
+  ...
 }:
 let
   simplematch = python3.pkgs.buildPythonPackage rec {
@@ -33,7 +34,10 @@ python3.pkgs.buildPythonApplication rec {
   };
   format = "pyproject";
   pythonRelaxDeps = true;
-  nativeBuildInputs = [ python3.pkgs.poetry-core python3.pkgs.pythonRelaxDepsHook ];
+  nativeBuildInputs = [
+    python3.pkgs.poetry-core
+    python3.pkgs.pythonRelaxDepsHook
+  ];
   # Remove macos-tags dependency for build (not in nixpkgs; macOS tagging won't work)
   postPatch = ''
     sed -i '/macos-tags/d' pyproject.toml

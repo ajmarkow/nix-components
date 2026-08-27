@@ -1,4 +1,12 @@
-{ pkgs, lib, paseoSkillsSource, superpowersSkillsSource, obsidianSkillsSource, awsSkillsSource, ... }:
+{
+  pkgs,
+  lib,
+  paseoSkillsSource,
+  superpowersSkillsSource,
+  obsidianSkillsSource,
+  awsSkillsSource,
+  ...
+}:
 # opencode is the second agent backend Paseo surfaces natively (alongside
 # claude-code and codex — see @getpaseo/server's AGENT_HOOK_PROVIDERS). Paseo
 # discovers opencode's models dynamically from opencode's own provider
@@ -25,11 +33,11 @@ let
   # wins. Kept identical to claude-code.nix's skillCommands chain.
   inherit (import ./lib/skills.nix { inherit lib; }) readSkills;
   skillCommands =
-    (readSkills (paseoSkillsSource + "/skills")) //
-    (readSkills (superpowersSkillsSource + "/skills")) //
-    (readSkills (obsidianSkillsSource + "/skills")) //
-    (readSkills awsSkillsSource) //
-    (readSkills ../skills);
+    (readSkills (paseoSkillsSource + "/skills"))
+    // (readSkills (superpowersSkillsSource + "/skills"))
+    // (readSkills (obsidianSkillsSource + "/skills"))
+    // (readSkills awsSkillsSource)
+    // (readSkills ../skills);
   opencodeCommands = lib.mapAttrs (_: template: { inherit template; }) skillCommands;
 in
 {

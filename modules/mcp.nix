@@ -1,4 +1,11 @@
-{ config, lib, pkgs, claudeCodeNix, codexCliNix, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  claudeCodeNix,
+  codexCliNix,
+  ...
+}:
 let
   cfg = config.nix-components.mcp;
   mcpLib = import ./lib/mcp.nix { inherit lib pkgs; };
@@ -22,10 +29,12 @@ let
   # One store artifact per agent per profile. These never contain resolved
   # secret values, only placeholders or environment variable names.
   perProfileArtifacts = lib.mapAttrs (name: profile: {
-    claudeJson =
-      (pkgs.formats.json { }).generate "claude-mcp-${name}.json" (mcpLib.toClaudeCodeFragment profile);
-    opencodeJson =
-      (pkgs.formats.json { }).generate "opencode-mcp-${name}.json" (mcpLib.toOpencodeFragment profile);
+    claudeJson = (pkgs.formats.json { }).generate "claude-mcp-${name}.json" (
+      mcpLib.toClaudeCodeFragment profile
+    );
+    opencodeJson = (pkgs.formats.json { }).generate "opencode-mcp-${name}.json" (
+      mcpLib.toOpencodeFragment profile
+    );
     codexToml = pkgs.writeText "codex-mcp-${name}.toml" (mcpLib.toCodexFragment profile);
   }) allProfiles;
 
@@ -39,15 +48,20 @@ let
   # pkgs/mcp-profile.nix (the runtime swap script) re-implements the same
   # algorithm in shell against the same fragment files, so a deploy-time default
   # and a runtime swap always produce byte-identical output for the same input.
-  renderClaudeActive = names: pkgs.runCommand "claude-mcp-active.json" { nativeBuildInputs = [ pkgs.jq ]; } ''
-    jq -s '{mcpServers: (map(.mcpServers) | add)}' \
-      ${lib.concatMapStringsSep " " (n: "${perProfileArtifacts.${n}.claudeJson}") names} > $out
-  '';
-  renderOpencodeActive = names: pkgs.runCommand "opencode-mcp-active.json" { nativeBuildInputs = [ pkgs.jq ]; } ''
-    jq -s '{mcp: (map(.mcp) | add)}' \
-      ${lib.concatMapStringsSep " " (n: "${perProfileArtifacts.${n}.opencodeJson}") names} > $out
-  '';
-  renderCodexActive = names: lib.concatMapStringsSep "\n" (n: mcpLib.toCodexFragment allProfiles.${n}) names;
+  renderClaudeActive =
+    names:
+    pkgs.runCommand "claude-mcp-active.json" { nativeBuildInputs = [ pkgs.jq ]; } ''
+      jq -s '{mcpServers: (map(.mcpServers) | add)}' \
+        ${lib.concatMapStringsSep " " (n: "${perProfileArtifacts.${n}.claudeJson}") names} > $out
+    '';
+  renderOpencodeActive =
+    names:
+    pkgs.runCommand "opencode-mcp-active.json" { nativeBuildInputs = [ pkgs.jq ]; } ''
+      jq -s '{mcp: (map(.mcp) | add)}' \
+        ${lib.concatMapStringsSep " " (n: "${perProfileArtifacts.${n}.opencodeJson}") names} > $out
+    '';
+  renderCodexActive =
+    names: lib.concatMapStringsSep "\n" (n: mcpLib.toCodexFragment allProfiles.${n}) names;
 
   # Claude Code pinned to the active MCP profile file. Installed via
   # programs.claude-code.package rather than home.packages -- see the comment
@@ -64,7 +78,11 @@ in
       type = lib.types.listOf lib.types.str;
       # = current per-agent behavior before this module existed; also what every
       # deploy resets a runtime `mcp-profile` swap back to.
-      default = [ "core" "github" "extras" ];
+      default = [
+        "core"
+        "github"
+        "extras"
+      ];
       description = ''
         Default MCP server profiles activated on deploy. Names must exist in
         modules/lib/mcp.nix's `profiles` or in `extraProfiles`. Override at
@@ -138,8 +156,9 @@ in
     # `home.packages = mkIf (cfg.package != null) [ cfg.finalPackage ]` now
     # installs the nested result, so home.packages below must NOT also add
     # claudeMcpWrapper -- that would reintroduce the collision.
-    programs.claude-code.package =
-      lib.mkIf (config.programs.claude-code.enable or false) (lib.mkForce claudeMcpWrapper);
+    programs.claude-code.package = lib.mkIf (config.programs.claude-code.enable or false) (
+      lib.mkForce claudeMcpWrapper
+    );
     # Codex needs no equivalent: upstream's modules/programs/codex.nix has no
     # package-null assertion and no home.packages/finalPackage wiring, so it
     # never installs a competing bin/codex and the wrapper below is the only
@@ -169,21 +188,22 @@ in
     # fixed precedence layer -- never written back to by opencode itself.
     home.sessionVariables.OPENCODE_CONFIG = "${config.home.homeDirectory}/.config/mcp-profiles/opencode-active.json";
 
-    home.packages =
-      [ (pkgs.callPackage ../pkgs/mcp-profile.nix { inherit profileNames fragmentDir; }) ]
-      # No claude entry here on purpose: claudeMcpWrapper goes in via
-      # programs.claude-code.package (see above), and upstream home-manager
-      # installs the nested finalPackage itself. Adding it here too would put
-      # two bin/claude in the profile.
-      #
-      # Codex still needs its wrapper installed directly, since upstream's codex
-      # module installs nothing. Only when that agent is actually enabled in
-      # this home config -- e.g. nix-server's root user imports claude-code but
-      # not codex, so a `codex` wrapper there would be pointless.
-      ++ lib.optional (config.programs.codex.enable or false) (
-        pkgs.callPackage ../pkgs/codex-mcp-wrapper.nix {
-          codexPackage = codexCliNix.packages.${system}.default;
-        }
-      );
+    home.packages = [
+      (pkgs.callPackage ../pkgs/mcp-profile.nix { inherit profileNames fragmentDir; })
+    ]
+    # No claude entry here on purpose: claudeMcpWrapper goes in via
+    # programs.claude-code.package (see above), and upstream home-manager
+    # installs the nested finalPackage itself. Adding it here too would put
+    # two bin/claude in the profile.
+    #
+    # Codex still needs its wrapper installed directly, since upstream's codex
+    # module installs nothing. Only when that agent is actually enabled in
+    # this home config -- e.g. nix-server's root user imports claude-code but
+    # not codex, so a `codex` wrapper there would be pointless.
+    ++ lib.optional (config.programs.codex.enable or false) (
+      pkgs.callPackage ../pkgs/codex-mcp-wrapper.nix {
+        codexPackage = codexCliNix.packages.${system}.default;
+      }
+    );
   };
 }

@@ -1,7 +1,8 @@
-{ lib
-, pkgs
-, config
-, ...
+{
+  lib,
+  pkgs,
+  config,
+  ...
 }:
 let
   infisicalProjectId = "0bd4a4d8-f58e-4bad-9d65-c16ee9aeae7e";
@@ -69,7 +70,8 @@ in
       pip3 = "uv pip";
       python = "${pkgs.python3}/bin/python3";
       python3 = "${pkgs.python3}/bin/python3";
-    } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+    }
+    // lib.optionalAttrs pkgs.stdenv.isDarwin {
       hsw = "home-manager switch";
       dsw = "source ~/.zshrc && sudo -E darwin-rebuild switch --impure --flake /etc/nix-darwin#AJ-MARKOW-WORK-MACBOOK-PRO";
       showfiles = "defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder";
@@ -84,7 +86,8 @@ in
       EDITOR = "nvim";
       XDG_CONFIG_HOME = "$HOME/.config";
       _ZO_DOCTOR = "0";
-    } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+    }
+    // lib.optionalAttrs pkgs.stdenv.isDarwin {
       WEZTERM_CONFIG_FILE = "$HOME/.config/wezterm/wezterm.lua";
       TWEAKCC_CC_INSTALLATION_PATH = "/usr/bin/cc";
     };
@@ -97,10 +100,12 @@ in
         export ZVM_ESCAPE_KEYTIMEOUT=0.05
       '')
 
-      (lib.mkIf pkgs.stdenv.isDarwin (lib.mkOrder 1000 ''
-        export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
-        export PATH="$HOME/.npm-packages/bin:$PATH"
-      ''))
+      (lib.mkIf pkgs.stdenv.isDarwin (
+        lib.mkOrder 1000 ''
+          export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+          export PATH="$HOME/.npm-packages/bin:$PATH"
+        ''
+      ))
 
       (lib.mkOrder 1000 ''
         # Load secrets from Infisical. Errors print to stderr so failures are visible.

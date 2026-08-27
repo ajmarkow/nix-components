@@ -21,12 +21,17 @@
           # uvx defaults to downloading its own dynamically-linked CPython build,
           # which can't run on NixOS without nix-ld. Point it at a nixpkgs Python
           # instead so it works on every host without extra system config.
-          env = { UV_PYTHON = "${pkgs.python3}/bin/python3"; };
+          env = {
+            UV_PYTHON = "${pkgs.python3}/bin/python3";
+          };
         };
         playwright = {
           kind = "plain";
           command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
-          args = [ "--headless" "--isolated" ];
+          args = [
+            "--headless"
+            "--isolated"
+          ];
         };
       };
     };
@@ -73,7 +78,10 @@
           # a third delivery mechanism alongside plain/auth-http.
           kind = "auth-stdio";
           command = "npx";
-          args = [ "-y" "@abhiz123/todoist-mcp-server" ];
+          args = [
+            "-y"
+            "@abhiz123/todoist-mcp-server"
+          ];
           # Static personal API token from Todoist Settings -> Integrations ->
           # Developer. NOT the official @doist/todoist-mcp, which is OAuth-only
           # and doesn't fit a Nix-declared static secret.
@@ -88,7 +96,13 @@
         obsidian = {
           kind = "plain";
           command = "npx";
-          args = [ "-y" "obsidian-mcp@2" "serve" "--vault" "main=/var/lib/obsidian-sync/vault" ];
+          args = [
+            "-y"
+            "obsidian-mcp@2"
+            "serve"
+            "--vault"
+            "main=/var/lib/obsidian-sync/vault"
+          ];
         };
       };
     };
@@ -100,65 +114,68 @@
   # more than one profile's servers at once; combining profiles happens by
   # merging already-rendered fragments (jq/concatenation), not by merging Nix
   # data, so a fresh profile can be added without touching this merge logic.
-  toClaudeCodeFragment =
-    profile:
-    {
-      mcpServers = lib.mapAttrs (
-        _: s:
-        if s.kind == "plain" then
-          { command = s.command; args = s.args; } // (lib.optionalAttrs (s ? env) { env = s.env; })
-        else if s.kind == "auth-http" then
-          {
-            type = "http";
-            url = s.url;
-            # Literal ${VAR}, expanded by claude-code from its own process env at
-            # its own runtime -- never resolved by Nix, never written to the store.
-            headers.${s.headerName} = "${s.valuePrefix}\${${s.envVar}}";
-          }
-        else if s.kind == "oauth-http" then
-          {
-            type = "http";
-            url = s.url;
-          }
-        else
-          {
-            # auth-stdio
-            command = s.command;
-            args = s.args;
-            env.${s.envVar} = "\${${s.envVar}}";
-          }
-      ) profile.servers;
-    };
+  toClaudeCodeFragment = profile: {
+    mcpServers = lib.mapAttrs (
+      _: s:
+      if s.kind == "plain" then
+        {
+          command = s.command;
+          args = s.args;
+        }
+        // (lib.optionalAttrs (s ? env) { env = s.env; })
+      else if s.kind == "auth-http" then
+        {
+          type = "http";
+          url = s.url;
+          # Literal ${VAR}, expanded by claude-code from its own process env at
+          # its own runtime -- never resolved by Nix, never written to the store.
+          headers.${s.headerName} = "${s.valuePrefix}\${${s.envVar}}";
+        }
+      else if s.kind == "oauth-http" then
+        {
+          type = "http";
+          url = s.url;
+        }
+      else
+        {
+          # auth-stdio
+          command = s.command;
+          args = s.args;
+          env.${s.envVar} = "\${${s.envVar}}";
+        }
+    ) profile.servers;
+  };
 
-  toOpencodeFragment =
-    profile:
-    {
-      mcp = lib.mapAttrs (
-        _: s:
-        if s.kind == "plain" then
-          { type = "local"; command = [ s.command ] ++ s.args; }
-          // (lib.optionalAttrs (s ? env) { environment = s.env; })
-        else if s.kind == "auth-http" then
-          {
-            type = "remote";
-            url = s.url;
-            # opencode's own documented convention -- distinct from claude-code's.
-            headers.${s.headerName} = "${s.valuePrefix}{env:${s.envVar}}";
-          }
-        else if s.kind == "oauth-http" then
-          {
-            type = "remote";
-            url = s.url;
-          }
-        else
-          {
-            # auth-stdio
-            type = "local";
-            command = [ s.command ] ++ s.args;
-            environment.${s.envVar} = "{env:${s.envVar}}";
-          }
-      ) profile.servers;
-    };
+  toOpencodeFragment = profile: {
+    mcp = lib.mapAttrs (
+      _: s:
+      if s.kind == "plain" then
+        {
+          type = "local";
+          command = [ s.command ] ++ s.args;
+        }
+        // (lib.optionalAttrs (s ? env) { environment = s.env; })
+      else if s.kind == "auth-http" then
+        {
+          type = "remote";
+          url = s.url;
+          # opencode's own documented convention -- distinct from claude-code's.
+          headers.${s.headerName} = "${s.valuePrefix}{env:${s.envVar}}";
+        }
+      else if s.kind == "oauth-http" then
+        {
+          type = "remote";
+          url = s.url;
+        }
+      else
+        {
+          # auth-stdio
+          type = "local";
+          command = [ s.command ] ++ s.args;
+          environment.${s.envVar} = "{env:${s.envVar}}";
+        }
+    ) profile.servers;
+  };
 
   # Raw TOML text, not a Nix attrset -- codex's active file is assembled by
   # concatenating profile fragments (modules/mcp.nix), which only works safely
@@ -174,8 +191,10 @@
             [mcp_servers.${name}]
             command = "${s.command}"
             args = ${builtins.toJSON s.args}
-            ${lib.optionalString (s ? env) "[mcp_servers.${name}.env]\n"
-            + lib.concatStrings (lib.mapAttrsToList (k: v: "${k} = \"${v}\"\n") (s.env or { }))}
+            ${
+              lib.optionalString (s ? env) "[mcp_servers.${name}.env]\n"
+              + lib.concatStrings (lib.mapAttrsToList (k: v: "${k} = \"${v}\"\n") (s.env or { }))
+            }
           ''
         else if s.kind == "auth-http" then
           ''

@@ -16,7 +16,11 @@
 # rather than replacing it, so the host's own nix (matching its daemon) is used.
 pkgs.writeShellApplication {
   name = "bump-nix-components";
-  runtimeInputs = [ pkgs.git pkgs.jq pkgs.coreutils ];
+  runtimeInputs = [
+    pkgs.git
+    pkgs.jq
+    pkgs.coreutils
+  ];
   text = ''
     input="nix-components"
 

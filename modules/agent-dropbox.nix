@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   outboxDir = "${config.home.homeDirectory}/dropbox-outbox";
@@ -9,13 +14,20 @@ let
   # using nix-darwin's actual on-disk config directory (/etc/nix-darwin,
   # per aj-skhd.nix's reference to /private/etc/nix-darwin/flake.nix).
   secretsFile =
-    if pkgs.stdenv.isDarwin
-    then "/etc/nix-darwin/secrets/agent-dropbox.env"
-    else "/etc/nixos/secrets/agent-dropbox.env";
+    if pkgs.stdenv.isDarwin then
+      "/etc/nix-darwin/secrets/agent-dropbox.env"
+    else
+      "/etc/nixos/secrets/agent-dropbox.env";
   # Matches AWS_DEFAULT_REGION already in use on nix-server and the region
   # the aj-agent-dropbox bucket was actually created in.
   awsRegion = "us-east-1";
-  syncArgs = [ "move" outboxDir "dropbox:aj-agent-dropbox/" "--min-age" "30s" ];
+  syncArgs = [
+    "move"
+    outboxDir
+    "dropbox:aj-agent-dropbox/"
+    "--min-age"
+    "30s"
+  ];
 in
 lib.mkMerge [
   {

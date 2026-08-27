@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   xdg.configFile."uv/uv.toml".text = ''
     python-preference = "only-managed"

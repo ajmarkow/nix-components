@@ -48,10 +48,11 @@ let
     lib.nameValuePair (lib.removeSuffix ".nix" name) (
       { ... }:
       {
-        imports =
-          [ (moduleDir + "/${name}") ]
-          ++ lib.optional (builtins.elem name namesNeedingSkillArgs) skillSourceArgs
-          ++ lib.optional (builtins.elem name namesNeedingCliPackageArgs) cliPackageArgs;
+        imports = [
+          (moduleDir + "/${name}")
+        ]
+        ++ lib.optional (builtins.elem name namesNeedingSkillArgs) skillSourceArgs
+        ++ lib.optional (builtins.elem name namesNeedingCliPackageArgs) cliPackageArgs;
       }
       // lib.optionalAttrs (name == "claude-code.nix") {
         _module.args.uv2nix = inputs.uv2nix;
