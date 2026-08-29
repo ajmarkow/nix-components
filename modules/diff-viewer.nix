@@ -15,8 +15,17 @@ let
   # to repeat), then exec the local file server. `tailscale serve` requires
   # operator permission on the local tailscaled (system config:
   # nix-components.tailscale.operator, from os-modules/tailscale.nix) — until
-  # that's provisioned this silently no-ops (`|| true`) so the local server still
-  # comes up, it's just unreachable over the tailnet until the grant lands.
+  # that's provisioned this silently no-ops so the local server still comes up,
+  # it's just unreachable over the tailnet until the grant lands.
+  #
+  # The registration retries in the background rather than running once. At boot
+  # this service usually wins the race against tailscaled authenticating, so the
+  # single attempt failed with "Logged out." and was swallowed. static-web-server
+  # then stayed healthy forever, so Restart=always never fired and the serve path
+  # never got registered — a service that looks up while /diffs 404s, until
+  # someone restarts it by hand (observed on nixos-host 2026-08-29). Retrying
+  # decouples registration from tailscaled's start order without blocking the
+  # local server, which is useful on its own over 127.0.0.1.
   #
   # `--https=${tailnetPort}` is load-bearing: never let this default back to
   # 443. `tailscale serve --bg` on 443 leaves a persistent tailscaled listener
@@ -29,7 +38,15 @@ let
   # 4ca4996 (the deploy + rollback that triggered the outage). Fixed here by
   # keeping diff-viewer off 443 entirely.
   startScript = pkgs.writeShellScript "diff-viewer-start" ''
-    ${pkgs.tailscale}/bin/tailscale serve --bg --https=${toString cfg.tailnetPort} --set-path=${servePath} ${toString port} || true
+    (
+      for _ in $(seq 1 60); do
+        if ${pkgs.tailscale}/bin/tailscale serve --bg --https=${toString cfg.tailnetPort} --set-path=${servePath} ${toString port}; then
+          exit 0
+        fi
+        sleep 5
+      done
+      echo "diff-viewer: tailscale serve did not register after 5 minutes; /diffs is reachable on 127.0.0.1:${toString port} only." >&2
+    ) &
     exec ${pkgs.static-web-server}/bin/static-web-server \
       --host 127.0.0.1 --port ${toString port} \
       --root ${outputDir} \
