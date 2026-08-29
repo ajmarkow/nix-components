@@ -30,6 +30,10 @@ in
       delta.navigate = true;
       delta.line-numbers = true;
       merge.conflictstyle = "diff3";
+      # Set declaratively because `gh auth setup-git` cannot: it writes to the
+      # global git config, which is a read-only /nix/store symlink.
+      credential."https://github.com".helper = "!${pkgs.gh}/bin/gh auth git-credential";
+      credential."https://gist.github.com".helper = "!${pkgs.gh}/bin/gh auth git-credential";
     };
   };
 
