@@ -57,6 +57,7 @@ modules = [
 | `home-manager-backup` | darwin, nixos | Shared `backupFileExtension` + `overwriteBackup` so activation replaces a stale `<file>.backup` instead of aborting on it |
 | `determinate` | darwin, nixos | Determinate Nix, plus the shared binary caches and trusted users for every host |
 | `tailscale` | darwin, nixos | Tailscale client daemon, the tailscaled operator grant the `diff-viewer` module needs, and an opt-in health watchdog |
+| `beszel-agent` | darwin, nixos | [Beszel](https://beszel.dev) monitoring agent, registering itself with the hub from a universal token read out of a file |
 
 ### `determinate`
 
@@ -102,6 +103,39 @@ Three things differ by platform:
 - **The healthcheck is NixOS-only.** It is a systemd service plus timer, and the darwin variant asserts the option is off rather than ignoring it. `Restart=on-failure` / `RestartSec=5s` on tailscaled is set on NixOS unconditionally; it covers crashes, while the watchdog covers a hung-but-alive daemon and a stalled tailnet link.
 
 Firewall rules, sshd gating, and per-service tailnet port exposure stay host-specific — they name each host's own services and there is nothing shared to factor out.
+
+### `beszel-agent`
+
+Runs the [Beszel](https://beszel.dev) agent and points it at a hub. Agent only — the hub stays a container in whichever host repo serves it. Importing the module runs the agent; there is no `enable` option.
+
+The agent authenticates with a *universal* token, so no host has to be added in the hub's UI first: it opens a WebSocket to `hubUrl`, presents the token, and registers itself. The same token works on every host, so one Infisical value (`BESZEL_UNIVERSAL_TOKEN`) covers all of them.
+
+| Option | Description |
+|--------|-------------|
+| `nix-components.beszel.agent.hubKey` | Hub's public key, from its "Add System" dialog. Required, no default |
+| `nix-components.beszel.agent.hubUrl` | Hub URL the agent dials out to. Required, no default |
+| `nix-components.beszel.agent.tokenFile` | File holding the universal token, root-owned 0600. Defaults to `/etc/nixos/secrets/beszel-token` on NixOS and `/etc/beszel-agent/token` on darwin |
+| `nix-components.beszel.agent.port` | Listen port, default `45876`. Only the inbound hub→agent path uses it |
+| `nix-components.beszel.agent.openFirewall` | Open that port. NixOS only, off by default |
+| `nix-components.beszel.agent.smartmon.enable` | Let the agent read S.M.A.R.T. data via smartctl. NixOS only, off by default |
+| `nix-components.beszel.agent.extraEnvironment` | Extra [agent environment variables](https://beszel.dev/guide/environment-variables#agent), merged over the module's. Public — they land in the Nix store |
+
+```nix
+nix-components.beszel.agent = {
+  hubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...";
+  hubUrl = "https://beszel.example.com";
+  smartmon.enable = true;
+};
+```
+
+`hubKey` and `hubUrl` deliberately have no defaults. This repo is public; the host repos that consume it are not. `hubKey` is a *public* key so committing it would leak no credential, but both values identify the hub, so they are set per host. The token — the one value that is a credential — never enters the Nix store at all.
+
+Everything else about the two platforms differs, because only one of them has an upstream module:
+
+- **NixOS wraps nixpkgs' `services.beszel.agent`; darwin is a hand-rolled launchd daemon.** nix-darwin has no beszel module, so the darwin variant runs `pkgs.beszel`'s `beszel-agent` from `launchd.daemons`, as root, replacing a hand-installed `henrygd/beszel` Homebrew formula. It also sets `DATA_DIR`, which the NixOS module leaves to the agent's own default — a launchd daemon starts in `/` with no writable cwd.
+- **The token reaches the agent differently.** On darwin the daemon is root and reads `tokenFile` directly. On NixOS the agent is a `DynamicUser` under `ProtectSystem=strict` and cannot read a root-owned 0600 file, so the module passes it through `LoadCredential` and sets `TOKEN_FILE` to the staged copy under `/run/credentials/`. Chowning the secret to `beszel-agent` instead would need that user to exist when the secret is provisioned, and on a fresh host provisioning runs before the first rebuild creates it.
+- **`openFirewall` is not upstream's.** nixpkgs' own `openFirewall` picks its port from `environment.PORT`, but the agent's option is `LISTEN` — a non-default port would open 45876 while the agent listened elsewhere. This module pins upstream's to `false` and writes the firewall rule itself.
+- **`openFirewall` and `smartmon.enable` are NixOS-only.** The darwin variant asserts both are off rather than ignoring them: macOS has no nix-darwin-managed firewall, and smartmon is a udev rule plus the `disk` group plus two Linux capabilities.
 
 ## Packages
 

@@ -2,6 +2,7 @@
 let
   determinate = import ./os-modules/determinate.nix { inherit inputs; };
   tailscale = import ./os-modules/tailscale.nix;
+  beszelAgent = import ./os-modules/beszel-agent.nix;
 
   # OS-level (NixOS / nix-darwin) home-manager defaults shared by every host
   # repo: nix-mac, nix-server, nix-pixelbook.
@@ -34,11 +35,13 @@ in
     home-manager-backup = homeManagerBackup;
     determinate = determinate.darwin;
     tailscale = tailscale.darwin;
+    beszel-agent = beszelAgent.darwin;
   };
 
   flake.nixosModules = {
     home-manager-backup = homeManagerBackup;
     determinate = determinate.nixos;
     tailscale = tailscale.nixos;
+    beszel-agent = beszelAgent.nixos;
   };
 }
