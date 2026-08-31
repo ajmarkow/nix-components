@@ -118,6 +118,10 @@
 
   **Remote daemon:** The paseo daemon runs on paseo.aj-cloud.cc, not this host. Bare `paseo` commands reach it from any host — `PASEO_HOST` and `PASEO_PASSWORD` are already set via nix and Infisical shell-init.
 
+  ### ⚠️ Never Restart or Stop the Paseo Daemon
+
+  **Do not restart or stop the paseo daemon, for any reason — including while it is running.** This is a user-only action. Tell the user the daemon needs restarting or stopping and let them run it.
+
   ### ⚠️ Never Put the Paseo Password on a Command Line
 
   **Never put the password in a `--host` URI, print `PASEO_PASSWORD`, or write it to a file — the env vars are the only sanctioned channel.**
