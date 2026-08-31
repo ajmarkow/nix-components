@@ -12,8 +12,13 @@
 # discovers opencode's models dynamically from opencode's own provider
 # registry, so adding a custom provider here makes it selectable in Paseo's
 # model picker as `opencode/<providerId>/<modelId>` with no Paseo-side
-# changes. Meta Muse ships as a built-in opencode provider already, so it
-# does not need to be defined by hand here.
+# changes. Meta Muse ships as a built-in opencode provider, so its model
+# catalog and whitelist need no local definition — but opencode routes it
+# through the raw @ai-sdk/openai SDK package under the hood (confirmed via
+# opencode's own service=provider logs: `pkg=@ai-sdk/openai using bundled
+# provider`), which needs an apiKey passed explicitly or it falls through to
+# looking for OPENAI_API_KEY and throws AI_LoadAPIKeyError. So apiKey still
+# has to be set here, same as openrouter below.
 #
 # AGENTS.md content is imported from ./lib/claude-md-content.nix, the same
 # plain string ./claude-code-claude-md.nix uses for CLAUDE.md — so the two
@@ -64,6 +69,7 @@ in
         # Only Muse Spark 1.2 Contributor should show in the /models picker
         # for the built-in Meta Muse provider.
         meta = {
+          options.apiKey = "{env:INFISICAL_META_MUSE_KEY}";
           whitelist = [
             "muse-spark-1.2-contributor"
           ];
