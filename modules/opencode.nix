@@ -60,13 +60,6 @@ in
             "nemotron-3.5-lightning-free"
           ];
         };
-        # Only Muse Spark 1.2 Contributor should show in the /models picker
-        # for the built-in Meta Muse provider.
-        meta = {
-          whitelist = [
-            "muse-spark-1.2-contributor"
-          ];
-        };
         # Amazon Bedrock auto-enables whenever AWS credentials are present
         # in the environment (see opencode docs), which surfaces it in the
         # /models picker unintentionally. Empty whitelist hides every model
@@ -78,6 +71,7 @@ in
           options.apiKey = "{env:OPENROUTER_API_KEY}";
           whitelist = [
             "google/gemma-4-31b-it:free"
+            "meta/muse-spark-1.2-contributor"
             "minimax/minimax-m3:free"
             "thinkingmachines/inkling-small:free"
             "thinkingmachines/inkling:free"
