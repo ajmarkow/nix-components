@@ -3,6 +3,7 @@ let
   determinate = import ./os-modules/determinate.nix { inherit inputs; };
   tailscale = import ./os-modules/tailscale.nix;
   beszelAgent = import ./os-modules/beszel-agent.nix;
+  nixLd = import ./os-modules/nix-ld.nix;
 
   # OS-level (NixOS / nix-darwin) home-manager defaults shared by every host
   # repo: nix-mac, nix-server, nix-pixelbook.
@@ -43,5 +44,6 @@ in
     determinate = determinate.nixos;
     tailscale = tailscale.nixos;
     beszel-agent = beszelAgent.nixos;
+    nix-ld = nixLd;
   };
 }
