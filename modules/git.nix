@@ -1,7 +1,6 @@
 {
   pkgs,
   lib,
-  config,
   ...
 }:
 let
@@ -25,7 +24,6 @@ in
       fetch.prune = true;
       push.autoSetupRemote = true;
       core.pager = "delta";
-      core.hooksPath = "${config.xdg.configHome}/git/hooks";
       interactive.diffFilter = "delta --color-only";
       delta.navigate = true;
       delta.line-numbers = true;
@@ -35,40 +33,6 @@ in
       credential."https://github.com".helper = "!${pkgs.gh}/bin/gh auth git-credential";
       credential."https://gist.github.com".helper = "!${pkgs.gh}/bin/gh auth git-credential";
     };
-  };
-
-  # --- Managed global pre-commit hook ---
-  # Runs `nix flake check --no-build` ONLY in a flake repo with staged .nix
-  # files. Every other commit is a fast no-op. Chains to a repo-local hook so
-  # it never shadows one. Bypass with `git commit --no-verify`.
-  xdg.configFile."git/hooks/pre-commit" = {
-    executable = true;
-    text = ''
-      #!/usr/bin/env bash
-      # Managed by nix-components (modules/git.nix). Do not edit by hand.
-      set -euo pipefail
-
-      root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-
-      if [ -n "$root" ] && [ -f "$root/flake.nix" ]; then
-        if [ -n "$(git diff --cached --name-only -- '*.nix')" ]; then
-          echo "pre-commit: staged .nix in a flake — running 'nix flake check --no-build'…"
-          if ! nix flake check --no-build "$root"; then
-            echo "pre-commit: flake check FAILED — commit aborted." >&2
-            echo "  Fix the errors above, or bypass with: git commit --no-verify" >&2
-            exit 1
-          fi
-          echo "pre-commit: flake check passed."
-        fi
-      fi
-
-      # Preserve any repo-local hook (global hooksPath would otherwise skip it).
-      local_hook="$root/.git/hooks/pre-commit"
-      if [ -n "$root" ] && [ -x "$local_hook" ]; then
-        exec "$local_hook"
-      fi
-      exit 0
-    '';
   };
 
   services.gpg-agent = {

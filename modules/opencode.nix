@@ -12,13 +12,7 @@
 # discovers opencode's models dynamically from opencode's own provider
 # registry, so adding a custom provider here makes it selectable in Paseo's
 # model picker as `opencode/<providerId>/<modelId>` with no Paseo-side
-# changes. Meta Muse ships as a built-in opencode provider, so its model
-# catalog and whitelist need no local definition — but opencode routes it
-# through the raw @ai-sdk/openai SDK package under the hood (confirmed via
-# opencode's own service=provider logs: `pkg=@ai-sdk/openai using bundled
-# provider`), which needs an apiKey passed explicitly or it falls through to
-# looking for OPENAI_API_KEY and throws AI_LoadAPIKeyError. So apiKey still
-# has to be set here, same as openrouter below.
+# changes.
 #
 # AGENTS.md content is imported from ./lib/claude-md-content.nix, the same
 # plain string ./claude-code-claude-md.nix uses for CLAUDE.md — so the two
@@ -66,14 +60,6 @@ in
             "nemotron-3.5-lightning-free"
           ];
         };
-        # Only Muse Spark 1.2 Contributor should show in the /models picker
-        # for the built-in Meta Muse provider.
-        meta = {
-          options.apiKey = "{env:INFISICAL_META_MUSE_KEY}";
-          whitelist = [
-            "muse-spark-1.2-contributor"
-          ];
-        };
         # Amazon Bedrock auto-enables whenever AWS credentials are present
         # in the environment (see opencode docs), which surfaces it in the
         # /models picker unintentionally. Empty whitelist hides every model
@@ -81,30 +67,13 @@ in
         amazon-bedrock = {
           whitelist = [ ];
         };
-        # Only OpenRouter's free-tier (":free"-suffixed) models should show
-        # in the /models picker for the openrouter provider.
+        # No whitelist here on purpose: each workspace picks its own
+        # openrouter model subset via a project-root opencode.json (merges
+        # on top of this global config and fully replaces array fields like
+        # whitelist — see opencode's config precedence docs). This block
+        # only supplies the apiKey every workspace needs.
         openrouter = {
           options.apiKey = "{env:OPENROUTER_API_KEY}";
-          whitelist = [
-            "cohere/north-mini-code:free"
-            "dots-studio/dots-3-note-preview:free"
-            "google/gemma-4-26b-a4b-it:free"
-            "google/gemma-4-31b-it:free"
-            "inclusionai/ling-3.0-flash-fin:free"
-            "liquid/lfm-2.5-2.6b:free"
-            "minimax/minimax-m2.7:free"
-            "minimax/minimax-m3:free"
-            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
-            "nvidia/nemotron-3-super-120b-a12b:free"
-            "nvidia/nemotron-3-ultra-550b-a55b:free"
-            "nvidia/nemotron-3.5-content-safety:free"
-            "nvidia/nemotron-3.5-lightning:free"
-            "poolside/laguna-s-2.1:free"
-            "poolside/laguna-xs-2.1:free"
-            "thinkingmachines/inkling-small:free"
-            "thinkingmachines/inkling:free"
-            "z-ai/glm-5.2:free"
-          ];
         };
       };
     };
