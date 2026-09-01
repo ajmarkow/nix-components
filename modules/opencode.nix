@@ -60,6 +60,13 @@ in
             "nemotron-3.5-lightning-free"
           ];
         };
+        # Only Muse Spark 1.2 Contributor should show in the /models picker
+        # for the built-in Meta Muse provider.
+        meta = {
+          whitelist = [
+            "muse-spark-1.2-contributor"
+          ];
+        };
         # Amazon Bedrock auto-enables whenever AWS credentials are present
         # in the environment (see opencode docs), which surfaces it in the
         # /models picker unintentionally. Empty whitelist hides every model
@@ -67,13 +74,15 @@ in
         amazon-bedrock = {
           whitelist = [ ];
         };
-        # No whitelist here on purpose: each workspace picks its own
-        # openrouter model subset via a project-root opencode.json (merges
-        # on top of this global config and fully replaces array fields like
-        # whitelist — see opencode's config precedence docs). This block
-        # only supplies the apiKey every workspace needs.
         openrouter = {
           options.apiKey = "{env:OPENROUTER_API_KEY}";
+          whitelist = [
+            "google/gemma-4-31b-it:free"
+            "minimax/minimax-m3:free"
+            "thinkingmachines/inkling-small:free"
+            "thinkingmachines/inkling:free"
+            "z-ai/glm-5.2:free"
+          ];
         };
       };
     };
