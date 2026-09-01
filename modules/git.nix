@@ -2,6 +2,7 @@
   pkgs,
   lib,
   config,
+  treefmtNix,
   ...
 }:
 let
@@ -55,10 +56,50 @@ let
     '';
   };
 
-  trunkFmt = pkgs.writeShellApplication {
-    name = "trunk-fmt";
+  # One shared, Nix-native formatter for every repo this hook touches — no
+  # per-repo config file, no network fetch, no foreign binary running under
+  # nix-ld. Every formatter listed is a plain nixpkgs derivation; the config
+  # is baked into the wrapper at build time (treefmt-nix's `mkWrapper`), so
+  # there is nothing to init and nothing that can drift out of date the way
+  # a committed .trunk/trunk.yaml version pin did (see git history: it
+  # pinned a trunk CLI release that trunk.io later stopped serving, breaking
+  # every commit until someone noticed).
+  #
+  # projectRootFile defaults to ".git/config" (treefmt-nix's own default),
+  # which every plain git repo has — no flake.nix required in the target
+  # repo, since this hook also runs in non-Nix repos (aj-website,
+  # judith-website, ...).
+  treefmtWrapper =
+    (treefmtNix.lib.evalModule pkgs {
+      programs = {
+        nixfmt.enable = true;
+        shfmt.enable = true;
+        prettier.enable = true; # JS/TS/JSON/YAML/Markdown/CSS/HTML
+        ruff-format.enable = true;
+        rustfmt.enable = true;
+        gofmt.enable = true;
+        stylua.enable = true;
+        taplo.enable = true; # TOML
+        rufo.enable = true; # Ruby
+      };
+      # enableDefaultExcludes (on by default) already covers *.lock,
+      # package-lock.json, go.{mod,sum}, .git{ignore,attributes,modules},
+      # LICENSE. These are directories no formatter should ever walk into.
+      settings.excludes = [
+        "node_modules/**"
+        "dist/**"
+        "build/**"
+        ".direnv/**"
+        "result/**"
+        ".worktrees/**"
+        ".playwright-mcp/**"
+      ];
+    }).config.build.wrapper;
+
+  repoFmt = pkgs.writeShellApplication {
+    name = "repo-fmt";
     runtimeInputs = [
-      pkgs.trunk-io
+      treefmtWrapper
       pkgs.git
     ];
     text = ''
@@ -66,22 +107,7 @@ let
       if [ -z "$staged" ]; then
         exit 0
       fi
-      # A repo that has never run `trunk init` fails fmt outright with
-      # "Please run 'trunk init' to setup trunk in this repository" and
-      # blocks every commit until someone does it by hand. Do it here
-      # instead, once, and stage the generated config so it's part of the
-      # same commit. Non-fatal: trunk init needs network access to trunk.io,
-      # so an offline commit (or the odd trunk.io outage) skips formatting
-      # for this run rather than blocking the commit entirely.
-      root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-      if [ -n "$root" ] && [ ! -f "$root/.trunk/trunk.yaml" ]; then
-        if ! trunk init -y --only-detected-formatters >/dev/null; then
-          echo "pre-commit: trunk-fmt: 'trunk init' failed (offline? trunk.io unreachable?) — skipping formatting for this commit" >&2
-          exit 0
-        fi
-        git add "$root/.trunk" 2>/dev/null || true
-      fi
-      printf '%s\n' "$staged" | xargs -r trunk fmt
+      printf '%s\n' "$staged" | xargs -r treefmt --
       git diff --name-only 2>/dev/null | xargs -r git add -- 2>/dev/null || true
     '';
   };
@@ -123,7 +149,7 @@ in
       # Managed by nix-components (modules/git.nix). Do not edit by hand.
       set -euo pipefail
       ${ensureGitignore}/bin/ensure-gitignore || echo "pre-commit: ensure-gitignore failed — continuing" >&2
-      ${trunkFmt}/bin/trunk-fmt
+      ${repoFmt}/bin/repo-fmt
       root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
       local_hook="$root/.git/hooks/pre-commit"
       if [ -n "$root" ] && [ -x "$local_hook" ]; then

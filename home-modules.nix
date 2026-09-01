@@ -63,6 +63,9 @@ let
       // lib.optionalAttrs (name == "packages.nix") {
         _module.args.backlogMd = inputs.backlog-md;
       }
+      // lib.optionalAttrs (name == "git.nix") {
+        _module.args.treefmtNix = inputs.treefmt-nix;
+      }
       // lib.optionalAttrs (name == "mcp.nix") {
         # mcp.nix's claude/codex wrapper packages need the raw claude/codex
         # binaries directly, NOT via config.programs.claude-code.finalPackage /

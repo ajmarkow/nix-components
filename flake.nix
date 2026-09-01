@@ -74,6 +74,8 @@
     codex-cli-nix.inputs.nixpkgs.follows = "nixpkgs";
     backlog-md.url = "github:MrLesk/Backlog.md";
     backlog-md.inputs.nixpkgs.follows = "nixpkgs";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
 
     # Determinate Nix, consumed by os-modules/determinate.nix.
     #

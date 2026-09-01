@@ -1,7 +1,0 @@
-version: 0.1
-cli:
-  version: 1.25.0
-lint:
-  ignore:
-    - linters: [ALL]
-      paths: [node_modules/**, dist/**, build/**, .direnv/**, result/**, .worktrees/**, .playwright-mcp/**]

@@ -37,7 +37,6 @@ in
       btop
       p7zip
       # Linters
-      trunk-io
       gibo
 
       # Zsh plugins (needed by zsh.nix OMZ shims)
