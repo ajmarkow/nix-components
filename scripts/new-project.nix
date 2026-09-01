@@ -6,6 +6,7 @@ pkgs.writeShellApplication {
     pkgs.gh
     pkgs.coreutils
     pkgs.jq
+    pkgs.gibo
   ];
   text = ''
     usage() {
@@ -76,6 +77,33 @@ pkgs.writeShellApplication {
     # Step 4: seed a README so the initial commit is never empty.
     if [ ! -f "$dir/README.md" ]; then
       printf '# %s\n' "$name" > "$dir/README.md"
+    fi
+
+    # Step 4b: seed .gitignore via gibo if missing.
+    if [ ! -s "$dir/.gitignore" ]; then
+      templates=""
+      if [ -f "$dir/package.json" ] || [ -f "$dir/pnpm-lock.yaml" ] || [ -f "$dir/yarn.lock" ] || [ -f "$dir/package-lock.json" ]; then
+        templates="$templates Node"
+      fi
+      if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/requirements.txt" ] || [ -f "$dir/uv.lock" ] || [ -f "$dir/poetry.lock" ] || [ -f "$dir/Pipfile" ]; then
+        templates="$templates Python"
+      fi
+      if [ -f "$dir/go.mod" ]; then
+        templates="$templates Go"
+      fi
+      if [ -f "$dir/Cargo.toml" ]; then
+        templates="$templates Rust"
+      fi
+      if [ -f "$dir/Gemfile" ]; then
+        templates="$templates Ruby"
+      fi
+      if [ -z "$(echo "$templates" | tr -d '[:space:]')" ]; then
+        templates="macOS Linux Windows"
+      else
+        templates="$(echo "$templates" | xargs)"
+      fi
+      # shellcheck disable=SC2086
+      gibo dump $templates > "$dir/.gitignore" 2>/dev/null || echo "Warning: gibo dump $templates failed — no .gitignore generated" >&2
     fi
 
     # Step 5: commit — this MUST happen before `gh repo create --push`, which

@@ -38,6 +38,7 @@ in
       p7zip
       # Linters
       trunk-io
+      gibo
 
       # Zsh plugins (needed by zsh.nix OMZ shims)
       zsh-completions
