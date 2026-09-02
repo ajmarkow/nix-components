@@ -7,7 +7,20 @@
 let
   cfg = config.services.diffViewer;
   outputDir = "${config.home.homeDirectory}/diff-viewer";
-  port = 18092;
+  # Loopback-only backend port for static-web-server; tailscale serve proxies
+  # the tailnet-facing HTTPS port (cfg.tailnetPort) to this one locally.
+  # Deliberately NOT in the 18090-18093/18404 range: nix-server reserves
+  # that block for its rootless-podman containers
+  # (modules/containers-rootless.nix, hosts/nixos-host/default.nix firewall
+  # rules). This module runs on every host (nix-mac, nix-server,
+  # nix-pixelbook) via home-manager, independent of any per-host port
+  # reservations, so a collision here isn't caught by that host's own
+  # flake check. 18092 previously collided with nix-server's keeper
+  # container: whichever process won the bind race first squatted the
+  # port, and the loser crash-looped retrying forever (observed on
+  # nixos-host 2026-09-02 — keeper's rootlessport couldn't bind because
+  # this service's static-web-server had already claimed 127.0.0.1:18092).
+  port = 28092;
   servePath = "/diffs";
 
   # Wrapper so the same payload runs under both launchd and systemd.user:
