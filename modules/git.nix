@@ -107,8 +107,16 @@ let
       if [ -z "$staged" ]; then
         exit 0
       fi
-      printf '%s\n' "$staged" | xargs -r treefmt --
-      git diff --name-only 2>/dev/null | xargs -r git add -- 2>/dev/null || true
+      # -z/-0 (NUL-delimited) rather than newline-delimited: a plain `xargs`
+      # here splits on ALL whitespace, not just newlines, so any staged path
+      # containing a space (e.g. backlog-md task files like
+      # "task-19 - some title.md") gets shredded into bogus fragments and
+      # treefmt fails with "error resolving path" on each fragment. The
+      # `staged` variable above is only ever used for its emptiness, never
+      # iterated, so it does not need the same treatment (NUL bytes do not
+      # survive a bash command-substitution variable reliably anyway).
+      git diff --cached --name-only -z --diff-filter=ACMRT | xargs -0 -r treefmt --
+      git diff --name-only -z 2>/dev/null | xargs -0 -r git add -- 2>/dev/null || true
     '';
   };
 in
