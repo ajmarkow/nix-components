@@ -29,6 +29,16 @@ let
         lib.composeManyExtensions [
           pyproject-build-systems.overlays.wheel
           overlay
+          (_: prev: {
+            mcpm = prev.mcpm.overrideAttrs (old: {
+              postInstall = (old.postInstall or "") + ''
+                substituteInPlace "$out/${python.sitePackages}/mcpm/fastmcp_integration/proxy.py" \
+                  --replace-fail 'import logging' $'import logging\nimport os' \
+                  --replace-fail 'env_config.update(server.env)' \
+                    'env_config.update(server.get_filtered_env_vars(os.environ))'
+              '';
+            });
+          })
         ]
       );
 
@@ -36,25 +46,30 @@ let
 in
 # mkVirtualEnv exposes all venv binaries (python3, pip, etc.) which conflict
 # with system packages. Wrap to expose only the mcpm binary.
-pkgs.runCommand "mcpm" { meta.mainProgram = "mcpm"; } ''
-    mkdir -p $out/bin
-    cat > $out/bin/mcpm <<EOF
-  #!${mcpm-env}/bin/python3
-  # authlib.deprecate installs its own "always" filter for
-  # AuthlibDeprecationWarning as a side effect of import, which outranks any
-  # PYTHONWARNINGS-based ignore filter (or one set before this import runs).
-  # Importing it first, then adding our ignore filter, then triggering the
-  # actual warning via the authlib.jose import puts our filter in front.
-  import warnings
-  import authlib.deprecate
-  warnings.filterwarnings("ignore", category=authlib.deprecate.AuthlibDeprecationWarning)
-  import authlib.jose
+pkgs.runCommand "mcpm"
+  {
+    meta.mainProgram = "mcpm";
+    passthru.pythonEnv = mcpm-env;
+  }
+  ''
+      mkdir -p $out/bin
+      cat > $out/bin/mcpm <<EOF
+    #!${mcpm-env}/bin/python3
+    # authlib.deprecate installs its own "always" filter for
+    # AuthlibDeprecationWarning as a side effect of import, which outranks any
+    # PYTHONWARNINGS-based ignore filter (or one set before this import runs).
+    # Importing it first, then adding our ignore filter, then triggering the
+    # actual warning via the authlib.jose import puts our filter in front.
+    import warnings
+    import authlib.deprecate
+    warnings.filterwarnings("ignore", category=authlib.deprecate.AuthlibDeprecationWarning)
+    import authlib.jose
 
-  import sys
-  from mcpm.cli import main
+    import sys
+    from mcpm.cli import main
 
-  if __name__ == "__main__":
-      sys.exit(main())
-  EOF
-    chmod +x $out/bin/mcpm
-''
+    if __name__ == "__main__":
+        sys.exit(main())
+    EOF
+      chmod +x $out/bin/mcpm
+  ''

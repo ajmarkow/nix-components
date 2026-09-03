@@ -22,9 +22,13 @@ my-server = {
 };
 ```
 
-Secrets are **not** declared here. A stdio server inherits the agent session's
-environment, so a token already exported in the session (e.g. via Infisical)
-reaches the server with no config.
+Declare secret environment variables as runtime references. MCPM resolves only
+the listed variables when it starts the server. The generated configuration
+contains the variable name, not its value.
+
+```nix
+env.API_TOKEN = "\${API_TOKEN}";
+```
 
 ### remote HTTP server
 
@@ -40,8 +44,9 @@ my-http = {
 ```
 
 Remote servers run as stdio through `mcp-remote`, wrapped so the inheriting
-shell expands `headerVar` at spawn. Only the variable **name** is stored in
-`servers.json`, never the secret value.
+shell expands `headerVar` at spawn. Add the same runtime reference to `env` so
+MCPM passes it to that shell. Only the variable **name** is stored in
+`servers.json`.
 
 ## Profiles
 

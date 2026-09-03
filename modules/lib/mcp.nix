@@ -6,11 +6,10 @@
 # tags on servers -- see modules/mcp.nix for how `active` membership is set at
 # deploy time and swapped at runtime.
 #
-# Secrets never land in servers.json. stdio servers inherit them from the
-# agent's session env (FastMCP copies os.environ into each child). Remote HTTP
-# servers run as stdio through `mcp-remote`, wrapped in `bash -c` so the
-# inheriting shell expands the token at spawn -- only the env-var NAME is
-# stored, never its value.
+# Secrets never land in servers.json. Each server declares the runtime
+# environment references it needs. MCPM resolves only those variables when it
+# starts the child. Remote HTTP servers run through `mcp-remote`, wrapped in
+# `bash -c` so the child shell expands the resolved token.
 let
   # A server is either stdio (`command`/`args`/`env`) or remote (`url` plus an
   # optional auth header). `profiles` are the group tags it carries.
@@ -38,6 +37,7 @@ let
       headerName = "Authorization";
       headerPrefix = "Bearer ";
       headerVar = "GITHUB_MCP_TOKEN";
+      env.GITHUB_MCP_TOKEN = "\${GITHUB_MCP_TOKEN}";
     };
 
     context7 = {
@@ -49,6 +49,7 @@ let
       headerName = "Context7-API-Key";
       headerVar = "CONTEXT7_API_KEY";
       headerRequired = false;
+      env.CONTEXT7_API_KEY = "\${CONTEXT7_API_KEY}";
     };
     openrouter = {
       # OAuth-only; no static secret. mcp-remote drives the OAuth flow, which
@@ -64,8 +65,7 @@ let
         "-y"
         "@abhiz123/todoist-mcp-server"
       ];
-      # TODOIST_API_TOKEN reaches the child by env inheritance -- not declared
-      # here, so it never touches disk.
+      env.TODOIST_API_TOKEN = "\${TODOIST_API_TOKEN}";
     };
     obsidian = {
       profiles = [ "productivity" ];
@@ -88,6 +88,7 @@ let
       headerName = "Authorization";
       headerPrefix = "Bearer ";
       headerVar = "N8N_MCP_AUTH_TOKEN";
+      env.N8N_MCP_AUTH_TOKEN = "\${N8N_MCP_AUTH_TOKEN}";
     };
   };
 

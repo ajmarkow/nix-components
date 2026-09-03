@@ -28,6 +28,12 @@
         touch "$out"
       '';
 
+      checks.mcpm-environment = pkgs.runCommand "mcpm-environment-tests" { } ''
+        cd ${./.}
+        PYTHONDONTWRITEBYTECODE=1 ${customPackages.mcpm.pythonEnv}/bin/python3 -m unittest tests/test_mcpm_env.py
+        touch "$out"
+      '';
+
       devShells.default = pkgs.mkShell {
         packages = [
           pkgs.nil
