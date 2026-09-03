@@ -73,10 +73,8 @@ in
             "google/gemma-4-31b-it:free"
             "meta/muse-spark-1.2-contributor"
             "meta/muse-spark-1.3-contributor"
-            "minimax/minimax-m3:free"
             "thinkingmachines/inkling-small:free"
             "thinkingmachines/inkling:free"
-            "z-ai/glm-5.2:free"
           ];
         };
       };
