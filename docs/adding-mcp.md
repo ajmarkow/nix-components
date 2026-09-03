@@ -1,45 +1,73 @@
 # Adding an MCP Server
 
-This repo manages MCP server configuration via Nix home-manager modules. There are two places to register an MCP server depending on scope.
+MCP servers live in one flat catalog and are served to every agent (Claude
+Code, Codex, opencode) through a single `mcpm` aggregator. There are no binary
+wrappers and no per-agent server definitions -- each agent points at one fixed
+entry, `mcpm profile run active`, and the active set is controlled by tags in
+mcpm's `servers.json`.
 
-## Claude Code only → `modules/claude-code.nix`
+## Where servers are defined
 
-Add an entry to `programs.claude-code.mcpServers`:
+Edit the `catalog` in `modules/lib/mcp.nix`. Each entry is one server with a
+`profiles` list (its group tags) plus its transport.
+
+### stdio server
 
 ```nix
-programs.claude-code = {
-  # ...existing config...
-  mcpServers = {
-    my-server = {
-      command = "my-binary";
-      args = [ "mcp" ];
-    };
-  };
+my-server = {
+  profiles = [ "core" ];       # one or more group tags
+  command = "npx";
+  args = [ "-y" "my-mcp-server" ];
+  env.SOME_FLAG = "value";      # optional, non-secret only
 };
 ```
 
-This writes to Claude Code's `settings.json` under `mcpServers` (requires `enableMcpIntegration = true`, which is already set).
+Secrets are **not** declared here. A stdio server inherits the agent session's
+environment, so a token already exported in the session (e.g. via Infisical)
+reaches the server with no config.
 
-## Shared across tools → `modules/mcp.nix`
-
-Add an entry to `programs.mcp.servers`:
+### remote HTTP server
 
 ```nix
-programs.mcp.servers = {
-  my-server = {
-    command = "my-binary";
-    args = [ "serve" ];
-  };
-  # HTTP servers use type + url instead of command:
-  my-http-server = {
-    type = "http";
-    url = "https://example.com/mcp";
-  };
+my-http = {
+  profiles = [ "extras" ];
+  url = "https://example.com/mcp";
+  headerName = "Authorization";   # optional auth header
+  headerPrefix = "Bearer ";       # optional prefix on the value
+  headerVar = "MY_TOKEN";         # env-var NAME holding the secret
+  headerRequired = true;          # false => header emitted only when set
 };
 ```
 
-Use `env` for environment variables and `requireEnv` (defined at the top of `mcp.nix`) for secrets that must be present at build time.
+Remote servers run as stdio through `mcp-remote`, wrapped so the inheriting
+shell expands `headerVar` at spawn. Only the variable **name** is stored in
+`servers.json`, never the secret value.
+
+## Profiles
+
+`profiles` are plain tags. A profile is "on" when it is listed in
+`nix-components.mcp.enabledProfiles` (default: `core`) -- every server in an
+enabled profile gets the `active` tag, and `mcpm profile run active` aggregates
+them. `core` holds the always-used dev tools (nixos, playwright, context7,
+github); `productivity` (todoist, obsidian) and `extras` (openrouter) are off by
+default.
+
+Swap the active set at runtime without a rebuild:
+
+```bash
+mcp-profile core github extras productivity
+```
+
+This retags `servers.json` and takes effect on the next agent session. The
+Nix-declared default returns on the next deploy.
+
+## Host-local servers
+
+A server that only makes sense on one host goes in that host's config via
+`nix-components.mcp.extraServers`, using the same entry shape as the catalog.
+Its name must not collide with a built-in server.
 
 ## After editing
 
-Changes take effect after the consuming host runs `nixos-rebuild switch` or `home-manager switch`. No separate `mcp.json` file needs to be created — Nix generates it.
+Run `nix flake check --no-build`, commit, and push. CI deploys via
+home-manager. No `servers.json` is written by hand -- Nix generates it.

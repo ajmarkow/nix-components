@@ -1,12 +1,16 @@
 {
   profileNames ? [ ],
-  fragmentDir ? "/var/empty",
   lib,
   writeShellApplication,
   jq,
   coreutils,
   ...
 }:
+# Runtime profile swap: retags which servers carry the `active` tag in mcpm's
+# servers.json, so the next `mcpm profile run active` (a new agent session)
+# aggregates a different set. Touches one file, shared by every agent. The
+# deploy-declared default returns on the next home-manager switch (servers.json
+# is a forced store symlink; this replaces it with a real file).
 writeShellApplication {
   name = "mcp-profile";
   runtimeInputs = [
@@ -15,7 +19,7 @@ writeShellApplication {
   ];
   text = ''
     known_profiles=(${lib.concatMapStringsSep " " lib.escapeShellArg profileNames})
-    fragment_dir=${lib.escapeShellArg fragmentDir}
+    servers="$HOME/.config/mcpm/servers.json"
 
     if [[ "$#" -eq 0 ]]; then
       echo "Usage: mcp-profile <profile1> [<profile2> ...]" >&2
@@ -23,85 +27,55 @@ writeShellApplication {
       exit 1
     fi
 
-    is_known_profile() {
-      local profile="$1"
-      local known_profile
+    if [[ ! -f "$servers" ]]; then
+      echo "mcpm servers.json is missing: $servers" >&2
+      exit 1
+    fi
 
-      for known_profile in "''${known_profiles[@]}"; do
-        [[ "$profile" == "$known_profile" ]] && return 0
+    is_known() {
+      local p
+      for p in "''${known_profiles[@]}"; do
+        [[ "$1" == "$p" ]] && return 0
       done
-
       return 1
     }
 
-    profiles=()
+    selected=()
     for profile in "$@"; do
-      if ! is_known_profile "$profile"; then
+      if ! is_known "$profile"; then
         echo "Unknown MCP profile: $profile" >&2
         echo "Valid profiles: ${lib.concatStringsSep ", " profileNames}" >&2
         exit 1
       fi
-
-      already_selected=false
-      for selected_profile in "''${profiles[@]}"; do
-        if [[ "$profile" == "$selected_profile" ]]; then
-          already_selected=true
-          break
-        fi
+      # De-dupe while preserving order.
+      already=false
+      for s in "''${selected[@]}"; do
+        [[ "$profile" == "$s" ]] && already=true && break
       done
-      [[ "$already_selected" == true ]] || profiles+=("$profile")
+      [[ "$already" == true ]] || selected+=("$profile")
     done
 
-    if [[ ! -d "$fragment_dir" ]]; then
-      echo "MCP profile fragments are missing: $fragment_dir" >&2
-      exit 1
-    fi
+    sel_json=$(printf '%s\n' "''${selected[@]}" | jq -R . | jq -s .)
 
-    claude_fragments=()
-    opencode_fragments=()
-    codex_fragments=()
-    for profile in "''${profiles[@]}"; do
-      claude_fragment="$fragment_dir/claude-code/$profile.json"
-      opencode_fragment="$fragment_dir/opencode/$profile.json"
-      codex_fragment="$fragment_dir/codex/$profile.toml"
+    # For each server, drop any stale `active` tag, then re-add it when the
+    # server's group tags intersect the selected profiles.
+    tmp=$(mktemp "$(dirname "$servers")/.servers.json.XXXXXX")
+    trap 'rm -f "$tmp"' EXIT
+    jq --argjson sel "$sel_json" '
+      to_entries
+      | map(
+          .value.profile_tags = (
+            ((.value.profile_tags // []) - ["active"]) as $groups
+            | $groups + (if (($groups - ($groups - $sel)) | length) > 0 then ["active"] else [] end)
+          )
+        )
+      | from_entries
+    ' "$servers" > "$tmp"
+    mv "$tmp" "$servers"
+    trap - EXIT
 
-      for fragment in "$claude_fragment" "$opencode_fragment" "$codex_fragment"; do
-        if [[ ! -f "$fragment" ]]; then
-          echo "MCP profile fragment is missing: $fragment" >&2
-          exit 1
-        fi
-      done
-
-      claude_fragments+=("$claude_fragment")
-      opencode_fragments+=("$opencode_fragment")
-      codex_fragments+=("$codex_fragment")
-    done
-
-    claude_dir="$HOME/.config/mcp-profiles"
-    codex_dir="$HOME/.codex"
-    mkdir -p "$claude_dir" "$codex_dir"
-
-    claude_temp=$(mktemp "$claude_dir/.claude-active.json.XXXXXX")
-    opencode_temp=$(mktemp "$claude_dir/.opencode-active.json.XXXXXX")
-    codex_temp=$(mktemp "$codex_dir/.active.config.toml.XXXXXX")
-    cleanup() {
-      rm -f "$claude_temp" "$opencode_temp" "$codex_temp"
-    }
-    trap cleanup EXIT
-
-    jq -s '{mcpServers: (map(.mcpServers) | add)}' "''${claude_fragments[@]}" > "$claude_temp"
-    jq -s '{mcp: (map(.mcp) | add)}' "''${opencode_fragments[@]}" > "$opencode_temp"
-    for index in "''${!codex_fragments[@]}"; do
-      [[ "$index" -eq 0 ]] || printf '\n'
-      cat "''${codex_fragments[$index]}"
-    done > "$codex_temp"
-
-    mv "$claude_temp" "$claude_dir/claude-active.json"
-    mv "$opencode_temp" "$claude_dir/opencode-active.json"
-    mv "$codex_temp" "$codex_dir/active.config.toml"
-
-    echo "Active MCP profiles: ''${profiles[*]}"
-    echo "Start a new agent session for this change to take effect. MCP servers connect at session start."
+    echo "Active MCP profiles: ''${selected[*]}"
+    echo "Start a new agent session for this to take effect -- MCP servers connect at session start."
     echo "This is a session-scoped override. The Nix-declared default returns on the next deploy."
   '';
 }

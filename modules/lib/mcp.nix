@@ -1,220 +1,144 @@
 { lib, pkgs }:
-{
-  # Every known profile, keyed by name, grouping one or more servers. `kind` lives on
-  # each SERVER, not the profile -- a profile is just a named grouping, and
-  # `productivity` mixes servers that need different delivery mechanisms. Each
-  # agent's reshape function below dispatches per-server on `s.kind`, because the
-  # three agents use incompatible conventions for substituting a secret into a
-  # server definition: claude-code's runtime `${VAR}` expansion, opencode's
-  # `{env:VAR}` convention, and codex's static `http_headers` (needing a
-  # `env_http_headers` name-mapping instead of a templated value) for HTTP servers.
-  # A single shared shape cannot serve all three, so each server declares just the
-  # facts (url/command, header name, which env var holds the secret) and each
-  # reshape function renders its own agent-correct form from those facts.
-  profiles = {
-    core = {
-      servers = {
-        nixos = {
-          kind = "plain";
-          command = "uvx";
-          args = [ "mcp-nixos" ];
-          # uvx defaults to downloading its own dynamically-linked CPython build,
-          # which can't run on NixOS without nix-ld. Point it at a nixpkgs Python
-          # instead so it works on every host without extra system config.
-          env = {
-            UV_PYTHON = "${pkgs.python3}/bin/python3";
-          };
-        };
-        playwright = {
-          kind = "plain";
-          command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
-          args = [
-            "--headless"
-            "--isolated"
-          ];
-        };
-      };
+# One flat server catalog rendered into mcpm's global registry
+# (~/.config/mcpm/servers.json). mcpm aggregates every server tagged `active`
+# behind a single stdio endpoint (`mcpm profile run active`), so each agent
+# needs just one static MCP entry and no binary wrapper. Profiles are plain
+# tags on servers -- see modules/mcp.nix for how `active` membership is set at
+# deploy time and swapped at runtime.
+#
+# Secrets never land in servers.json. stdio servers inherit them from the
+# agent's session env (FastMCP copies os.environ into each child). Remote HTTP
+# servers run as stdio through `mcp-remote`, wrapped in `bash -c` so the
+# inheriting shell expands the token at spawn -- only the env-var NAME is
+# stored, never its value.
+let
+  # A server is either stdio (`command`/`args`/`env`) or remote (`url` plus an
+  # optional auth header). `profiles` are the group tags it carries.
+  catalog = {
+    nixos = {
+      profiles = [ "core" ];
+      command = "uvx";
+      args = [ "mcp-nixos" ];
+      # uvx otherwise downloads its own dynamically-linked CPython, which can't
+      # run on NixOS without nix-ld. Point it at a nixpkgs Python instead.
+      env.UV_PYTHON = "${pkgs.python3}/bin/python3";
+    };
+    playwright = {
+      profiles = [ "core" ];
+      command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
+      args = [
+        "--headless"
+        "--isolated"
+      ];
     };
 
     github = {
-      servers.github = {
-        kind = "auth-http";
-        url = "https://api.githubcopilot.com/mcp/";
-        headerName = "Authorization";
-        envVar = "GITHUB_MCP_TOKEN";
-        valuePrefix = "Bearer ";
-      };
+      profiles = [ "core" ];
+      url = "https://api.githubcopilot.com/mcp/";
+      headerName = "Authorization";
+      headerPrefix = "Bearer ";
+      headerVar = "GITHUB_MCP_TOKEN";
     };
 
-    # extras: additional developer tools beyond the primary stdio servers --
-    # remote HTTP servers useful in most sessions but not strictly required.
-    extras = {
-      servers = {
-        context7 = {
-          kind = "auth-http";
-          # The /mcp/oauth endpoint requires an interactive OAuth flow that never
-          # completes for a non-interactive session. The plain /mcp endpoint works
-          # fully unauthenticated and additionally accepts an API key header for a
-          # higher rate limit -- no OAuth involved either way.
-          url = "https://mcp.context7.com/mcp";
-          headerName = "Context7-API-Key";
-          envVar = "CONTEXT7_API_KEY";
-          valuePrefix = "";
-        };
-        openrouter = {
-          kind = "oauth-http";
-          url = "https://mcp.openrouter.ai/mcp";
-        };
-      };
+    context7 = {
+      profiles = [ "core" ];
+      # The plain /mcp endpoint works unauthenticated; the API key only raises
+      # the rate limit, so the header is optional -- emitted only when the var
+      # is set.
+      url = "https://mcp.context7.com/mcp";
+      headerName = "Context7-API-Key";
+      headerVar = "CONTEXT7_API_KEY";
+      headerRequired = false;
+    };
+    openrouter = {
+      # OAuth-only; no static secret. mcp-remote drives the OAuth flow, which
+      # can't complete headless -- kept for parity with the extras group.
+      profiles = [ "extras" ];
+      url = "https://mcp.openrouter.ai/mcp";
     };
 
-    # Personal-workflow tooling -- deliberately excluded from the `full` profile
-    # set: not something every general coding session should connect to by
-    # default. Activate explicitly: `mcp-profile productivity`.
-    productivity = {
-      servers = {
-        todoist = {
-          # Secret delivered via a spawned subprocess's env, not an HTTP header --
-          # a third delivery mechanism alongside plain/auth-http.
-          kind = "auth-stdio";
-          command = "npx";
-          args = [
-            "-y"
-            "@abhiz123/todoist-mcp-server"
-          ];
-          # Static personal API token from Todoist Settings -> Integrations ->
-          # Developer. NOT the official @doist/todoist-mcp, which is OAuth-only
-          # and doesn't fit a Nix-declared static secret.
-          envVar = "TODOIST_API_TOKEN";
-        };
-        # Filesystem-direct, NOT the REST-API-plugin server (`mcp-obsidian`) --
-        # the plugin route needs the real Obsidian Electron app running somewhere
-        # reachable, which the official `obsidian-headless` sync tool (separate
-        # nix-server infrastructure, not part of this repo) does not provide. No
-        # secret needed -- this just reads local files once the vault is synced
-        # onto the host at the path below.
-        obsidian = {
-          kind = "plain";
-          command = "npx";
-          args = [
-            "-y"
-            "obsidian-mcp@2"
-            "serve"
-            "--vault"
-            "main=/var/lib/obsidian-sync/vault"
-          ];
-        };
-      };
+    todoist = {
+      profiles = [ "productivity" ];
+      command = "npx";
+      args = [
+        "-y"
+        "@abhiz123/todoist-mcp-server"
+      ];
+      # TODOIST_API_TOKEN reaches the child by env inheritance -- not declared
+      # here, so it never touches disk.
+    };
+    obsidian = {
+      profiles = [ "productivity" ];
+      command = "npx";
+      args = [
+        "-y"
+        "obsidian-mcp@2"
+        "serve"
+        "--vault"
+        "main=/var/lib/obsidian-sync/vault"
+      ];
     };
   };
 
-  # Reshape functions: one per agent's native schema, applied to a single
-  # profile's servers, dispatching per-server on `s.kind`. Pre-rendered into one
-  # fragment file per profile per agent (modules/mcp.nix) -- never called with
-  # more than one profile's servers at once; combining profiles happens by
-  # merging already-rendered fragments (jq/concatenation), not by merging Nix
-  # data, so a fresh profile can be added without touching this merge logic.
-  toClaudeCodeFragment = profile: {
-    mcpServers = lib.mapAttrs (
-      _: s:
-      if s.kind == "plain" then
-        {
-          inherit (s) command args;
-        }
-        // (lib.optionalAttrs (s ? env) { inherit (s) env; })
-      else if s.kind == "auth-http" then
-        {
-          type = "http";
-          inherit (s) url;
-          # Literal ${VAR}, expanded by claude-code from its own process env at
-          # its own runtime -- never resolved by Nix, never written to the store.
-          headers.${s.headerName} = "${s.valuePrefix}\${${s.envVar}}";
-        }
-      else if s.kind == "oauth-http" then
-        {
-          type = "http";
-          inherit (s) url;
-        }
-      else
-        {
-          # auth-stdio
-          inherit (s) command args;
-          env.${s.envVar} = "\${${s.envVar}}";
-        }
-    ) profile.servers;
-  };
+  # `\${VAR}` renders the literal ${VAR} for bash to expand at spawn -- never
+  # resolved by Nix, never written to the store.
+  remoteCommand =
+    s:
+    let
+      value = "${s.headerPrefix or ""}\${${s.headerVar}}";
+      withHeader = "exec npx -y mcp-remote ${s.url} --header \"${s.headerName}: ${value}\"";
+      withoutHeader = "exec npx -y mcp-remote ${s.url}";
+    in
+    if !(s ? headerName) then
+      withoutHeader
+    else if s.headerRequired or true then
+      withHeader
+    else
+      "if [ -n \"\${${s.headerVar}}\" ]; then ${withHeader}; else ${withoutHeader}; fi";
 
-  toOpencodeFragment = profile: {
-    mcp = lib.mapAttrs (
-      _: s:
-      if s.kind == "plain" then
-        {
-          type = "local";
-          command = [ s.command ] ++ s.args;
-        }
-        // (lib.optionalAttrs (s ? env) { environment = s.env; })
-      else if s.kind == "auth-http" then
-        {
-          type = "remote";
-          inherit (s) url;
-          # opencode's own documented convention -- distinct from claude-code's.
-          headers.${s.headerName} = "${s.valuePrefix}{env:${s.envVar}}";
-        }
-      else if s.kind == "oauth-http" then
-        {
-          type = "remote";
-          inherit (s) url;
-        }
-      else
-        {
-          # auth-stdio
-          type = "local";
-          command = [ s.command ] ++ s.args;
-          environment.${s.envVar} = "{env:${s.envVar}}";
-        }
-    ) profile.servers;
-  };
-
-  # Raw TOML text, not a Nix attrset -- codex's active file is assembled by
-  # concatenating profile fragments (modules/mcp.nix), which only works safely
-  # because every profile above is guaranteed to have disjoint server names
-  # (enforced by an eval-time assertion in modules/mcp.nix).
-  toCodexFragment =
-    profile:
-    lib.concatStrings (
-      lib.mapAttrsToList (
-        name: s:
-        if s.kind == "plain" then
-          ''
-            [mcp_servers.${name}]
-            command = "${s.command}"
-            args = ${builtins.toJSON s.args}
-            ${
-              lib.optionalString (s ? env) "[mcp_servers.${name}.env]\n"
-              + lib.concatStrings (lib.mapAttrsToList (k: v: "${k} = \"${v}\"\n") (s.env or { }))
-            }
-          ''
-        else if s.kind == "auth-http" then
-          ''
-            [mcp_servers.${name}]
-            url = "${s.url}"
-
-            [mcp_servers.${name}.env_http_headers]
-            ${s.headerName} = "${s.envVar}"
-          ''
-        else if s.kind == "oauth-http" then
-          ''
-            [mcp_servers.${name}]
-            url = "${s.url}"
-          ''
+  # Render one catalog entry to an mcpm STDIOServerConfig. `active` decides
+  # whether it also carries the `active` tag the aggregator serves.
+  renderServer =
+    name: s: active:
+    let
+      transport =
+        if s ? url then
+          {
+            command = "bash";
+            args = [
+              "-c"
+              (remoteCommand s)
+            ];
+          }
         else
-          ''
-            # auth-stdio -- env_vars forwards these names from codex's environment.
-            [mcp_servers.${name}]
-            command = "${s.command}"
-            args = ${builtins.toJSON s.args}
-            env_vars = ${builtins.toJSON [ s.envVar ]}
-          ''
-      ) profile.servers
+          {
+            inherit (s) command;
+            args = s.args or [ ];
+          };
+      envAttr = lib.optionalAttrs (s ? env && s.env != { }) { inherit (s) env; };
+    in
+    transport
+    // envAttr
+    // {
+      inherit name;
+      profile_tags = s.profiles ++ lib.optional active "active";
+    };
+in
+{
+  inherit catalog;
+
+  # Every profile name known to the catalog plus any host-local extra servers.
+  profileNames =
+    extraServers: lib.unique (lib.concatMap (s: s.profiles) (lib.attrValues (catalog // extraServers)));
+
+  # servers.json content: the catalog (plus host-local extraServers) rendered
+  # to mcpm's schema, tagging `active` every server in an enabled profile.
+  serverConfigs =
+    {
+      activeProfiles,
+      extraServers ? { },
+    }:
+    lib.mapAttrs (name: s: renderServer name s (lib.any (p: lib.elem p activeProfiles) s.profiles)) (
+      catalog // extraServers
     );
 }

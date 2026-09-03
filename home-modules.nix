@@ -26,10 +26,10 @@ let
     "opencode.nix"
   ];
 
-  # claude-code.nix, codex.nix, and mcp.nix all need the raw claude/codex CLI
-  # packages (mcp.nix's reason is below). Same dedupe-by-key rationale as
-  # skillSourceArgs above: three separate homeModules independently setting
-  # `_module.args.claudeCodeNix`/`codexCliNix` collide when co-imported.
+  # claude-code.nix and codex.nix need the raw claude/codex CLI packages. Same
+  # dedupe-by-key rationale as skillSourceArgs above: separate homeModules
+  # independently setting `_module.args.claudeCodeNix`/`codexCliNix` collide
+  # when co-imported.
   cliPackageArgs = {
     key = "nix-components-cli-package-args";
     config._module.args = {
@@ -40,7 +40,6 @@ let
   namesNeedingCliPackageArgs = [
     "claude-code.nix"
     "codex.nix"
-    "mcp.nix"
   ];
 
   toEntry =
@@ -65,17 +64,6 @@ let
       }
       // lib.optionalAttrs (name == "git.nix") {
         _module.args.treefmtNix = inputs.treefmt-nix;
-      }
-      // lib.optionalAttrs (name == "mcp.nix") {
-        # mcp.nix's claude/codex wrapper packages need the raw claude/codex
-        # binaries directly, NOT via config.programs.claude-code.finalPackage /
-        # config.programs.codex.finalPackage. mcp.nix forces those package
-        # options to null while enabled so home-manager's own `home.packages =
-        # lib.mkIf (cfg.package != null) [ cfg.finalPackage ];` (upstream
-        # home-manager, modules/programs/claude-code.nix) does NOT also try to
-        # install the raw binary -- that would collide with mcp.nix's wrapper,
-        # since both provide bin/claude. finalPackage is therefore null/unset
-        # for our purposes and unusable here.
       }
     );
 in
