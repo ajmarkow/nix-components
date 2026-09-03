@@ -71,7 +71,7 @@ in
           options.apiKey = "{env:OPENROUTER_API_KEY}";
           whitelist = [
             "google/gemma-4-31b-it:free"
-            "meta/muse-spark-1.2-contributor"
+            "meta/muse-spark-1.3-contributor"
             "minimax/minimax-m3:free"
             "thinkingmachines/inkling-small:free"
             "thinkingmachines/inkling:free"
