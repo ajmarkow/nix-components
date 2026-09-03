@@ -78,6 +78,17 @@ let
         "main=/var/lib/obsidian-sync/vault"
       ];
     };
+
+    # Server-infra tooling. n8n talks to the n8n container on nix-server over
+    # loopback -- off by default everywhere; only the host running that
+    # container enables the `server` profile.
+    n8n = {
+      profiles = [ "server" ];
+      url = "http://127.0.0.1:3000/mcp";
+      headerName = "Authorization";
+      headerPrefix = "Bearer ";
+      headerVar = "N8N_MCP_AUTH_TOKEN";
+    };
   };
 
   # `\${VAR}` renders the literal ${VAR} for bash to expand at spawn -- never
