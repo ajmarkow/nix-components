@@ -161,6 +161,15 @@ in
           ProtectHome = "read-only";
           ReadWritePaths = [
             "%h/.config/mcpm"
+            # npx (context7/github/n8n/obsidian/playwright) and uvx (nixos)
+            # package caches. Previously redirected into PrivateTmp's private
+            # /tmp instead of widening ReadWritePaths, but PrivateTmp is torn
+            # down and recreated on every service restart/redeploy, so every
+            # restart re-fetched every server's packages from scratch --
+            # several minutes of cold start before the profile's tools were
+            # even listable. A persistent, writable path under %h avoids that
+            # at the cost of one more ReadWritePaths entry.
+            "%h/.cache/mcpm"
             # obsidian-mcp (productivity profile) reads/writes the vault
             # directly at this fixed path (see the catalog entry below and
             # nix-server's modules/obsidian.nix, which provisions and syncs
@@ -172,14 +181,11 @@ in
             "-/var/lib/obsidian-sync/vault"
           ];
           PrivateTmp = true;
-          # npx (context7/github/n8n) and uvx (nixos) write their package
-          # caches to ~/.npm and ~/.cache/uv by default -- both under the
-          # read-only home above, which fails with EROFS under ProtectHome.
-          # Redirect them into this unit's own private, writable /tmp instead
-          # of widening ReadWritePaths.
+          # %h isn't expanded in Environment= (only in path settings like
+          # ReadWritePaths above), so this needs the interpolated path.
           Environment = [
-            "NPM_CONFIG_CACHE=/tmp/mcpm-npm-cache"
-            "UV_CACHE_DIR=/tmp/mcpm-uv-cache"
+            "NPM_CONFIG_CACHE=${config.home.homeDirectory}/.cache/mcpm/npm"
+            "UV_CACHE_DIR=${config.home.homeDirectory}/.cache/mcpm/uv"
           ];
         };
         Install.WantedBy = [ "default.target" ];
