@@ -239,20 +239,19 @@ in
     executable = true;
     text = ''
       #!/usr/bin/env bash
-      # Claude Code PreToolUse hook — blocks direct host connections, bare rg, and cd.
+      # Claude Code PreToolUse hook — blocks direct host connections and bare rg.
       # ssh/scp/sftp: this agent must never open a connection to a remote host (see
       #   CLAUDE.md). Only the connecting form matches — the command name must be
       #   followed by whitespace or end-of-line. Local helpers (ssh-add, ssh-keygen,
       #   ssh-agent) and ~/.ssh/ paths stay allowed so the agent can diagnose its own
       #   SSH identity; blocking those is what made a past failure undebuggable.
       # bare rg: use `rtk semble search` instead of ripgrep for code search.
-      # cd: use absolute paths instead of changing directory mid-command.
 
       CMD=$(jq -r '.tool_input.command // empty')
 
-      # Stage 1 — cd and bare rg. Checked for every command, git included.
-      if echo "$CMD" | grep -Eq '^\s*rg\b|(^|;|&&)\s*cd\s'; then
-        echo "Blocked: use rtk semble search instead of rg. Use absolute paths instead of cd." >&2
+      # Stage 1 — bare rg. Checked for every command, git included.
+      if echo "$CMD" | grep -Eq '^\s*rg\b'; then
+        echo "Blocked: use rtk semble search instead of rg." >&2
         exit 2
       fi
 

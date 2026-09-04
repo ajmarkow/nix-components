@@ -70,10 +70,6 @@
 
   The index builds and caches automatically; `path` defaults to `.`. If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
 
-  ## Shell & Command Conventions
-
-  **Always use absolute repository paths in Bash commands** (e.g. `rtk -C /abs/path/to/repo nix flake check --no-build`). Never rely on `cd`, relative paths, or an agent `--cwd` flag to establish the working directory.
-
   ## Context & Session Discipline
 
   ### Two-Strike Rule
