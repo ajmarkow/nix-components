@@ -140,6 +140,15 @@ in
           ProtectHome = "read-only";
           ReadWritePaths = [ "%h/.config/mcpm" ];
           PrivateTmp = true;
+          # npx (context7/github/n8n) and uvx (nixos) write their package
+          # caches to ~/.npm and ~/.cache/uv by default -- both under the
+          # read-only home above, which fails with EROFS under ProtectHome.
+          # Redirect them into this unit's own private, writable /tmp instead
+          # of widening ReadWritePaths.
+          Environment = [
+            "NPM_CONFIG_CACHE=/tmp/mcpm-npm-cache"
+            "UV_CACHE_DIR=/tmp/mcpm-uv-cache"
+          ];
         };
         Install.WantedBy = [ "default.target" ];
       };
