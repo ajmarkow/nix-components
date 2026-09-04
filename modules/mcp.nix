@@ -11,9 +11,9 @@ let
   allProfileNames = mcpLib.profileNames cfg.extraServers;
 
   # mcpm's global registry. Every server in an enabled profile carries the
-  # `active` tag; `mcpm profile run active` aggregates them behind one stdio
-  # endpoint. Contains only placeholders and env-var names, never secret
-  # values.
+  # `active` tag; the mcpm-active-profile service aggregates them behind one
+  # persistent HTTP endpoint. Contains only placeholders and env-var names,
+  # never secret values.
   serversJson = (pkgs.formats.json { }).generate "mcpm-servers.json" (
     mcpLib.serverConfigs {
       activeProfiles = cfg.enabledProfiles;
@@ -21,21 +21,39 @@ let
     }
   );
 
-  # The single, fixed MCP entry every agent points at. It never changes --
-  # runtime profile swaps rewrite servers.json, not this -- so each agent
-  # declares it natively through its own module, no binary wrapper.
-  aggregator = {
-    command = "mcpm";
-    args = [
-      "profile"
-      "run"
-      "active"
-    ];
+  mcpmPort = 6276;
+  mcpmUrl = "http://127.0.0.1:${toString mcpmPort}/mcp";
+
+  # The single, fixed URL every agent points at. It never changes -- runtime
+  # profile swaps rewrite servers.json, not this -- so each agent declares it
+  # natively through its own module, no binary wrapper. Backed by the
+  # always-on mcpm-active-profile service below rather than a per-session
+  # stdio spawn, so agents connect to warm servers instead of cold-starting
+  # all of them (and racing the client's connect timeout) every session.
+  #
+  # Each agent's home-manager module has a different remote-MCP shape --
+  # Claude Code uses `type = "http"`, opencode uses `type = "remote"`, Codex
+  # infers HTTP transport from the presence of `url` alone -- so this is kept
+  # per-agent rather than one shared record.
+  claudeAggregator = {
+    type = "http";
+    url = mcpmUrl;
+  };
+  codexAggregator = {
+    url = mcpmUrl;
+  };
+  opencodeAggregator = {
+    type = "remote";
+    url = mcpmUrl;
+    enabled = true;
   };
 
   claudeEnabled = config.programs.claude-code.enable or false;
   codexEnabled = config.programs.codex.enable or false;
   opencodeEnabled = config.programs.opencode.enable or false;
+
+  serviceDescription = "mcpm active-profile MCP server aggregator";
+  serviceScript = "${lib.getExe pkgs.mcpm} profile run --http active --port ${toString mcpmPort}";
 in
 {
   options.nix-components.mcp = {
@@ -93,16 +111,54 @@ in
       source = serversJson;
     };
 
-    # One native aggregator entry per enabled agent. Each agent's own module
-    # writes it to that agent's native config -- no wrapper, no --mcp-config /
-    # --profile flag injection.
-    programs.claude-code.mcpServers = lib.mkIf claudeEnabled { mcpm = aggregator; };
-    programs.codex.settings.mcp_servers = lib.mkIf codexEnabled { mcpm = aggregator; };
-    programs.opencode.settings.mcp = lib.mkIf opencodeEnabled {
-      mcpm = {
-        type = "local";
-        command = [ aggregator.command ] ++ aggregator.args;
-        enabled = true;
+    # One native aggregator entry per enabled agent, all pointing at the same
+    # persistent HTTP endpoint -- no wrapper, no --mcp-config / --profile flag
+    # injection.
+    programs.claude-code.mcpServers = lib.mkIf claudeEnabled { mcpm = claudeAggregator; };
+    programs.codex.settings.mcp_servers = lib.mkIf codexEnabled { mcpm = codexAggregator; };
+    programs.opencode.settings.mcp = lib.mkIf opencodeEnabled { mcpm = opencodeAggregator; };
+
+    # Runs mcpm's FastMCP proxy once, kept warm by systemd/launchd, instead of
+    # every agent session cold-starting all of an enabled profile's servers
+    # over stdio -- that cold start (context7 + github + nixos + obsidian +
+    # playwright + todoist, sequentially) routinely outran Claude Code's MCP
+    # connect timeout. Sandboxed to this user's own state; no container, since
+    # every backend here is a trusted first- or second-party server sharing
+    # this host's Infisical-injected secrets anyway.
+    systemd.user.services = lib.mkIf pkgs.stdenv.isLinux {
+      mcpm-active-profile = {
+        Unit = {
+          Description = serviceDescription;
+          After = [ "network.target" ];
+        };
+        Service = {
+          ExecStart = serviceScript;
+          Restart = "on-failure";
+          RestartSec = 2;
+          NoNewPrivileges = true;
+          ProtectSystem = "strict";
+          ProtectHome = "read-only";
+          ReadWritePaths = [ "%h/.config/mcpm" ];
+          PrivateTmp = true;
+        };
+        Install.WantedBy = [ "default.target" ];
+      };
+    };
+
+    launchd.agents = lib.mkIf pkgs.stdenv.isDarwin {
+      mcpm-active-profile = {
+        enable = true;
+        config = {
+          ProgramArguments = [
+            "/bin/sh"
+            "-c"
+            serviceScript
+          ];
+          RunAtLoad = true;
+          KeepAlive = true;
+          StandardOutPath = "${config.home.homeDirectory}/.local/state/mcpm-active-profile.log";
+          StandardErrorPath = "${config.home.homeDirectory}/.local/state/mcpm-active-profile.log";
+        };
       };
     };
 

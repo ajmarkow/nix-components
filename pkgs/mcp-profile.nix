@@ -75,7 +75,15 @@ writeShellApplication {
     trap - EXIT
 
     echo "Active MCP profiles: ''${selected[*]}"
-    echo "Start a new agent session for this to take effect -- MCP servers connect at session start."
-    echo "This is a session-scoped override. The Nix-declared default returns on the next deploy."
+
+    if command -v systemctl >/dev/null 2>&1 && systemctl --user restart mcpm-active-profile 2>/dev/null; then
+      echo "Restarted the mcpm-active-profile service to pick up the new server set."
+    elif command -v launchctl >/dev/null 2>&1 && launchctl kickstart -k "gui/$(id -u)/org.nixos.mcpm-active-profile" 2>/dev/null; then
+      echo "Restarted the mcpm-active-profile agent to pick up the new server set."
+    else
+      echo "Could not restart the mcpm-active-profile service automatically -- restart it yourself for this to take effect." >&2
+    fi
+    echo "Start a new agent session afterward to reconnect to the updated server set."
+    echo "This is a runtime override. The Nix-declared default returns on the next deploy."
   '';
 }
