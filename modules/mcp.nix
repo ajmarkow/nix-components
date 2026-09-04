@@ -136,11 +136,10 @@ in
     # mcpm-active-profile unit, which requires the source to already exist on
     # the real filesystem -- unlike .config/mcpm above, nothing else creates
     # these, so the service fails at the NAMESPACE step with "No such file or
-    # directory" without them.
-    home.file = lib.mkIf pkgs.stdenv.isLinux {
-      ".cache/mcpm/npm/.keep".text = "";
-      ".cache/mcpm/uv/.keep".text = "";
-    };
+    # directory" without them. Linux-only consumer, but an empty dir is
+    # harmless on Darwin too, so it's unconditional like the entry above.
+    home.file.".cache/mcpm/npm/.keep".text = "";
+    home.file.".cache/mcpm/uv/.keep".text = "";
 
     # One native aggregator entry per enabled agent, all pointing at the same
     # persistent HTTP endpoint -- no wrapper, no --mcp-config / --profile flag
