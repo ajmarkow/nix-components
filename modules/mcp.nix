@@ -54,24 +54,25 @@ let
 
   serviceDescription = "mcpm active-profile MCP server aggregator";
 
-  # Same Infisical project as zsh.nix's interactive shell-init eval (that
-  # binding is local to zsh.nix, so the id is duplicated here -- see
-  # paseo-remote.nix for the same pattern). A systemd user service never
-  # sources zsh init, so it starts with none of the secrets mcpm needs to
-  # resolve each mounted server's ${VAR} references (GITHUB_MCP_TOKEN,
-  # CONTEXT7_API_KEY, N8N_MCP_AUTH_TOKEN, ...) -- fetch them here instead.
-  infisicalProjectId = "0bd4a4d8-f58e-4bad-9d65-c16ee9aeae7e";
+  # A systemd user service never sources zsh init, so it starts with none of
+  # the secrets mcpm needs to resolve each mounted server's ${VAR} references
+  # (GITHUB_MCP_TOKEN, CONTEXT7_API_KEY, N8N_MCP_AUTH_TOKEN, ...). Reuse the
+  # per-server *-mcp.env files nix-server's deploy pipeline already writes to
+  # /etc/nixos/secrets/ (github-mcp.env, context7-mcp.env, n8n-mcp.env,
+  # todoist-mcp.env, ...) for exactly this purpose -- see common.nix's own
+  # sourcing of these same files for the paseo daemon and interactive shells.
+  # Glob-based and best-effort so this stays a no-op on hosts/OSes that don't
+  # provision that directory (e.g. nix-mac): mcpm just starts with whatever
+  # subset of secrets it finds, same as if none were provisioned at all.
   serviceScript = pkgs.writeShellScript "mcpm-active-profile-start" ''
     set -eu
-    if [ -f "$HOME/.config/infisical-token" ]; then
-      INFISICAL_TOKEN="$(cat "$HOME/.config/infisical-token")"
-      export INFISICAL_TOKEN
-    fi
-    if _inf_out="$(${lib.getExe pkgs.infisical} export --silent --format=dotenv-export --projectId=${infisicalProjectId} --env=prod)"; then
-      eval "$_inf_out"
-    else
-      echo "[mcpm-active-profile] infisical secrets failed to load: $_inf_out" >&2
-    fi
+    for _secret_env in /etc/nixos/secrets/*-mcp.env; do
+      if [ -r "$_secret_env" ]; then
+        set -a
+        . "$_secret_env"
+        set +a
+      fi
+    done
     exec ${lib.getExe pkgs.mcpm} profile run --http active --port ${toString mcpmPort}
   '';
 in
