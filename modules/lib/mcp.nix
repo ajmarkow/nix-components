@@ -86,9 +86,12 @@ let
       command = "npx";
       args = [
         "-y"
-        "@abhiz123/todoist-mcp-server"
+        "@doist/todoist-mcp"
       ];
-      env.TODOIST_API_TOKEN = "\${TODOIST_API_TOKEN}";
+      # @doist/todoist-mcp reads TODOIST_API_KEY; nix-server's secrets
+      # pipeline (todoist-mcp.env) still exports the token as
+      # TODOIST_API_TOKEN, so the template on the right stays unchanged.
+      env.TODOIST_API_KEY = "\${TODOIST_API_TOKEN}";
     };
     obsidian = {
       profiles = [ "productivity" ];
