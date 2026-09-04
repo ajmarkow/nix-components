@@ -11,6 +11,17 @@
 # starts the child. Remote HTTP servers run through `mcp-remote`, wrapped in
 # `bash -c` so the child shell expands the resolved token.
 let
+  # mcpm launches each mounted server with exactly the `env` dict from
+  # servers.json -- it does not inherit or merge the parent process's
+  # environment, so systemd-level Environment= never reaches these
+  # subprocesses. npx/uvx default their package caches to $HOME, which the
+  # mcpm-active-profile service sandboxes read-only (see modules/mcp.nix), so
+  # every npx/uvx-based server must redirect its cache here explicitly.
+  cacheEnv = {
+    NPM_CONFIG_CACHE = "/tmp/mcpm-npm-cache";
+    UV_CACHE_DIR = "/tmp/mcpm-uv-cache";
+  };
+
   # A server is either stdio (`command`/`args`/`env`) or remote (`url` plus an
   # optional auth header). `profiles` are the group tags it carries.
   catalog = {
@@ -127,7 +138,9 @@ let
             inherit (s) command;
             args = s.args or [ ];
           };
-      envAttr = lib.optionalAttrs (s ? env && s.env != { }) { inherit (s) env; };
+      envAttr = {
+        env = cacheEnv // (s.env or { });
+      };
     in
     transport
     // envAttr
