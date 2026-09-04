@@ -159,7 +159,18 @@ in
           NoNewPrivileges = true;
           ProtectSystem = "strict";
           ProtectHome = "read-only";
-          ReadWritePaths = [ "%h/.config/mcpm" ];
+          ReadWritePaths = [
+            "%h/.config/mcpm"
+            # obsidian-mcp (productivity profile) reads/writes the vault
+            # directly at this fixed path (see the catalog entry below and
+            # nix-server's modules/obsidian.nix, which provisions and syncs
+            # it) -- outside %h, so ProtectSystem=strict leaves it read-only
+            # without this, and obsidian-mcp fails every call with
+            # VAULT_PERMISSION_DENIED. "-" prefix: optional, so hosts that
+            # don't provision this directory (no obsidian.nix imported) don't
+            # fail to start.
+            "-/var/lib/obsidian-sync/vault"
+          ];
           PrivateTmp = true;
           # npx (context7/github/n8n) and uvx (nixos) write their package
           # caches to ~/.npm and ~/.cache/uv by default -- both under the
