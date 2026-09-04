@@ -20,6 +20,9 @@ let
   cacheEnv = {
     NPM_CONFIG_CACHE = "/tmp/mcpm-npm-cache";
     UV_CACHE_DIR = "/tmp/mcpm-uv-cache";
+    # uvx also installs tool environments (separate from its download cache)
+    # under XDG_DATA_HOME/uv/tools by default -- redirect that too.
+    UV_TOOL_DIR = "/tmp/mcpm-uv-tools";
   };
 
   # A server is either stdio (`command`/`args`/`env`) or remote (`url` plus an

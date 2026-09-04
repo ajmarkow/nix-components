@@ -53,7 +53,27 @@ let
   opencodeEnabled = config.programs.opencode.enable or false;
 
   serviceDescription = "mcpm active-profile MCP server aggregator";
-  serviceScript = "${lib.getExe pkgs.mcpm} profile run --http active --port ${toString mcpmPort}";
+
+  # Same Infisical project as zsh.nix's interactive shell-init eval (that
+  # binding is local to zsh.nix, so the id is duplicated here -- see
+  # paseo-remote.nix for the same pattern). A systemd user service never
+  # sources zsh init, so it starts with none of the secrets mcpm needs to
+  # resolve each mounted server's ${VAR} references (GITHUB_MCP_TOKEN,
+  # CONTEXT7_API_KEY, N8N_MCP_AUTH_TOKEN, ...) -- fetch them here instead.
+  infisicalProjectId = "0bd4a4d8-f58e-4bad-9d65-c16ee9aeae7e";
+  serviceScript = pkgs.writeShellScript "mcpm-active-profile-start" ''
+    set -eu
+    if [ -f "$HOME/.config/infisical-token" ]; then
+      INFISICAL_TOKEN="$(cat "$HOME/.config/infisical-token")"
+      export INFISICAL_TOKEN
+    fi
+    if _inf_out="$(${lib.getExe pkgs.infisical} export --silent --format=dotenv-export --projectId=${infisicalProjectId} --env=prod)"; then
+      eval "$_inf_out"
+    else
+      echo "[mcpm-active-profile] infisical secrets failed to load: $_inf_out" >&2
+    fi
+    exec ${lib.getExe pkgs.mcpm} profile run --http active --port ${toString mcpmPort}
+  '';
 in
 {
   options.nix-components.mcp = {
@@ -132,7 +152,7 @@ in
           After = [ "network.target" ];
         };
         Service = {
-          ExecStart = serviceScript;
+          ExecStart = "${serviceScript}";
           Restart = "on-failure";
           RestartSec = 2;
           NoNewPrivileges = true;
@@ -158,11 +178,7 @@ in
       mcpm-active-profile = {
         enable = true;
         config = {
-          ProgramArguments = [
-            "/bin/sh"
-            "-c"
-            serviceScript
-          ];
+          ProgramArguments = [ "${serviceScript}" ];
           RunAtLoad = true;
           KeepAlive = true;
           StandardOutPath = "${config.home.homeDirectory}/.local/state/mcpm-active-profile.log";
