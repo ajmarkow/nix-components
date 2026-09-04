@@ -390,6 +390,16 @@ in
     # .claude-plugin format, so this isn't fed through skills.nix.
     plugins = [ "${codexPluginCcSource}/plugins/codex" ];
     settings = {
+      env = {
+        CLAUDE_CODE_DISABLE_ARTIFACT = "1";
+        CLAUDE_CODE_DISABLE_WORKFLOWS = "1";
+        DISABLE_TELEMETRY = "1";
+        DISABLE_ERROR_REPORTING = "1";
+        DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
+        DISABLE_AUTOUPDATER = "1";
+        DISABLE_UPDATES = "1";
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+      };
       permissions = {
         allow = [
           "Bash(nix flake check *)"
