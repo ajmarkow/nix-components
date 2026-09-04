@@ -6,7 +6,10 @@
 }:
 let
   cfg = config.nix-components.mcp;
-  mcpLib = import ./lib/mcp.nix { inherit lib pkgs; };
+  mcpLib = import ./lib/mcp.nix {
+    inherit lib pkgs;
+    homeDirectory = config.home.homeDirectory;
+  };
 
   allProfileNames = mcpLib.profileNames cfg.extraServers;
 
@@ -140,6 +143,7 @@ in
     # harmless on Darwin too, so it's unconditional like the entry above.
     home.file.".cache/mcpm/npm/.keep".text = "";
     home.file.".cache/mcpm/uv/.keep".text = "";
+    home.file.".cache/mcpm/uv-tools/.keep".text = "";
 
     # One native aggregator entry per enabled agent, all pointing at the same
     # persistent HTTP endpoint -- no wrapper, no --mcp-config / --profile flag
@@ -170,14 +174,14 @@ in
           ProtectHome = "read-only";
           ReadWritePaths = [
             "%h/.config/mcpm"
-            # npx (context7/github/n8n/obsidian/playwright) and uvx (nixos)
-            # package caches. Previously redirected into PrivateTmp's private
-            # /tmp instead of widening ReadWritePaths, but PrivateTmp is torn
-            # down and recreated on every service restart/redeploy, so every
-            # restart re-fetched every server's packages from scratch --
-            # several minutes of cold start before the profile's tools were
-            # even listable. A persistent, writable path under %h avoids that
-            # at the cost of one more ReadWritePaths entry.
+            # Bind-mount target for each catalog server's npx/uvx package
+            # cache (modules/lib/mcp.nix's cacheEnv, passed directly in
+            # servers.json -- systemd's own Environment= here never reaches
+            # those subprocesses, see that file's comment). Previously those
+            # caches pointed at PrivateTmp's private /tmp, which is torn down
+            # and recreated on every service restart/redeploy, forcing every
+            # server to re-fetch its packages from scratch each time --
+            # several minutes of cold start before tools/list even returned.
             "%h/.cache/mcpm"
             # obsidian-mcp (productivity profile) reads/writes the vault
             # directly at this fixed path (see the catalog entry below and
@@ -190,12 +194,6 @@ in
             "-/var/lib/obsidian-sync/vault"
           ];
           PrivateTmp = true;
-          # %h isn't expanded in Environment= (only in path settings like
-          # ReadWritePaths above), so this needs the interpolated path.
-          Environment = [
-            "NPM_CONFIG_CACHE=${config.home.homeDirectory}/.cache/mcpm/npm"
-            "UV_CACHE_DIR=${config.home.homeDirectory}/.cache/mcpm/uv"
-          ];
         };
         Install.WantedBy = [ "default.target" ];
       };

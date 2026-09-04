@@ -1,4 +1,8 @@
-{ lib, pkgs }:
+{
+  lib,
+  pkgs,
+  homeDirectory,
+}:
 # One flat server catalog rendered into mcpm's global registry
 # (~/.config/mcpm/servers.json). mcpm aggregates every server tagged `active`
 # behind a single stdio endpoint (`mcpm profile run active`), so each agent
@@ -13,16 +17,21 @@
 let
   # mcpm launches each mounted server with exactly the `env` dict from
   # servers.json -- it does not inherit or merge the parent process's
-  # environment, so systemd-level Environment= never reaches these
-  # subprocesses. npx/uvx default their package caches to $HOME, which the
-  # mcpm-active-profile service sandboxes read-only (see modules/mcp.nix), so
-  # every npx/uvx-based server must redirect its cache here explicitly.
+  # environment, so systemd-level Environment= (modules/mcp.nix) never
+  # reaches these subprocesses; only entries here do. npx/uvx default their
+  # package caches to $HOME, which the mcpm-active-profile service sandboxes
+  # read-only, so every npx/uvx-based server must redirect its cache here
+  # explicitly. Pointed at a path under the real home directory (added to
+  # that service's ReadWritePaths) rather than /tmp: PrivateTmp tears down
+  # and recreates /tmp on every service restart/redeploy, which previously
+  # forced every server to re-fetch its packages from scratch each time --
+  # several minutes of cold start before tools/list even returned.
   cacheEnv = {
-    NPM_CONFIG_CACHE = "/tmp/mcpm-npm-cache";
-    UV_CACHE_DIR = "/tmp/mcpm-uv-cache";
+    NPM_CONFIG_CACHE = "${homeDirectory}/.cache/mcpm/npm";
+    UV_CACHE_DIR = "${homeDirectory}/.cache/mcpm/uv";
     # uvx also installs tool environments (separate from its download cache)
     # under XDG_DATA_HOME/uv/tools by default -- redirect that too.
-    UV_TOOL_DIR = "/tmp/mcpm-uv-tools";
+    UV_TOOL_DIR = "${homeDirectory}/.cache/mcpm/uv-tools";
   };
 
   # A server is either stdio (`command`/`args`/`env`) or remote (`url` plus an
