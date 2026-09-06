@@ -17,22 +17,16 @@ let
     // (readSkillDirs awsSkillsSource)
     // (readSkillDirs ../skills);
 
-  implicitInvocationDisabled = pkgs.writeTextDir "agents/openai.yaml" ''
-    policy:
-      allow_implicit_invocation: false
-  '';
-
-  explicitOnlySkillDirs = lib.mapAttrs (
+  explicitOnlySkillMetadata = lib.mapAttrs' (
     name: path:
     if builtins.pathExists (path + "/agents/openai.yaml") then
       throw "Codex skill '${name}' already provides agents/openai.yaml; merge its metadata before disabling implicit invocation"
     else
-      pkgs.symlinkJoin {
-        name = "codex-skill-${name}";
-        paths = [
-          path
-          implicitInvocationDisabled
-        ];
+      lib.nameValuePair ".codex/skills/${name}/agents/openai.yaml" {
+        text = ''
+          policy:
+            allow_implicit_invocation: false
+        '';
       }
   ) skillDirs;
 
@@ -42,6 +36,10 @@ in
     enable = true;
     package = codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     context = import ./lib/claude-md-content.nix;
-    skills = explicitOnlySkillDirs;
+    skills = skillDirs;
   };
+
+  # programs.codex.skills installs each value as SKILL.md. Install sibling
+  # metadata separately so directory wrappers are not serialized as Markdown.
+  home.file = explicitOnlySkillMetadata;
 }
