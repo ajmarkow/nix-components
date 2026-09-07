@@ -17,23 +17,25 @@ let
     // (readSkillDirs awsSkillsSource)
     // (readSkillDirs ../skills);
 
-  implicitInvocationDisabled = pkgs.writeTextDir "agents/openai.yaml" ''
-    policy:
-      allow_implicit_invocation: false
-  '';
-
   explicitOnlySkillDirs = lib.mapAttrs (
     name: path:
     if builtins.pathExists (path + "/agents/openai.yaml") then
       throw "Codex skill '${name}' already provides agents/openai.yaml; merge its metadata before disabling implicit invocation"
     else
-      pkgs.symlinkJoin {
-        name = "codex-skill-${name}";
-        paths = [
-          path
-          implicitInvocationDisabled
-        ];
-      }
+      pkgs.runCommand "codex-skill-${name}" { } ''
+        mkdir -p "$out"
+        cp -R -L ${path}/. "$out/"
+        chmod -R u+w "$out"
+        mkdir -p "$out/agents"
+        cp ${pkgs.writeText "openai.yaml" ''
+          policy:
+            allow_implicit_invocation: false
+        ''} "$out/agents/openai.yaml"
+
+        # Codex follows skill-directory symlinks but ignores a symlinked SKILL.md.
+        test -f "$out/SKILL.md"
+        test ! -L "$out/SKILL.md"
+      ''
   ) skillDirs;
 
   explicitOnlySkillFiles = lib.mapAttrs' (

@@ -462,7 +462,12 @@ Via CLI:
 2. ✅ Implementation notes added: `--notes "..."`
 3. ✅ Status set to Done: `-s Done`
 
-Via Code/Testing: 4. ✅ Tests pass 5. ✅ Documentation updated 6. ✅ Code reviewed 7. ✅ No regressions
+Via Code/Testing:
+
+4. ✅ Tests pass
+5. ✅ Documentation updated
+6. ✅ Code reviewed
+7. ✅ No regressions
 
 **Never mark task as Done without completing ALL items**
 
