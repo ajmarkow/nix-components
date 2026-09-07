@@ -1,6 +1,6 @@
 ---
 name: backlog-md
-description: Expert guidance for Backlog.md CLI project management tool including task creation, editing, status management, acceptance criteria, search, and board visualization. Use this when managing project tasks, creating task lists, updating task status, or organizing project work.
+description: Expert guidance for the Backlog.md CLI. Use only when the user explicitly invokes the backlog-md skill or directly asks to use Backlog.md or the backlog CLI. Do not infer use from generic task management, planning, search, implementation, or status requests.
 ---
 
 # Backlog.md
@@ -35,6 +35,7 @@ backlog search "keyword" --plain
 ## Task Creation
 
 ### Basic Task Creation
+
 ```bash
 # Simple task
 backlog task create "Implement user login"
@@ -59,6 +60,7 @@ backlog task create "Implement user login" \
 ```
 
 ### Advanced Creation
+
 ```bash
 # Create draft task
 backlog task create "Research options" --draft
@@ -76,6 +78,7 @@ backlog task create "Fix bug" -l bug,urgent,frontend
 ## Task Modification
 
 ### Status Management
+
 ```bash
 # Change status
 backlog task edit 42 -s "In Progress"
@@ -87,6 +90,7 @@ backlog task edit 42 -s "In Progress" -a @me
 ```
 
 ### Basic Fields
+
 ```bash
 # Update title
 backlog task edit 42 -t "New title"
@@ -132,6 +136,7 @@ backlog task edit 42 \
 ```
 
 **Note**:
+
 - ✅ Use multiple flags: `--check-ac 1 --check-ac 2`
 - ❌ Don't use commas: `--check-ac 1,2,3`
 - ❌ Don't use ranges: `--check-ac 1-3`
@@ -156,6 +161,7 @@ backlog task edit 42 --notes $'## Changes\n- Implemented X\n- Fixed Y\n\n## Test
 ```
 
 ### Dependencies
+
 ```bash
 # Add dependencies
 backlog task edit 42 --dep task-1 --dep task-2
@@ -166,6 +172,7 @@ backlog task edit 42 --dep task-1 --dep task-2
 ## Viewing Tasks
 
 ### List Tasks
+
 ```bash
 # List all tasks (always use --plain for AI-readable output)
 backlog task list --plain
@@ -188,6 +195,7 @@ backlog task list -s "In Progress" -a @me --plain
 ```
 
 ### View Task Details
+
 ```bash
 # View single task (always use --plain)
 backlog task 42 --plain
@@ -197,6 +205,7 @@ backlog task 42 --web
 ```
 
 ### Search
+
 ```bash
 # Search across all content (uses fuzzy matching)
 backlog search "authentication" --plain
@@ -215,6 +224,7 @@ backlog search "database" --in title --plain
 ## Task Workflow
 
 ### Complete Task Lifecycle
+
 ```bash
 # 1. Create task
 backlog task create "Implement feature X" \
@@ -242,6 +252,7 @@ backlog task edit 42 -s Done
 ```
 
 ### Starting a Task (Critical Steps)
+
 ```bash
 # ALWAYS do these steps when starting a task:
 # 1. Set status to In Progress
@@ -274,6 +285,7 @@ backlog report --output report.md
 ## Task Operations
 
 ### Archive & Promote
+
 ```bash
 # Archive completed task
 backlog task archive 42
@@ -286,6 +298,7 @@ backlog task promote draft-5
 ```
 
 ### Task History
+
 ```bash
 # View task history (if supported)
 backlog task history 42
@@ -297,6 +310,7 @@ backlog task diff 42
 ## Documentation & Decisions
 
 ### Documents
+
 ```bash
 # Create document
 backlog doc create "API Documentation"
@@ -309,6 +323,7 @@ backlog doc edit 1 --content "Updated content"
 ```
 
 ### Architectural Decisions
+
 ```bash
 # Create decision record
 backlog decision create "Use PostgreSQL for data storage"
@@ -325,6 +340,7 @@ backlog decision 1 --plain
 ### Writing Good Tasks
 
 **Title**: Clear, concise, action-oriented
+
 ```bash
 # ✅ Good
 backlog task create "Implement user authentication"
@@ -336,12 +352,14 @@ backlog task create "There's a problem with the app"
 ```
 
 **Description**: Explain the "why" and context
+
 ```bash
 backlog task create "Add rate limiting to API" \
   -d "Current API has no rate limiting, causing server overload during peak hours. Need to implement per-user rate limiting to prevent abuse."
 ```
 
 **Acceptance Criteria**: Focus on outcomes, not implementation
+
 ```bash
 # ✅ Good - Testable outcomes
 --ac "API rejects requests after 100 requests per minute per user"
@@ -356,6 +374,7 @@ backlog task create "Add rate limiting to API" \
 ### Task Organization
 
 **Use Labels Effectively**
+
 ```bash
 # Organize by type, area, and priority
 backlog task create "Fix login bug" -l bug,urgent,auth
@@ -364,6 +383,7 @@ backlog task create "Update docs" -l documentation,frontend
 ```
 
 **Use Tags for Metadata**
+
 ```bash
 # Tags for filtering and organization
 --tag "sprint:23"
@@ -374,6 +394,7 @@ backlog task create "Update docs" -l documentation,frontend
 ### Task Breakdown
 
 **Atomic Tasks**: Each task should be independently deliverable
+
 ```bash
 # ✅ Good - One PR per task
 backlog task create "Add login endpoint"
@@ -385,6 +406,7 @@ backlog task create "Implement entire authentication system"
 ```
 
 **Avoid Future Dependencies**: Never reference tasks that don't exist yet
+
 ```bash
 # ✅ Good - Reference existing tasks
 backlog task create "Deploy auth API" --dep task-40 --dep task-41
@@ -396,6 +418,7 @@ backlog task create "Add feature A" -d "This will be used by future tasks"
 ### Implementation Notes
 
 **Format as PR Description**: Make notes ready for GitHub
+
 ```bash
 backlog task edit 42 --notes $'## Summary
 - Implemented user authentication with JWT
@@ -421,6 +444,7 @@ None
 ```
 
 **Progressive Notes**: Append as you work
+
 ```bash
 # As you make progress
 backlog task edit 42 --append-notes "- Implemented core auth logic"
@@ -433,21 +457,19 @@ backlog task edit 42 --append-notes "- Updated documentation"
 **A task is Done only when ALL of these are complete:**
 
 Via CLI:
+
 1. ✅ All acceptance criteria checked: `--check-ac 1 --check-ac 2 ...`
 2. ✅ Implementation notes added: `--notes "..."`
 3. ✅ Status set to Done: `-s Done`
 
-Via Code/Testing:
-4. ✅ Tests pass
-5. ✅ Documentation updated
-6. ✅ Code reviewed
-7. ✅ No regressions
+Via Code/Testing: 4. ✅ Tests pass 5. ✅ Documentation updated 6. ✅ Code reviewed 7. ✅ No regressions
 
 **Never mark task as Done without completing ALL items**
 
 ## Common Patterns
 
 ### Daily Workflow
+
 ```bash
 # Morning: Check your tasks
 backlog task list -a @me -s "In Progress" --plain
@@ -469,6 +491,7 @@ backlog task edit 42 --append-notes "- Completed X, Y pending"
 ```
 
 ### Sprint Planning
+
 ```bash
 # Review backlog
 backlog task list -s "To Do" --plain
@@ -486,6 +509,7 @@ backlog board
 ```
 
 ### Bug Fix Workflow
+
 ```bash
 # Create bug task
 backlog task create "Fix login timeout issue" \
@@ -521,6 +545,7 @@ backlog task edit 42 -s Done
 ## Troubleshooting
 
 ### Task Not Found
+
 ```bash
 # List all tasks to find ID
 backlog task list --plain
@@ -530,6 +555,7 @@ backlog search "keyword" --type task --plain
 ```
 
 ### Acceptance Criteria Issues
+
 ```bash
 # View task to see AC numbers
 backlog task 42 --plain
@@ -542,6 +568,7 @@ backlog task edit 42 --check-ac 1 --check-ac 2 --check-ac 3
 ```
 
 ### Metadata Out of Sync
+
 ```bash
 # Re-edit via CLI to fix
 backlog task edit 42 -s "In Progress"
@@ -551,6 +578,7 @@ ls -la backlog/tasks/
 ```
 
 ### Multiline Input
+
 ```bash
 # Use ANSI-C quoting (bash/zsh)
 backlog task edit 42 --notes $'Line 1\nLine 2'
@@ -568,6 +596,7 @@ backlog task edit 42 --notes "Line 1`nLine 2"
 ## Command Reference
 
 ### Core Commands
+
 ```bash
 # Tasks
 backlog task create <title> [options]
@@ -597,6 +626,7 @@ backlog decision <id> --plain
 ```
 
 ### Common Options
+
 ```bash
 # Task creation/editing
 -t, --title           Task title
