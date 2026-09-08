@@ -112,7 +112,9 @@
 
   When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism. `paseo` does not need the `rtk` prefix.
 
-  **Remote daemon:** The paseo daemon runs on paseo.aj-cloud.cc, not this host. Bare `paseo` commands reach it from any host — `PASEO_HOST` and `PASEO_PASSWORD` are already set via nix and Infisical shell-init.
+  **Daemon access:** Run bare `paseo`; configured remote clients already supply their connection settings, and local daemon operations need no `PASEO_HOST`.
+
+  **Host diagnostics:** A sandbox or container can see host files without sharing the host PID namespace or loopback, so rerun read-only diagnostics with approved host access before reporting that a local daemon is stopped or unreachable, or recommending a restart.
 
   ### ⚠️ Never Restart or Stop the Paseo Daemon
 
@@ -123,7 +125,7 @@
   **Never put the password in a `--host` URI, print `PASEO_PASSWORD`, or write it to a file — the env vars are the only sanctioned channel.**
 
   - If paseo reports unauthorized or unreachable, run `infisical login`, or confirm the token file exists with `test -s ~/.config/infisical-token` — never print its contents. Retry in a fresh shell.
-  - If the remote host itself is down, `env -u PASEO_HOST <cmd>` targets a local daemon when one is running. `paseo status` is local-only, so it succeeds regardless and does not prove the remote is reachable.
+  - If a configured remote host is down, report that problem. Do not change the host environment to target another daemon. `paseo status` is local-only, so it succeeds regardless and does not prove the remote is reachable.
   - Headless contexts without shell init (cron, launchd): use `paseo-headless <args>` — it sets `PASEO_HOST`/`PASEO_PASSWORD` itself. Never fetch the password by hand.
 
   **Agent Selection Strategy:**
