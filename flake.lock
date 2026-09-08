@@ -89,6 +89,22 @@
         "type": "github"
       }
     },
+    "catppuccin-obsidian": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786576318,
+        "narHash": "sha256-UM2/5CkG75ABGlMI7r5sMbF0HlfMB161KyRdAHVBDrE=",
+        "owner": "catppuccin",
+        "repo": "obsidian",
+        "rev": "1316e03af5c31964116661ab08e7784bfa1d00b3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "catppuccin",
+        "repo": "obsidian",
+        "type": "github"
+      }
+    },
     "claude-code-nix": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -530,6 +546,7 @@
       "inputs": {
         "aws-skills": "aws-skills",
         "backlog-md": "backlog-md",
+        "catppuccin-obsidian": "catppuccin-obsidian",
         "claude-code-nix": "claude-code-nix",
         "codex-cli-nix": "codex-cli-nix",
         "codex-plugin-cc": "codex-plugin-cc",

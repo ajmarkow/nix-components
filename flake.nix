@@ -45,6 +45,10 @@
       url = "github:kepano/obsidian-skills";
       flake = false;
     };
+    catppuccin-obsidian = {
+      url = "github:catppuccin/obsidian";
+      flake = false;
+    };
     aws-skills = {
       url = "github:zxkane/aws-skills";
       flake = false;

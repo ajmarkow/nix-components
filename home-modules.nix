@@ -65,6 +65,9 @@ let
       // lib.optionalAttrs (name == "git.nix") {
         _module.args.treefmtNix = inputs.treefmt-nix;
       }
+      // lib.optionalAttrs (name == "obsidian-gui.nix") {
+        _module.args.catppuccinObsidianSource = inputs.catppuccin-obsidian;
+      }
     );
 in
 {
