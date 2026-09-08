@@ -200,7 +200,7 @@
 
   **Do NOT run `home-manager switch`, `nixos-rebuild switch`, or any other rebuild/apply command.** Ever. Without exception.
 
-  This agent runs on a **management server** that holds Nix configurations for many different hosts. The repo you are editing is almost certainly NOT the config for the host you are running on. Running a rebuild here would apply the wrong config to the wrong machine, or fail outright, and could break other hosts.
+  This agent runs on a **management server** holding Nix configurations for many hosts. Most repos here do NOT configure this host, so a rebuild would apply the wrong config to the wrong machine. For the two that do — **nix-server** and **nix-components** — deploys still go through CI: a local rebuild activates an unreviewed working tree and desyncs the host's generation from `main`.
 
   **The correct flow after editing Nix configs is always:**
   1. Edit the `.nix` source files
@@ -213,9 +213,26 @@
 
   **Do not `ssh` into any host, for any reason** — including to inspect or verify state. If a host needs to be reached directly, print the exact command and ask the user to run it manually and paste the output.
 
+  Inspecting **this** host is local work, not SSH — see "This Host Is nixos-host" below.
+
   ## ⚠️ NEVER Kill or Restart a Container Without Approval
 
   **Do not stop, kill, restart, recreate, or remove a container (`docker`, `podman`, `kubectl`, `docker compose`, or any equivalent) without explicit user approval in the same turn.** State the exact command and wait. Read-only inspection (`ps`, `logs`, `inspect`) needs no approval.
+
+  ## This Host Is nixos-host — Read Its Logs Yourself
+
+  **When working in nix-server or nix-components, you are already running on the machine those repos configure.** Inspecting its services, containers, and logs is local work, not SSH — do it yourself instead of asking the user to paste output.
+
+  Read-only channels available to the `paseo` user:
+
+  | What | How |
+  |---|---|
+  | Any service's logs | `journalctl -u <unit> --since "10 min ago" --no-pager` — no sudo (`paseo` is in `systemd-journal`) |
+  | Any container's stdout | `journalctl CONTAINER_NAME=<name>` |
+  | `containers`-user rootless containers | `/run/wrappers/bin/sudo -u containers podman-logs-ro {logs,ps,inspect}` |
+  | paseo's own rootless containers | bare `podman logs/ps/inspect` |
+
+  `podman-logs-ro` is NOPASSWD-allowlisted to `logs`, `ps`, and `inspect` only, so it needs no approval. Two silent gotchas: use the absolute `/run/wrappers/bin/sudo` (plain `sudo` can resolve to the non-setuid copy), and run it from a world-readable cwd like `/tmp` — the `containers` user cannot chdir into the repo and fails with a misleading `Permission denied`. Source: `podmanLogsRo` in nix-server's `modules/paseo.nix`.
 
   ## ⚠️ Claude Config Files Are Generated — Edit the Nix Source
 
