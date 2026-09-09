@@ -54,11 +54,13 @@ let
 
   # A systemd user service never sources zsh init, so it starts with none of
   # the secrets mcpm needs to resolve each mounted server's ${VAR} references
-  # (GITHUB_MCP_TOKEN, CONTEXT7_API_KEY, N8N_MCP_AUTH_TOKEN, ...). Reuse the
-  # per-server *-mcp.env files nix-server's deploy pipeline already writes to
-  # /etc/nixos/secrets/ (github-mcp.env, context7-mcp.env, n8n-mcp.env,
-  # todoist-mcp.env, ...) for exactly this purpose -- see common.nix's own
-  # sourcing of these same files for the paseo daemon and interactive shells.
+  # (GITHUB_MCP_TOKEN, CONTEXT7_API_KEY, N8N_MCP_AUTH_TOKEN,
+  # OPENROUTER_API_KEY, ...). Reuse the per-server *-mcp.env files nix-server's
+  # deploy pipeline already writes to /etc/nixos/secrets/ (github-mcp.env,
+  # context7-mcp.env, n8n-mcp.env, todoist-mcp.env, ...) for exactly this
+  # purpose, plus opencode.env for the openrouter bearer key -- see
+  # common.nix's own sourcing of these same files for the paseo daemon and
+  # interactive shells.
   # Glob-based and best-effort so this stays a no-op on hosts/OSes that don't
   # provision that directory: mcpm just starts with whatever subset of
   # secrets it finds, same as if none were provisioned at all.
@@ -70,7 +72,7 @@ let
   # serve.
   serviceScript = pkgs.writeShellScript "mcpm-start" ''
     set -eu
-    for _secret_env in /etc/nixos/secrets/*-mcp.env; do
+    for _secret_env in /etc/nixos/secrets/*-mcp.env /etc/nixos/secrets/opencode.env; do
       if [ -r "$_secret_env" ]; then
         set -a
         . "$_secret_env"

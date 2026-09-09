@@ -81,9 +81,14 @@ let
       env.CONTEXT7_API_KEY = "\${CONTEXT7_API_KEY}";
     };
     openrouter = {
-      # OAuth-only; no static secret. mcp-remote drives the OAuth flow, which
-      # can't complete headless.
+      # Static bearer key from opencode.env (OPENROUTER_API_KEY). Without
+      # it mcp-remote falls back to an OAuth browser flow that can never
+      # complete headless, hanging the whole aggregate's tools/list.
       url = "https://mcp.openrouter.ai/mcp";
+      headerName = "Authorization";
+      headerPrefix = "Bearer ";
+      headerVar = "OPENROUTER_API_KEY";
+      env.OPENROUTER_API_KEY = "\${OPENROUTER_API_KEY}";
     };
 
     todoist = {
