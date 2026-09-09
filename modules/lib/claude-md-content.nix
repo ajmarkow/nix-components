@@ -391,20 +391,6 @@
 
   ## Playwright / Screenshots
 
-  When using the Playwright MCP to take screenshots, **always save them to a subdirectory — never to the repository root**. Root-level PNG files accumulate as clutter and are hard to clean up.
-
-  Use `.playwright-mcp/` or a clearly named subdirectory (e.g. `screenshots/`, `tmp/screenshots/`):
-
-  ```
-  # Good
-  .playwright-mcp/login-page.png
-  screenshots/checkout-flow.png
-
-  # Bad
-  login-page.png        # root-level clutter
-  screenshot.png
-  ```
-
-  If the subdirectory does not exist yet, create it before saving. Add ephemeral screenshot directories to `.gitignore` if they should not be committed.
+  Playwright screenshots and other artifacts land in `~/.cache/mcpm/playwright/`. The shared `mcpm-active-profile` service resolves relative output names in this global directory, not in the caller's repository. Copy an artifact into a repository only when it must be committed, and put it in a subdirectory, never the repository root.
 
 ''

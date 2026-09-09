@@ -28,6 +28,11 @@ let
   # several minutes of cold start before tools/list even returned.
   cacheEnv = {
     NPM_CONFIG_CACHE = "${homeDirectory}/.cache/mcpm/npm";
+    # mcp-remote persists OAuth client registration and tokens here, defaulting
+    # to ~/.mcp-auth -- read-only under mcpm-active-profile. Nothing writes it
+    # while the static bearer headers work, but a 401 falls back to the OAuth
+    # flow, which would then fail on an unwritable path.
+    MCP_REMOTE_CONFIG_DIR = "${homeDirectory}/.cache/mcpm/mcp-auth";
     UV_CACHE_DIR = "${homeDirectory}/.cache/mcpm/uv";
     # uvx also installs tool environments (separate from its download cache)
     # under XDG_DATA_HOME/uv/tools by default -- redirect that too.
@@ -51,6 +56,12 @@ let
       args = [
         "--headless"
         "--isolated"
+        # Default output dir is <cwd>/.playwright-mcp, and the server inherits
+        # cwd $HOME from mcpm-active-profile, whose ProtectHome=read-only makes
+        # that path unwritable -- every screenshot and spilled snapshot failed
+        # with EROFS. This subtree is already in the unit's ReadWritePaths.
+        "--output-dir"
+        "${homeDirectory}/.cache/mcpm/playwright"
       ];
     };
 
