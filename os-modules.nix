@@ -2,6 +2,7 @@
 let
   determinate = import ./os-modules/determinate.nix { inherit inputs; };
   tailscale = import ./os-modules/tailscale.nix;
+  mcpmServe = import ./os-modules/mcpm-serve.nix;
   beszelAgent = import ./os-modules/beszel-agent.nix;
   nixLd = import ./os-modules/nix-ld.nix;
 
@@ -43,6 +44,7 @@ in
     home-manager-backup = homeManagerBackup;
     determinate = determinate.nixos;
     tailscale = tailscale.nixos;
+    mcpm-serve = mcpmServe;
     beszel-agent = beszelAgent.nixos;
     nix-ld = nixLd;
   };

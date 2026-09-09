@@ -275,11 +275,9 @@
 
   ## MCP Servers
 
-  **Call MCP tools only through the single `mcpm` aggregator.** Tool names are `<server>_<tool>` (e.g. `nixos_nix`). The server list is tags in `~/.config/mcpm/servers.json` — it holds env-var names, never secret values.
+  **Call MCP tools only through the single `mcpm` aggregator.** Tool names are `<server>_<tool>` (e.g. `nixos_nix`). Every agent on every host points at the central tailnet endpoint `https://mcpm.tail772f0.ts.net/mcp`, served from nix-server. The registry holds env-var names, never secret values.
 
-  Run `mcp-profile <names...>` to switch profiles (e.g. `mcp-profile core productivity`). Start a new session after — servers connect at session start. The next deploy resets to the Nix default (`enabledProfiles`).
-
-  **Never edit `servers.json` by hand.** Add servers in `modules/lib/mcp.nix`; add host-only servers via `extraServers`. If a tool is missing, check its profile is active before debugging config.
+  **Never edit the central registry by hand.** Add servers in `modules/lib/mcp.nix` in nix-components, then redeploy nix-server so its `mcpm` service picks them up. Start a new session after — servers connect at session start.
 
   ## ⚠️ A Repo's AGENTS.md / CLAUDE.md Is for Repo-Specific Facts Only
 
@@ -418,6 +416,6 @@
 
   ## Playwright / Screenshots
 
-  Playwright screenshots and other artifacts land in `~/.cache/mcpm/playwright/`. The shared `mcpm-active-profile` service resolves relative output names in this global directory, not in the caller's repository. Copy an artifact into a repository only when it must be committed, and put it in a subdirectory, never the repository root.
+  Playwright screenshots and other artifacts land in `~/.cache/mcpm/playwright/` on nix-server. The shared `mcpm` service resolves relative output names in this global directory, not in the caller's repository. Copy an artifact into a repository only when it must be committed, and put it in a subdirectory, never the repository root.
 
 ''

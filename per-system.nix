@@ -22,17 +22,33 @@
     {
       formatter = pkgs.nixfmt-rfc-style;
 
-      checks.diff-viewer = pkgs.runCommand "diff-viewer-tests" { } ''
-        cd ${./.}
-        PYTHONDONTWRITEBYTECODE=1 ${pkgs.python3}/bin/python3 -m unittest tests/test_diff_viewer_header.py
-        touch "$out"
-      '';
+      checks = {
+        diff-viewer = pkgs.runCommand "diff-viewer-tests" { } ''
+          cd ${./.}
+          PYTHONDONTWRITEBYTECODE=1 ${pkgs.python3}/bin/python3 -m unittest tests/test_diff_viewer_header.py
+          touch "$out"
+        '';
 
-      checks.mcpm-environment = pkgs.runCommand "mcpm-environment-tests" { } ''
-        cd ${./.}
-        PYTHONDONTWRITEBYTECODE=1 ${customPackages.mcpm.pythonEnv}/bin/python3 -m unittest tests/test_mcpm_env.py
-        touch "$out"
-      '';
+        mcpm-environment = pkgs.runCommand "mcpm-environment-tests" { } ''
+          cd ${./.}
+          PYTHONDONTWRITEBYTECODE=1 ${customPackages.mcpm.pythonEnv}/bin/python3 -m unittest tests/test_mcpm_env.py
+          touch "$out"
+        '';
+
+        mcpm-central =
+          let
+            result = import ./tests/mcpm-central.nix {
+              inherit (pkgs) lib;
+              inherit pkgs;
+            };
+          in
+          if result.ok then
+            pkgs.runCommand "mcpm-central-tests" { } ''
+              touch "$out"
+            ''
+          else
+            throw result.message;
+      };
 
       devShells.default = pkgs.mkShell {
         packages = [

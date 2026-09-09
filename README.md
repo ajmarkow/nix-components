@@ -24,20 +24,20 @@ imports = [
 
 All files under `modules/` are auto-exported as `homeModules.<name>` (filename without `.nix`).
 
-| Module | Description |
-|--------|-------------|
-| `claude-code.nix` | Claude Code with statusline, rtk-rewrite hook, plugins, and skill marketplaces |
-| `claude-code-claude-md.nix` | Writes `~/.claude/CLAUDE.md` from `modules/lib/claude-md-content.nix` |
-| `opencode.nix` | opencode with the Muse contributor provider; writes `~/.config/opencode/AGENTS.md` from the same `modules/lib/claude-md-content.nix` |
-| `firefox.nix` | Firefox with dark theme, extensions, and policies |
-| `git.nix` | Git with GPG commit signing and gpg-agent |
-| `mcp.nix` | MCP server configuration (nixos, context7, long-term-memory) |
-| `neovim.nix` | Nixvim config: LSP, blink-cmp, pulse.nvim, catppuccin, oil, neo-tree, trouble, and more |
-| `neovim-wezterm.nix` | Smart-splits plugin and keybindings for Wezterm pane navigation |
-| `packages.nix` | Common home packages shared across all hosts |
-| `starship.nix` | Starship prompt |
-| `wezterm.nix` | Wezterm with Catppuccin, smart-splits, and Fira Code |
-| `zsh.nix` | Zsh with oh-my-zsh, vi-mode, direnv, zoxide, and shared aliases |
+| Module                      | Description                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `claude-code.nix`           | Claude Code with statusline, rtk-rewrite hook, plugins, and skill marketplaces                                                       |
+| `claude-code-claude-md.nix` | Writes `~/.claude/CLAUDE.md` from `modules/lib/claude-md-content.nix`                                                                |
+| `opencode.nix`              | opencode with the Muse contributor provider; writes `~/.config/opencode/AGENTS.md` from the same `modules/lib/claude-md-content.nix` |
+| `firefox.nix`               | Firefox with dark theme, extensions, and policies                                                                                    |
+| `git.nix`                   | Git with GPG commit signing and gpg-agent                                                                                            |
+| `mcp.nix`                   | Central mcpm aggregate client: points every agent at the tailnet endpoint; opt-in server mode runs the aggregate                     |
+| `neovim.nix`                | Nixvim config: LSP, blink-cmp, pulse.nvim, catppuccin, oil, neo-tree, trouble, and more                                              |
+| `neovim-wezterm.nix`        | Smart-splits plugin and keybindings for Wezterm pane navigation                                                                      |
+| `packages.nix`              | Common home packages shared across all hosts                                                                                         |
+| `starship.nix`              | Starship prompt                                                                                                                      |
+| `wezterm.nix`               | Wezterm with Catppuccin, smart-splits, and Fira Code                                                                                 |
+| `zsh.nix`                   | Zsh with oh-my-zsh, vi-mode, direnv, zoxide, and shared aliases                                                                      |
 
 `modules/lib/` is not scanned into `homeModules` (only top-level files under `modules/` are) — it holds `claude-md-content.nix`, the shared CLAUDE.md/AGENTS.md prose imported by both `claude-code-claude-md.nix` and `opencode.nix`. Edit prose there, not in either consuming module.
 
@@ -52,22 +52,23 @@ modules = [
 ];
 ```
 
-| Module | Platforms | Description |
-|--------|-----------|-------------|
+| Module                | Platforms     | Description                                                                                                               |
+| --------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `home-manager-backup` | darwin, nixos | Shared `backupFileExtension` + `overwriteBackup` so activation replaces a stale `<file>.backup` instead of aborting on it |
-| `determinate` | darwin, nixos | Determinate Nix, plus the shared binary caches and trusted users for every host |
-| `tailscale` | darwin, nixos | Tailscale client daemon, the tailscaled operator grant the `diff-viewer` module needs, and an opt-in health watchdog |
-| `beszel-agent` | darwin, nixos | [Beszel](https://beszel.dev) monitoring agent, registering itself with the hub from a universal token read out of a file |
+| `determinate`         | darwin, nixos | Determinate Nix, plus the shared binary caches and trusted users for every host                                           |
+| `tailscale`           | darwin, nixos | Tailscale client daemon, the tailscaled operator grant the `diff-viewer` module needs, and an opt-in health watchdog      |
+| `mcpm-serve`          | nixos         | Publishes the local mcpm aggregate as the Tailscale Service `svc:mcpm` (nix-server only)                                  |
+| `beszel-agent`        | darwin, nixos | [Beszel](https://beszel.dev) monitoring agent, registering itself with the hub from a universal token read out of a file  |
 
 ### `determinate`
 
 Wraps the upstream [`determinate`](https://github.com/DeterminateSystems/determinate) module and adds the cache baseline. Options:
 
-| Option | Description |
-|--------|-------------|
-| `nix-components.determinate.substituters` | Binary caches, added as `extra-substituters`. Hosts append to the baseline |
+| Option                                         | Description                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `nix-components.determinate.substituters`      | Binary caches, added as `extra-substituters`. Hosts append to the baseline                                   |
 | `nix-components.determinate.trustedPublicKeys` | Matching public keys, added as `extra-trusted-public-keys`. A cache without its key here is silently skipped |
-| `nix-components.determinate.trustedUsers` | Users granted `trusted-users`. Needed for nix to honor a flake input's own `nixConfig` substituters |
+| `nix-components.determinate.trustedUsers`      | Users granted `trusted-users`. Needed for nix to honor a flake input's own `nixConfig` substituters          |
 
 All three are `listOf str` and merge across definitions, so a host adds only what is specific to it:
 
@@ -86,11 +87,11 @@ A host that adopts this module should delete its own `nix.settings.experimental-
 
 Enables `services.tailscale` and grants a user "operator" rights over the local tailscaled. The grant is what lets the [`diff-viewer`](#modules) module run `tailscale serve` as a normal user — without it, diff URLs 404 and tailscaled logs `Access denied: serve config denied`. Importing the module enables tailscale; there is no `enable` option.
 
-| Option | Description |
-|--------|-------------|
-| `nix-components.tailscale.operator` | User granted tailscaled operator rights. `null` (the default) grants nobody |
-| `nix-components.tailscale.healthcheck.enable` | Poll `tailscale status` every 2 minutes, restart tailscaled when down or hung, alert after 3 consecutive failures. NixOS only, off by default |
-| `nix-components.tailscale.healthcheck.secretsFile` | File defining `SHOUTRRR_URL` for those alerts. Defaults to `/etc/nixos/secrets/tailscale-alert.env`, root-owned 0600, optional at run time |
+| Option                                             | Description                                                                                                                                   |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nix-components.tailscale.operator`                | User granted tailscaled operator rights. `null` (the default) grants nobody                                                                   |
+| `nix-components.tailscale.healthcheck.enable`      | Poll `tailscale status` every 2 minutes, restart tailscaled when down or hung, alert after 3 consecutive failures. NixOS only, off by default |
+| `nix-components.tailscale.healthcheck.secretsFile` | File defining `SHOUTRRR_URL` for those alerts. Defaults to `/etc/nixos/secrets/tailscale-alert.env`, root-owned 0600, optional at run time    |
 
 ```nix
 nix-components.tailscale.operator = "ajmarkow";
@@ -108,16 +109,16 @@ Firewall rules, sshd gating, and per-service tailnet port exposure stay host-spe
 
 Runs the [Beszel](https://beszel.dev) agent and points it at a hub. Agent only — the hub stays a container in whichever host repo serves it. Importing the module runs the agent; there is no `enable` option.
 
-The agent authenticates with a *universal* token, so no host has to be added in the hub's UI first: it opens a WebSocket to `hubUrl`, presents the token, and registers itself. The same token works on every host, so one Infisical value (`BESZEL_UNIVERSAL_TOKEN`) covers all of them.
+The agent authenticates with a _universal_ token, so no host has to be added in the hub's UI first: it opens a WebSocket to `hubUrl`, presents the token, and registers itself. The same token works on every host, so one Infisical value (`BESZEL_UNIVERSAL_TOKEN`) covers all of them.
 
-| Option | Description |
-|--------|-------------|
-| `nix-components.beszel.agent.hubKey` | Hub's public key, from its "Add System" dialog. Required, no default |
-| `nix-components.beszel.agent.hubUrl` | Hub URL the agent dials out to. Required, no default |
-| `nix-components.beszel.agent.tokenFile` | File holding the universal token, root-owned 0600. Defaults to `/etc/nixos/secrets/beszel-token` on NixOS and `/etc/beszel-agent/token` on darwin |
-| `nix-components.beszel.agent.port` | Listen port, default `45876`. Only the inbound hub→agent path uses it |
-| `nix-components.beszel.agent.openFirewall` | Open that port. NixOS only, off by default |
-| `nix-components.beszel.agent.smartmon.enable` | Let the agent read S.M.A.R.T. data via smartctl. NixOS only, off by default |
+| Option                                         | Description                                                                                                                                              |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nix-components.beszel.agent.hubKey`           | Hub's public key, from its "Add System" dialog. Required, no default                                                                                     |
+| `nix-components.beszel.agent.hubUrl`           | Hub URL the agent dials out to. Required, no default                                                                                                     |
+| `nix-components.beszel.agent.tokenFile`        | File holding the universal token, root-owned 0600. Defaults to `/etc/nixos/secrets/beszel-token` on NixOS and `/etc/beszel-agent/token` on darwin        |
+| `nix-components.beszel.agent.port`             | Listen port, default `45876`. Only the inbound hub→agent path uses it                                                                                    |
+| `nix-components.beszel.agent.openFirewall`     | Open that port. NixOS only, off by default                                                                                                               |
+| `nix-components.beszel.agent.smartmon.enable`  | Let the agent read S.M.A.R.T. data via smartctl. NixOS only, off by default                                                                              |
 | `nix-components.beszel.agent.extraEnvironment` | Extra [agent environment variables](https://beszel.dev/guide/environment-variables#agent), merged over the module's. Public — they land in the Nix store |
 
 ```nix
@@ -128,7 +129,7 @@ nix-components.beszel.agent = {
 };
 ```
 
-`hubKey` and `hubUrl` deliberately have no defaults. This repo is public; the host repos that consume it are not. `hubKey` is a *public* key so committing it would leak no credential, but both values identify the hub, so they are set per host. The token — the one value that is a credential — never enters the Nix store at all.
+`hubKey` and `hubUrl` deliberately have no defaults. This repo is public; the host repos that consume it are not. `hubKey` is a _public_ key so committing it would leak no credential, but both values identify the hub, so they are set per host. The token — the one value that is a credential — never enters the Nix store at all.
 
 Everything else about the two platforms differs, because only one of them has an upstream module:
 
@@ -141,32 +142,32 @@ Everything else about the two platforms differs, because only one of them has an
 
 Custom packages under `pkgs/` are exported as `packages.<system>.<name>`:
 
-| Package | Description |
-|---------|-------------|
-| `summarize` | CLI tool for summarizing and transcribing URLs, videos, podcasts, and files |
+| Package         | Description                                                                   |
+| --------------- | ----------------------------------------------------------------------------- |
+| `summarize`     | CLI tool for summarizing and transcribing URLs, videos, podcasts, and files   |
 | `organize-tool` | File management automation tool. Not yet in nixpkgs, so this repo packages it |
-| `semble` | Semantic code search tool, built from the `semble-workspace` uv2nix project |
+| `semble`        | Semantic code search tool, built from the `semble-workspace` uv2nix project   |
 
 ## Skills
 
 Claude Code skills under `skills/` are bundled into `claude-code.nix` at build time via the `paseo-skills` flake input:
 
-| Skill | Description |
-|-------|-------------|
-| `add-mcp` | Add a new MCP server to the `claude-code.nix` module |
-| `adding-to-claude-md` | Add new rules or guidance to `modules/lib/claude-md-content.nix` |
-| `backlog-md` | Guide use of the Backlog.md CLI for task creation, status, and board views |
-| `c-and-p` | Commit all staged and unstaged changes with a conventional commit message and push |
-| `debug-with-llms` | Debug AI-assisted code without looping, patching symptoms, or writing slop |
-| `deploy-nix-components` | Deploy a nix-components change and bump the flake input on nix-server |
-| `git-rewrite-history` | Rewrite git history with `git-filter-repo` instead of `filter-branch` |
-| `paseo-send` | Find a running paseo agent by repo name and send it a message |
-| `ponytail` | Push for the simplest, shortest working solution on any coding task |
-| `ruleset-design` | Design and audit rule files such as AGENTS.md and CLAUDE.md |
-| `serve` | Serve a local file or directory publicly through an ngrok tunnel |
-| `ste-writing` | Write or edit documentation in Simplified Technical English |
-| `summarize` | Summarize or transcribe URLs, YouTube videos, podcasts, PDFs, and local files |
-| `taste-skill` | Design landing pages and portfolios that avoid a templated look |
-| `test-driven-development` | Follow test-driven development before writing implementation code |
-| `tighten` | Refactor AGENTS.md following progressive disclosure principles |
-| `writing-skills` | Create, edit, and verify Claude Code skills before deployment |
+| Skill                     | Description                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| `add-mcp`                 | Add a new MCP server to the central `catalog` in `modules/lib/mcp.nix`             |
+| `adding-to-claude-md`     | Add new rules or guidance to `modules/lib/claude-md-content.nix`                   |
+| `backlog-md`              | Guide use of the Backlog.md CLI for task creation, status, and board views         |
+| `c-and-p`                 | Commit all staged and unstaged changes with a conventional commit message and push |
+| `debug-with-llms`         | Debug AI-assisted code without looping, patching symptoms, or writing slop         |
+| `deploy-nix-components`   | Deploy a nix-components change and bump the flake input on nix-server              |
+| `git-rewrite-history`     | Rewrite git history with `git-filter-repo` instead of `filter-branch`              |
+| `paseo-send`              | Find a running paseo agent by repo name and send it a message                      |
+| `ponytail`                | Push for the simplest, shortest working solution on any coding task                |
+| `ruleset-design`          | Design and audit rule files such as AGENTS.md and CLAUDE.md                        |
+| `serve`                   | Serve a local file or directory publicly through an ngrok tunnel                   |
+| `ste-writing`             | Write or edit documentation in Simplified Technical English                        |
+| `summarize`               | Summarize or transcribe URLs, YouTube videos, podcasts, PDFs, and local files      |
+| `taste-skill`             | Design landing pages and portfolios that avoid a templated look                    |
+| `test-driven-development` | Follow test-driven development before writing implementation code                  |
+| `tighten`                 | Refactor AGENTS.md following progressive disclosure principles                     |
+| `writing-skills`          | Create, edit, and verify Claude Code skills before deployment                      |

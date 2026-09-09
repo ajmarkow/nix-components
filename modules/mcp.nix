@@ -11,28 +11,23 @@ let
     homeDirectory = config.home.homeDirectory;
   };
 
-  allProfileNames = mcpLib.profileNames cfg.extraServers;
-
-  # mcpm's global registry. Every server in an enabled profile carries the
-  # `active` tag; the mcpm-active-profile service aggregates them behind one
-  # persistent HTTP endpoint. Contains only placeholders and env-var names,
-  # never secret values.
+  # mcpm's global registry. Every catalog and extraServers entry carries the
+  # fixed `all` tag; the mcpm service aggregates them behind one persistent
+  # HTTP endpoint. Contains only placeholders and env-var names, never secret
+  # values. Server mode only -- clients point at the central endpoint and
+  # need no local registry.
   serversJson = (pkgs.formats.json { }).generate "mcpm-servers.json" (
-    mcpLib.serverConfigs {
-      activeProfiles = cfg.enabledProfiles;
-      inherit (cfg) extraServers;
-    }
+    mcpLib.serverConfigs { inherit (cfg) extraServers; }
   );
 
   mcpmPort = 6276;
-  mcpmUrl = "http://127.0.0.1:${toString mcpmPort}/mcp";
 
-  # The single, fixed URL every agent points at. It never changes -- runtime
-  # profile swaps rewrite servers.json, not this -- so each agent declares it
+  # The single, fixed URL every agent points at, served centrally from
+  # nix-server over the tailnet. It never changes, so each agent declares it
   # natively through its own module, no binary wrapper. Backed by the
-  # always-on mcpm-active-profile service below rather than a per-session
-  # stdio spawn, so agents connect to warm servers instead of cold-starting
-  # all of them (and racing the client's connect timeout) every session.
+  # always-on mcpm service on nix-server rather than a per-session stdio
+  # spawn, so agents connect to warm servers instead of cold-starting all of
+  # them (and racing the client's connect timeout) every session.
   #
   # Each agent's home-manager module has a different remote-MCP shape --
   # Claude Code uses `type = "http"`, opencode uses `type = "remote"`, Codex
@@ -40,14 +35,14 @@ let
   # per-agent rather than one shared record.
   claudeAggregator = {
     type = "http";
-    url = mcpmUrl;
+    url = cfg.endpoint;
   };
   codexAggregator = {
-    url = mcpmUrl;
+    url = cfg.endpoint;
   };
   opencodeAggregator = {
     type = "remote";
-    url = mcpmUrl;
+    url = cfg.endpoint;
     enabled = true;
   };
 
@@ -55,7 +50,7 @@ let
   codexEnabled = config.programs.codex.enable or false;
   opencodeEnabled = config.programs.opencode.enable or false;
 
-  serviceDescription = "mcpm active-profile MCP server aggregator";
+  serviceDescription = "mcpm MCP server aggregator";
 
   # A systemd user service never sources zsh init, so it starts with none of
   # the secrets mcpm needs to resolve each mounted server's ${VAR} references
@@ -65,9 +60,15 @@ let
   # todoist-mcp.env, ...) for exactly this purpose -- see common.nix's own
   # sourcing of these same files for the paseo daemon and interactive shells.
   # Glob-based and best-effort so this stays a no-op on hosts/OSes that don't
-  # provision that directory (e.g. nix-mac): mcpm just starts with whatever
-  # subset of secrets it finds, same as if none were provisioned at all.
-  serviceScript = pkgs.writeShellScript "mcpm-active-profile-start" ''
+  # provision that directory: mcpm just starts with whatever subset of
+  # secrets it finds, same as if none were provisioned at all.
+  #
+  # mcpm silently falls back to another port when the requested one is taken
+  # (find_available_port in its profile run command), which would leave the
+  # tailscale serve registration pointing at a dead port. Refuse to start
+  # instead so a conflict is loud in the journal, not a silent wrong-port
+  # serve.
+  serviceScript = pkgs.writeShellScript "mcpm-start" ''
     set -eu
     for _secret_env in /etc/nixos/secrets/*-mcp.env; do
       if [ -r "$_secret_env" ]; then
@@ -76,24 +77,27 @@ let
         set +a
       fi
     done
-    exec ${lib.getExe pkgs.mcpm} profile run --http active --port ${toString mcpmPort}
+    if (echo > /dev/tcp/127.0.0.1/${toString mcpmPort}) 2>/dev/null; then
+      echo "mcpm: port ${toString mcpmPort} is already in use -- refusing to start (no automatic fallback)" >&2
+      exit 1
+    fi
+    exec ${lib.getExe pkgs.mcpm} profile run --http all --port ${toString mcpmPort}
   '';
 in
 {
   options.nix-components.mcp = {
     enable = lib.mkEnableOption "shared MCP server configuration via mcpm";
 
-    enabledProfiles = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ "core" ];
+    server = {
+      enable = lib.mkEnableOption "run the central mcpm aggregate on this host";
+    };
+
+    endpoint = lib.mkOption {
+      type = lib.types.str;
+      default = "https://mcpm.tail772f0.ts.net/mcp";
       description = ''
-        MCP profiles whose servers are active on deploy -- their servers get the
-        `active` tag in mcpm's servers.json. Names must exist in
-        modules/lib/mcp.nix's catalog or in `extraServers`. Override at runtime
-        with `mcp-profile <names...>` (no rebuild, see pkgs/mcp-profile.nix);
-        every deploy resets back to this default. `core` holds the always-used
-        dev tools (nixos, playwright, context7, github); `productivity`
-        (todoist, obsidian) and `extras` (openrouter) are off by default.
+        URL every enabled agent points at. Served centrally from nix-server
+        over the tailnet; only server mode runs mcpm locally.
       '';
     };
 
@@ -101,128 +105,120 @@ in
       type = lib.types.attrsOf (lib.types.attrsOf lib.types.anything);
       default = { };
       description = ''
-        Host-local servers merged into the catalog (e.g. nix-server's n8n
-        server, which only makes sense on that host). Same shape as
-        modules/lib/mcp.nix's catalog entries: a `profiles` list plus either
+        Host-local servers merged into the catalog on the server host (e.g.
+        nix-server's n8n server, which only makes sense where that container
+        runs). Same shape as modules/lib/mcp.nix's catalog entries: either
         `command`/`args`/`env` (stdio) or `url`/`headerName`/`headerVar`
-        (remote). Server names must not collide with a built-in one.
+        (remote). Server names must not collide with a built-in one. Every
+        entry joins the fixed `all` aggregate.
       '';
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
+  config = lib.mkIf cfg.enable (
+    lib.mkMerge [
       {
-        assertion = builtins.all (n: builtins.elem n allProfileNames) cfg.enabledProfiles;
-        message = "nix-components.mcp.enabledProfiles references a profile with no servers in modules/lib/mcp.nix's catalog or nix-components.mcp.extraServers";
-      }
-      {
-        assertion = lib.length cfg.enabledProfiles == lib.length (lib.unique cfg.enabledProfiles);
-        message = "nix-components.mcp.enabledProfiles contains duplicate profile names";
-      }
-      {
-        assertion =
-          (lib.intersectLists (lib.attrNames mcpLib.catalog) (lib.attrNames cfg.extraServers)) == [ ];
-        message = "nix-components.mcp.extraServers defines a server name that collides with a built-in server in modules/lib/mcp.nix";
-      }
-    ];
+        assertions = [
+          {
+            assertion =
+              (lib.intersectLists (lib.attrNames mcpLib.catalog) (lib.attrNames cfg.extraServers)) == [ ];
+            message = "nix-components.mcp.extraServers defines a server name that collides with a built-in server in modules/lib/mcp.nix";
+          }
+        ];
 
-    # servers.json is a store symlink on deploy (the default `active` set) and
-    # is replaced in place by `mcp-profile` at runtime; `force` lets each deploy
-    # reclaim it.
-    home.file.".config/mcpm/servers.json" = {
-      force = true;
-      source = serversJson;
-    };
-
-    # ReadWritePaths (below) bind-mounts this into the sandboxed
-    # mcpm-active-profile unit, which requires the source to already exist on
-    # the real filesystem -- unlike .config/mcpm above, nothing else creates
-    # these, so the service fails at the NAMESPACE step with "No such file or
-    # directory" without them. Linux-only consumer, but an empty dir is
-    # harmless on Darwin too, so it's unconditional like the entry above.
-    home.file.".cache/mcpm/npm/.keep".text = "";
-    home.file.".cache/mcpm/uv/.keep".text = "";
-    home.file.".cache/mcpm/uv-tools/.keep".text = "";
-
-    # One native aggregator entry per enabled agent, all pointing at the same
-    # persistent HTTP endpoint -- no wrapper, no --mcp-config / --profile flag
-    # injection.
-    programs.claude-code.mcpServers = lib.mkIf claudeEnabled { mcpm = claudeAggregator; };
-    programs.codex.settings.mcp_servers = lib.mkIf codexEnabled { mcpm = codexAggregator; };
-    programs.opencode.settings.mcp = lib.mkIf opencodeEnabled { mcpm = opencodeAggregator; };
-
-    # Runs mcpm's FastMCP proxy once, kept warm by systemd/launchd, instead of
-    # every agent session cold-starting all of an enabled profile's servers
-    # over stdio -- that cold start (context7 + github + nixos + obsidian +
-    # playwright + todoist, sequentially) routinely outran Claude Code's MCP
-    # connect timeout. Sandboxed to this user's own state; no container, since
-    # every backend here is a trusted first- or second-party server sharing
-    # this host's Infisical-injected secrets anyway.
-    systemd.user.services = lib.mkIf pkgs.stdenv.isLinux {
-      mcpm-active-profile = {
-        Unit = {
-          Description = serviceDescription;
-          After = [ "network.target" ];
-          # mcpm reads servers.json once at startup, so a catalog change alone
-          # left this long-lived process serving the previous generation's
-          # config -- the new servers.json sat on disk, ignored, until
-          # something else restarted the unit. Nothing else here references
-          # that file (it arrives via home.file), so the unit was byte-identical
-          # across the deploy and home-manager had no reason to restart it.
-          # Naming the store path makes the unit change whenever the catalog
-          # does.
-          X-Restart-Triggers = [ "${serversJson}" ];
+        # One native aggregator entry per enabled agent, all pointing at the
+        # central tailnet endpoint -- no wrapper, no --mcp-config flag
+        # injection.
+        programs = {
+          claude-code.mcpServers = lib.mkIf claudeEnabled { mcpm = claudeAggregator; };
+          codex.settings.mcp_servers = lib.mkIf codexEnabled { mcpm = codexAggregator; };
+          opencode.settings.mcp = lib.mkIf opencodeEnabled { mcpm = opencodeAggregator; };
         };
-        Service = {
-          ExecStart = "${serviceScript}";
-          Restart = "on-failure";
-          RestartSec = 2;
-          NoNewPrivileges = true;
-          ProtectSystem = "strict";
-          ProtectHome = "read-only";
-          ReadWritePaths = [
-            "%h/.config/mcpm"
-            # Bind-mount target for each catalog server's npx/uvx package
-            # cache (modules/lib/mcp.nix's cacheEnv, passed directly in
-            # servers.json -- systemd's own Environment= here never reaches
-            # those subprocesses, see that file's comment). Previously those
-            # caches pointed at PrivateTmp's private /tmp, which is torn down
-            # and recreated on every service restart/redeploy, forcing every
-            # server to re-fetch its packages from scratch each time --
-            # several minutes of cold start before tools/list even returned.
-            "%h/.cache/mcpm"
-            # obsidian-mcp (productivity profile) reads/writes the vault
-            # directly at this fixed path (see the catalog entry below and
-            # nix-server's modules/obsidian.nix, which provisions and syncs
-            # it) -- outside %h, so ProtectSystem=strict leaves it read-only
-            # without this, and obsidian-mcp fails every call with
-            # VAULT_PERMISSION_DENIED. "-" prefix: optional, so hosts that
-            # don't provision this directory (no obsidian.nix imported) don't
-            # fail to start.
-            "-/var/lib/obsidian-sync/vault"
-          ];
-          PrivateTmp = true;
-        };
-        Install.WantedBy = [ "default.target" ];
-      };
-    };
+      }
 
-    launchd.agents = lib.mkIf pkgs.stdenv.isDarwin {
-      mcpm-active-profile = {
-        enable = true;
-        config = {
-          ProgramArguments = [ "${serviceScript}" ];
-          RunAtLoad = true;
-          KeepAlive = true;
-          StandardOutPath = "${config.home.homeDirectory}/.local/state/mcpm-active-profile.log";
-          StandardErrorPath = "${config.home.homeDirectory}/.local/state/mcpm-active-profile.log";
-        };
-      };
-    };
+      (lib.mkIf cfg.server.enable {
+        home.file = {
+          ".config/mcpm/servers.json" = {
+            force = true;
+            source = serversJson;
+          };
 
-    home.packages = [
-      (pkgs.callPackage ../pkgs/mcp-profile.nix { profileNames = allProfileNames; })
-    ];
-  };
+          # ReadWritePaths (below) bind-mounts this into the sandboxed mcpm
+          # unit, which requires the source to already exist on the real
+          # filesystem -- unlike .config/mcpm above, nothing else creates these,
+          # so the service fails at the NAMESPACE step with "No such file or
+          # directory" without them. Linux-only consumer, but an empty dir is
+          # harmless on Darwin too, so it's unconditional like the entry above.
+          ".cache/mcpm/npm/.keep".text = "";
+          ".cache/mcpm/uv/.keep".text = "";
+          ".cache/mcpm/uv-tools/.keep".text = "";
+        };
+
+        # Runs mcpm's FastMCP proxy once, kept warm by systemd/launchd, bound
+        # to loopback only -- the tailnet reaches it through `tailscale serve`,
+        # never directly. Sandboxed to this user's own state; no container,
+        # since every backend here is a trusted first- or second-party server
+        # sharing this host's Infisical-injected secrets anyway.
+        systemd.user.services = lib.mkIf pkgs.stdenv.isLinux {
+          mcpm = {
+            Unit = {
+              Description = serviceDescription;
+              After = [ "network.target" ];
+              # mcpm reads servers.json once at startup, so a catalog change alone
+              # left this long-lived process serving the previous generation's
+              # config -- the new servers.json sat on disk, ignored, until
+              # something else restarted the unit. Nothing else here references
+              # that file (it arrives via home.file), so the unit was byte-identical
+              # across the deploy and home-manager had no reason to restart it.
+              # Naming the store path makes the unit change whenever the catalog
+              # does.
+              X-Restart-Triggers = [ "${serversJson}" ];
+            };
+            Service = {
+              ExecStart = "${serviceScript}";
+              Restart = "on-failure";
+              RestartSec = 2;
+              NoNewPrivileges = true;
+              ProtectSystem = "strict";
+              ProtectHome = "read-only";
+              ReadWritePaths = [
+                "%h/.config/mcpm"
+                # Bind-mount target for each catalog server's npx/uvx package
+                # cache (modules/lib/mcp.nix's cacheEnv, passed directly in
+                # servers.json -- systemd's own Environment= here never reaches
+                # those subprocesses, see that file's comment). Previously those
+                # caches pointed at PrivateTmp's private /tmp, which is torn down
+                # and recreated on every service restart/redeploy, forcing every
+                # server to re-fetch its packages from scratch each time --
+                # several minutes of cold start before tools/list even returned.
+                "%h/.cache/mcpm"
+                # obsidian-mcp reads/writes the vault
+                # directly at this fixed path (see the catalog entry below and
+                # nix-server's modules/obsidian.nix, which provisions and syncs
+                # it) -- outside %h, so ProtectSystem=strict leaves it read-only
+                # without this, and obsidian-mcp fails every call with
+                # VAULT_PERMISSION_DENIED.
+                "/var/lib/obsidian-sync/vault"
+              ];
+              PrivateTmp = true;
+            };
+            Install.WantedBy = [ "default.target" ];
+          };
+        };
+
+        launchd.agents = lib.mkIf pkgs.stdenv.isDarwin {
+          mcpm = {
+            enable = true;
+            config = {
+              ProgramArguments = [ "${serviceScript}" ];
+              RunAtLoad = true;
+              KeepAlive = true;
+              StandardOutPath = "${config.home.homeDirectory}/.local/state/mcpm.log";
+              StandardErrorPath = "${config.home.homeDirectory}/.local/state/mcpm.log";
+            };
+          };
+        };
+      })
+    ]
+  );
 }

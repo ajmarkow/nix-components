@@ -4,11 +4,10 @@
   homeDirectory,
 }:
 # One flat server catalog rendered into mcpm's global registry
-# (~/.config/mcpm/servers.json). mcpm aggregates every server tagged `active`
-# behind a single stdio endpoint (`mcpm profile run active`), so each agent
-# needs just one static MCP entry and no binary wrapper. Profiles are plain
-# tags on servers -- see modules/mcp.nix for how `active` membership is set at
-# deploy time and swapped at runtime.
+# (~/.config/mcpm/servers.json). mcpm aggregates every server tagged `all`
+# behind one HTTP endpoint (`mcpm profile run --http all`), served centrally
+# from nix-server and pointed at by every agent on every host. `all` is a
+# fixed MCPM implementation detail, not a selectable profile.
 #
 # Secrets never land in servers.json. Each server declares the runtime
 # environment references it needs. MCPM resolves only those variables when it
@@ -19,7 +18,7 @@ let
   # servers.json -- it does not inherit or merge the parent process's
   # environment, so systemd-level Environment= (modules/mcp.nix) never
   # reaches these subprocesses; only entries here do. npx/uvx default their
-  # package caches to $HOME, which the mcpm-active-profile service sandboxes
+  # package caches to $HOME, which the mcpm service sandboxes
   # read-only, so every npx/uvx-based server must redirect its cache here
   # explicitly. Pointed at a path under the real home directory (added to
   # that service's ReadWritePaths) rather than /tmp: PrivateTmp tears down
@@ -29,7 +28,7 @@ let
   cacheEnv = {
     NPM_CONFIG_CACHE = "${homeDirectory}/.cache/mcpm/npm";
     # mcp-remote persists OAuth client registration and tokens here, defaulting
-    # to ~/.mcp-auth -- read-only under mcpm-active-profile. Nothing writes it
+    # to ~/.mcp-auth -- read-only under the mcpm service. Nothing writes it
     # while the static bearer headers work, but a 401 falls back to the OAuth
     # flow, which would then fail on an unwritable path.
     MCP_REMOTE_CONFIG_DIR = "${homeDirectory}/.cache/mcpm/mcp-auth";
@@ -40,10 +39,9 @@ let
   };
 
   # A server is either stdio (`command`/`args`/`env`) or remote (`url` plus an
-  # optional auth header). `profiles` are the group tags it carries.
+  # optional auth header). Every entry joins the fixed `all` aggregate.
   catalog = {
     nixos = {
-      profiles = [ "core" ];
       command = "uvx";
       args = [ "mcp-nixos" ];
       # uvx otherwise downloads its own dynamically-linked CPython, which can't
@@ -51,13 +49,12 @@ let
       env.UV_PYTHON = "${pkgs.python3}/bin/python3";
     };
     playwright = {
-      profiles = [ "core" ];
       command = "${pkgs.playwright-mcp}/bin/playwright-mcp";
       args = [
         "--headless"
         "--isolated"
         # Default output dir is <cwd>/.playwright-mcp, and the server inherits
-        # cwd $HOME from mcpm-active-profile, whose ProtectHome=read-only makes
+        # cwd $HOME from the mcpm service, whose ProtectHome=read-only makes
         # that path unwritable -- every screenshot and spilled snapshot failed
         # with EROFS. This subtree is already in the unit's ReadWritePaths.
         "--output-dir"
@@ -66,7 +63,6 @@ let
     };
 
     github = {
-      profiles = [ "core" ];
       url = "https://api.githubcopilot.com/mcp/";
       headerName = "Authorization";
       headerPrefix = "Bearer ";
@@ -75,7 +71,6 @@ let
     };
 
     context7 = {
-      profiles = [ "core" ];
       # The plain /mcp endpoint works unauthenticated; the API key only raises
       # the rate limit, so the header is optional -- emitted only when the var
       # is set.
@@ -87,13 +82,11 @@ let
     };
     openrouter = {
       # OAuth-only; no static secret. mcp-remote drives the OAuth flow, which
-      # can't complete headless -- kept for parity with the extras group.
-      profiles = [ "extras" ];
+      # can't complete headless.
       url = "https://mcp.openrouter.ai/mcp";
     };
 
     todoist = {
-      profiles = [ "productivity" ];
       command = "npx";
       args = [
         "-y"
@@ -105,7 +98,6 @@ let
       env.TODOIST_API_KEY = "\${TODOIST_API_TOKEN}";
     };
     obsidian = {
-      profiles = [ "productivity" ];
       command = "npx";
       args = [
         "-y"
@@ -116,11 +108,10 @@ let
       ];
     };
 
-    # Server-infra tooling. n8n talks to the n8n container on nix-server over
-    # loopback -- off by default everywhere; only the host running that
-    # container enables the `server` profile.
+    # Server-infra tooling. The loopback URL resolves on nix-server, where both
+    # mcpm and the n8n container run. Every tailnet client reaches it through
+    # the central aggregate -- no host-local setup needed anywhere else.
     n8n = {
-      profiles = [ "server" ];
       url = "http://127.0.0.1:3000/mcp";
       headerName = "Authorization";
       headerPrefix = "Bearer ";
@@ -145,10 +136,10 @@ let
     else
       "if [ -n \"\${${s.headerVar}}\" ]; then ${withHeader}; else ${withoutHeader}; fi";
 
-  # Render one catalog entry to an mcpm STDIOServerConfig. `active` decides
-  # whether it also carries the `active` tag the aggregator serves.
+  # Render one catalog entry to an mcpm STDIOServerConfig in the fixed `all`
+  # aggregate.
   renderServer =
-    name: s: active:
+    name: s:
     let
       transport =
         if s ? url then
@@ -172,24 +163,17 @@ let
     // envAttr
     // {
       inherit name;
-      profile_tags = s.profiles ++ lib.optional active "active";
+      profile_tags = [ "all" ];
     };
 in
 {
   inherit catalog;
 
-  # Every profile name known to the catalog plus any host-local extra servers.
-  profileNames =
-    extraServers: lib.unique (lib.concatMap (s: s.profiles) (lib.attrValues (catalog // extraServers)));
-
-  # servers.json content: the catalog (plus host-local extraServers) rendered
-  # to mcpm's schema, tagging `active` every server in an enabled profile.
+  # servers.json content: the whole catalog (plus host-local extraServers)
+  # rendered to mcpm's schema, every server in the fixed `all` aggregate.
   serverConfigs =
     {
-      activeProfiles,
       extraServers ? { },
     }:
-    lib.mapAttrs (name: s: renderServer name s (lib.any (p: lib.elem p activeProfiles) s.profiles)) (
-      catalog // extraServers
-    );
+    lib.mapAttrs renderServer (catalog // extraServers);
 }
