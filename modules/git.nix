@@ -81,6 +81,18 @@ let
         stylua.enable = true;
         taplo.enable = true; # TOML
         rufo.enable = true; # Ruby
+
+        # YAML lint (check-only). prettier above already owns YAML layout, so
+        # this runs at a lower priority (after it) and uses yamllint's
+        # `relaxed` profile: style rules drop to warnings (exit 0) and only
+        # real defects — syntax errors, duplicate keys — fail the commit.
+        # The stock profile would reject every GitHub Actions workflow over
+        # `on:` (truthy) and any line past 80 columns.
+        yamllint = {
+          enable = true;
+          priority = 1;
+          settings.extends = "relaxed";
+        };
       };
       # enableDefaultExcludes (on by default) already covers *.lock,
       # package-lock.json, go.{mod,sum}, .git{ignore,attributes,modules},
