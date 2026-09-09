@@ -164,6 +164,15 @@ in
         Unit = {
           Description = serviceDescription;
           After = [ "network.target" ];
+          # mcpm reads servers.json once at startup, so a catalog change alone
+          # left this long-lived process serving the previous generation's
+          # config -- the new servers.json sat on disk, ignored, until
+          # something else restarted the unit. Nothing else here references
+          # that file (it arrives via home.file), so the unit was byte-identical
+          # across the deploy and home-manager had no reason to restart it.
+          # Naming the store path makes the unit change whenever the catalog
+          # does.
+          X-Restart-Triggers = [ "${serversJson}" ];
         };
         Service = {
           ExecStart = "${serviceScript}";
