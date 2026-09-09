@@ -366,6 +366,8 @@
 
   Never check a separate dashboard, URL, or service unless the user explicitly names one. GitHub Actions is the source of truth.
 
+  **Do not watch CI unless monitoring is necessary to complete the task or the user explicitly asks you to watch it.** Routine flake input bumps do not need CI monitoring. Unnecessary monitoring wastes tokens.
+
   If multiple unrelated jobs or repos fail the same way around the same time (e.g. runner-acquisition errors, timeouts), check https://www.githubstatus.com/ for an active incident before debugging the workflow config.
 
   ## ⚠️ Never Remove CI Checks Without Explicit Instruction
