@@ -109,6 +109,7 @@ let
   appearance = pkgs.writeText "obsidian-appearance.json" (
     builtins.toJSON {
       cssTheme = "Catppuccin";
+      theme = "obsidian";
       enabledCssSnippets = [ ];
     }
   );
