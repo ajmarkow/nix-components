@@ -27,7 +27,7 @@ class DiffViewerHeaderTest(unittest.TestCase):
         self.assertIn('mv "$targetTmp" "$target"', module)
 
     def test_flake_check_runs_diff_viewer_tests(self):
-        self.assertIn("checks.diff-viewer", PER_SYSTEM.read_text())
+        self.assertIn("diff-viewer =", PER_SYSTEM.read_text())
 
     def test_adds_page_title_and_copyable_git_metadata(self):
         if not SCRIPT.exists():
@@ -55,7 +55,9 @@ class DiffViewerHeaderTest(unittest.TestCase):
             )
             result = html_path.read_text()
 
-        self.assertIn("<title>nix-components / feature/header / a1b2c3d</title>", result)
+        self.assertIn(
+            "<title>nix-components / feature/header / a1b2c3d</title>", result
+        )
         self.assertIn('<span class="dv-meta__label">Repo</span>', result)
         self.assertIn('<strong class="dv-meta__value">nix-components</strong>', result)
         self.assertIn('<span class="dv-meta__label">Branch</span>', result)
@@ -65,7 +67,9 @@ class DiffViewerHeaderTest(unittest.TestCase):
         self.assertIn('<code class="dv-meta__hash">a1b2c3d</code>', result)
         self.assertIn("navigator.clipboard.writeText", result)
         self.assertIn("body { color: white; }", result)
-        self.assertLess(result.index('class="dv-page-header"'), result.index('class="d2h-wrapper"'))
+        self.assertLess(
+            result.index('class="dv-page-header"'), result.index('class="d2h-wrapper"')
+        )
 
     def test_escapes_metadata_with_regex_replacement_characters(self):
         spec = importlib.util.spec_from_file_location("diff_viewer_header", SCRIPT)
@@ -74,7 +78,9 @@ class DiffViewerHeaderTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             html_path = Path(directory) / "diff.html"
-            html_path.write_text("<html><head><title>Old</title></head><body></body></html>")
+            html_path.write_text(
+                "<html><head><title>Old</title></head><body></body></html>"
+            )
 
             try:
                 module.decorate(

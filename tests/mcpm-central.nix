@@ -136,7 +136,9 @@ let
     }
     {
       name = "server mode runs the mcpm service from profile run --http all";
-      ok = server.systemd.user.services ? mcpm && lib.hasInfix "profile run --http all" mcpSource;
+      ok =
+        (server.systemd.user.services ? mcpm || server.launchd.agents ? mcpm)
+        && lib.hasInfix "profile run --http all" mcpSource;
     }
     {
       name = "removed enabledProfiles option is absent";
