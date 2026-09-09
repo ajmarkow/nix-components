@@ -132,9 +132,11 @@
 
   ## Inter-Agent Messaging
 
-  When the user asks you to message, notify, or send something to another agent or repo, **use `paseo`** — not files, git, or any other mechanism. `paseo` does not need the `rtk` prefix.
+  When the user asks you to message, notify, or send something to another agent or repo, **use Paseo** — not files, git, or any other mechanism.
 
-  **Daemon access:** Run bare `paseo`; configured remote clients already supply their connection settings, and local daemon operations need no `PASEO_HOST`.
+  **Always use the Paseo MCP tools when they are available.** Use the `paseo` CLI only when the Paseo MCP interface is completely unavailable. Do not choose the CLI merely because it is familiar or convenient.
+
+  **CLI fallback:** Run bare `paseo`; it does not need the `rtk` prefix. Configured remote clients already supply their connection settings, and local daemon operations need no `PASEO_HOST`.
 
   **Host diagnostics:** A sandbox or container can see host files without sharing the host PID namespace or loopback, so rerun read-only diagnostics with approved host access before reporting that a local daemon is stopped or unreachable, or recommending a restart.
 
@@ -154,9 +156,10 @@
   - **Use existing agent** if it is directly relevant to the task/message being sent (same repo, same module, immediate follow-up, or closely related work)
   - **Spawn new agent** otherwise (different context, different area, unrelated work)
   - **Default model:** Use Sonnet when spawning new agents
+  - **Use automatic permission review for Paseo subagents:** Select `auto` mode for Claude, `auto-review` mode for Codex, and `auto_accept = true` for OpenCode.
   - **Always tell spawned agents to report back:** any agent you spawn (paseo agent, subagent, workflow) must be instructed to send its results back to you when done — the user should never have to ask you to manually relay them
 
-  Find the target agent, then send:
+  When MCP is unavailable, find the target agent and send with the CLI:
   ```bash
   paseo ls -a -g                         # list all agents across all directories
   paseo send <id> "message or task"      # id can be shortened if unambiguous
@@ -164,7 +167,7 @@
 
   If no relevant agent is running, spawn a new one:
   ```bash
-  paseo run "task" --detach --name <name> --model sonnet
+  paseo run "task" --detach --name <name> --model sonnet --mode auto
   ```
 
   Other commands:
@@ -187,10 +190,10 @@
   # 2. Spawn into that workspace
   paseo run "remove pylsp from neovim config" \
     --workspace wks_6d815c666fe4cf4b \
-    --detach --name remove-pylsp --provider claude/claude-sonnet-4-6
+    --detach --name remove-pylsp --provider claude/claude-sonnet-4-6 --mode auto
 
   # No workspace exists yet for the repo? Create one:
-  #   paseo run "..." --new-workspace local --cwd /var/lib/paseo/paseo-projects/<repo> ...
+  #   paseo run "..." --new-workspace local --cwd /var/lib/paseo/paseo-projects/<repo> --mode auto ...
   ```
 
   Verify: `paseo run` prints `Using workspace <id>` and the CWD column shows the target repo. Pass the ID exactly as `paseo workspace ls` prints it — it may be a `wks_` id or a path.
