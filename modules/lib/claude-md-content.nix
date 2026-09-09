@@ -359,6 +359,8 @@
 
   ## Git Workflow
 
+  **Using the `/c-and-p` skill is explicit approval to commit and push.** Do not show a diff or ask for more approval. Commit and push the changes directly.
+
   **Before committing, show the full `rtk git diff --staged` and wait for approval.** Include every modified file in the working tree (including AGENTS.md, `backlog/`, and docs) unless the user says to exclude it.
 
   **Always render any diff through the `diff-viewer` skill — never ask first.** This applies to every diff shown to the user (staged, working-tree, or arbitrary), not just pre-commit ones.
