@@ -1,0 +1,47 @@
+name: drv-equivalence
+
+# Label-gated: proving derivation equivalence needs full git history plus a
+# second flake evaluation pass (tests/equivalence, its own home-manager/
+# nix-darwin/nixvim fetch), so it's not worth paying on every routine PR.
+# Apply the `refactor` label to a PR to opt in, or dispatch manually.
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - labeled
+      - synchronize
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: "Git ref to compare the working tree against"
+        required: true
+        default: "origin/main"
+
+jobs:
+  drv-equivalence:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'refactor')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Tier 1 evaluates the baseline directly via a
+          # `git+file://...?rev=<sha>` flakeref, which needs that commit
+          # present locally -- a shallow checkout wouldn't have it.
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Tier 1 + Tier 2 -- derivation equivalence
+        run: |
+          BASELINE="${{ github.event.inputs.baseline_ref || github.event.pull_request.base.sha }}"
+          ./scripts/assert-same-drvs.sh "$BASELINE" --tier2
+
+      - name: Sanity check -- tests/equivalence sub-flake still evaluates
+        run: nix flake check tests/equivalence --no-build
+
+# Tier 3 (nix-server, nix-mac, nix-pixelbook) is deliberately not run here --
+# see tests/equivalence/README.md. nix-components is public and all three
+# consumers are private; run it locally instead.
