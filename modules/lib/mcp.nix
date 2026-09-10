@@ -109,7 +109,7 @@ let
         "obsidian-mcp@2"
         "serve"
         "--vault"
-        "main=/var/lib/obsidian-sync/vault"
+        "agentic=/var/lib/obsidian-sync/vault"
       ];
     };
 
