@@ -29,6 +29,10 @@ The global `~/.claude/CLAUDE.md` (Claude Code) and `~/.config/opencode/AGENTS.md
 
 Nix will refuse to evaluate files that are not tracked by Git, even if they exist on disk. After creating a new `.nix` file, run `git add <file>` before running `nix flake check` or any `nix build`.
 
+## Refactoring file layout (modules/, os-modules/, pkgs/)
+
+`home-modules.nix`, `overlays.nix`, and `per-system.nix`'s package glob all auto-discover top-level regular files only — moving a module into a subdirectory silently drops its public output, and `_module.args` injection in `home-modules.nix` is keyed by filename. Before splitting or moving any file under `modules/`, `os-modules/`, or `pkgs/`, run the drv-equivalence harness (`tests/equivalence/README.md`, `plans/drv-equivalence-harness.md`) to prove the change produces byte-identical derivations before and after.
+
 ## Companion repo
 
 The companion server repo is named **`nix-server`** (at `~/paseo-projects/nix-server`). Do not use the old name `server-2-config`.

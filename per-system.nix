@@ -23,14 +23,35 @@
       formatter = pkgs.nixfmt-rfc-style;
 
       checks = {
+        # Scoped to exactly the files each test touches (rather than `${./.}`,
+        # which copies the whole repo) so these drvPaths stay stable across
+        # unrelated changes elsewhere in the tree -- load-bearing for the
+        # drv-equivalence harness in tests/equivalence, which would otherwise
+        # see every commit as touching these two checks.
         diff-viewer = pkgs.runCommand "diff-viewer-tests" { } ''
-          cd ${./.}
+          cd ${
+            lib.fileset.toSource {
+              root = ./.;
+              fileset = lib.fileset.unions [
+                ./tests/test_diff_viewer_header.py
+                ./scripts/diff-viewer-header.py
+                ./skills/diff-viewer/frappe.css
+                ./modules/diff-viewer.nix
+                ./per-system.nix
+              ];
+            }
+          }
           PYTHONDONTWRITEBYTECODE=1 ${pkgs.python3}/bin/python3 -m unittest tests/test_diff_viewer_header.py
           touch "$out"
         '';
 
         mcpm-environment = pkgs.runCommand "mcpm-environment-tests" { } ''
-          cd ${./.}
+          cd ${
+            lib.fileset.toSource {
+              root = ./.;
+              fileset = ./tests/test_mcpm_env.py;
+            }
+          }
           PYTHONDONTWRITEBYTECODE=1 ${customPackages.mcpm.pythonEnv}/bin/python3 -m unittest tests/test_mcpm_env.py
           touch "$out"
         '';
