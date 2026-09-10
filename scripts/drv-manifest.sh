@@ -52,7 +52,12 @@ declare -A flat_suffix=(
     for group in "${per_system_groups[@]}"; do
       while IFS= read -r name; do
         [ -n "$name" ] || continue
-        drv=$(nix eval --raw "${extra_args[@]}" "${flakeref}#${group}.${system}.${name}.drvPath" 2>/dev/null) || continue
+        # $name came from a successful attrNames call, so the attr genuinely
+        # exists -- a failure here is a real breakage (e.g. a package whose
+        # callPackage args no longer match), not an absent group. Record it
+        # as ERROR rather than skipping, so drift shows up as a manifest
+        # line changing instead of silently vanishing.
+        drv=$(nix eval --raw "${extra_args[@]}" "${flakeref}#${group}.${system}.${name}.drvPath" 2>/dev/null) || drv="ERROR"
         printf '%s.%s.%s %s\n' "$system" "$group" "$name" "$drv"
       done < <(eval_names "${flakeref}#${group}.${system}")
     done
@@ -64,7 +69,7 @@ declare -A flat_suffix=(
   for group in "${!flat_suffix[@]}"; do
     while IFS= read -r name; do
       [ -n "$name" ] || continue
-      drv=$(nix eval --raw "${extra_args[@]}" "${flakeref}#${group}.${name}.${flat_suffix[$group]}" 2>/dev/null) || continue
+      drv=$(nix eval --raw "${extra_args[@]}" "${flakeref}#${group}.${name}.${flat_suffix[$group]}" 2>/dev/null) || drv="ERROR"
       printf '%s.%s %s\n' "$group" "$name" "$drv"
     done < <(eval_names "${flakeref}#${group}")
   done
