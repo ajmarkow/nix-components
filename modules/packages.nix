@@ -69,6 +69,8 @@ in
       nil
       nixfmt
       devenv
+      statix
+      deadnix
 
       # Custom packages
       semble
