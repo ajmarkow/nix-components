@@ -99,7 +99,11 @@ report "tier1" "$old1" "$new1"
 
 if "$run_tier2"; then
   echo "== Tier 2: tests/equivalence =="
-  subflake="path:$repo_root/tests/equivalence"
+  # `git+file://...?dir=` rather than `path:$repo_root/tests/equivalence` --
+  # the latter breaks the sub-flake's own `nix-components.url = "path:../.."`
+  # nested relative-path resolution when the sub-flake is addressed by an
+  # absolute path: flakeref from outside its directory.
+  subflake="git+file://$repo_root?dir=tests/equivalence"
   old2="$tmpdir/tier2-old"
   new2="$tmpdir/tier2-new"
   if "$drv_manifest" "$subflake" -- --override-input nix-components "$baseline_flakeref" >"$old2" 2>/dev/null &&
