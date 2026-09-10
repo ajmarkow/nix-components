@@ -36,6 +36,20 @@ let
                   --replace-fail 'import logging' $'import logging\nimport os' \
                   --replace-fail 'env_config.update(server.env)' \
                     'env_config.update(server.get_filtered_env_vars(os.environ))'
+
+                # find_available_port's probe socket never sets SO_REUSEADDR, so a
+                # fresh bind() to the just-vacated port fails while the previous
+                # instance's closed HTTP/SSE connections still sit in TIME_WAIT --
+                # even though the real server socket (uvicorn) already sets
+                # SO_REUSEADDR and would bind that same port fine. The probe reads
+                # that as "busy" and silently walks up to the next port, so every
+                # restart of a long-lived profile can drift off its configured
+                # port with no error. `mcpm profile run` is what modules/mcp.nix's
+                # systemd service invokes, so that's the copy that matters here.
+                substituteInPlace "$out/${python.sitePackages}/mcpm/commands/profile/run.py" \
+                  --replace-fail \
+                    's.bind(("127.0.0.1", port_to_try))' \
+                    's.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(("127.0.0.1", port_to_try))'
               '';
             });
           })
