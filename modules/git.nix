@@ -65,12 +65,20 @@ let
   # pinned a trunk CLI release that trunk.io later stopped serving, breaking
   # every commit until someone noticed).
   #
-  # projectRootFile defaults to ".git/config" (treefmt-nix's own default),
-  # which every plain git repo has — no flake.nix required in the target
-  # repo, since this hook also runs in non-Nix repos (aj-website,
-  # judith-website, ...).
+  # projectRootFile: explicitly null, not treefmt-nix's own default of
+  # ".git/config". That default is a find-up for a literal ".git/config"
+  # *file*, which breaks in any linked git worktree (`git worktree add`) —
+  # there, ".git" at the worktree root is a gitlink file, not a directory,
+  # so ".git/config" never resolves and treefmt fails outright. Setting
+  # projectRootFile to null makes the wrapper skip --tree-root-file
+  # entirely, so treefmt's own native default takes over: it runs
+  # `git rev-parse --show-toplevel`, which resolves correctly in a linked
+  # worktree, a plain checkout, or any git repo — still no flake.nix
+  # required in the target repo, since this hook also runs in non-Nix repos
+  # (aj-website, judith-website, ...).
   treefmtWrapper =
     (treefmtNix.lib.evalModule pkgs {
+      projectRootFile = null;
       programs = {
         nixfmt.enable = true;
         shfmt.enable = true;
