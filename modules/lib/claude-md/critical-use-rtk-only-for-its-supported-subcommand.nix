@@ -1,4 +1,6 @@
 ''
+  # Bash Tool Guidelines — MANDATORY
+
   ## ⚠️ CRITICAL: Use `rtk` only for its supported subcommands — everything else runs directly
 
   `rtk` is a proxy with a **fixed, closed set of subcommands** (run `rtk --help` for the current list). Prefixing a command it doesn't recognize (e.g. `rtk nix ...`, `rtk mkdir ...`) fails outright with "No such file or directory" — there is no generic passthrough.

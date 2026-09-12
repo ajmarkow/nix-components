@@ -9,9 +9,7 @@
 # which folds back into `home.file` — so `home.file` can't be evaluated
 # while it's still evaluating itself. Importing this file directly sidesteps
 # that: it's just a string, independent of `config`.
-(import ./bash-tool-guidelines-mandatory.nix)
-+ "\n"
-+ (import ./critical-use-rtk-only-for-its-supported-subcommand.nix)
+(import ./critical-use-rtk-only-for-its-supported-subcommand.nix)
 + "\n"
 + (import ./critical-use-semble-and-rg-for-search-never-grep-o.nix)
 + "\n"

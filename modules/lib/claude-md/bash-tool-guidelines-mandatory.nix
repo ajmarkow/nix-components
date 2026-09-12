@@ -1,3 +1,0 @@
-''
-  # Bash Tool Guidelines — MANDATORY
-''
