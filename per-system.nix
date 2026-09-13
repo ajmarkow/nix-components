@@ -23,6 +23,36 @@
       formatter = pkgs.nixfmt-rfc-style;
 
       checks = {
+        infisical-secrets =
+          let
+            apps = (import ./lib/infisical-secrets.nix) {
+              inherit pkgs;
+              projectId = "00000000-0000-0000-0000-000000000000";
+              hostFolder = "/test-host";
+              secretsDir = "/etc/test-host/secrets";
+              manifest = [
+                {
+                  file = "example.env";
+                  keys = [
+                    "FIRST_SECRET"
+                    "SECOND_SECRET"
+                  ];
+                  template = ''
+                    FIRST_SECRET=$FIRST_SECRET
+                    SECOND_SECRET=$SECOND_SECRET
+                  '';
+                }
+              ];
+              rebuildCommand = "true";
+            };
+          in
+          pkgs.runCommand "infisical-secrets-tests" { } ''
+            ${pkgs.shellcheck}/bin/shellcheck ${apps.secrets.program}
+            ${pkgs.shellcheck}/bin/shellcheck ${apps.rebuild.program}
+            ${apps.secrets.program} --help > /dev/null
+            touch "$out"
+          '';
+
         # Scoped to exactly the files each test touches (rather than `${./.}`,
         # which copies the whole repo) so these drvPaths stay stable across
         # unrelated changes elsewhere in the tree -- load-bearing for the

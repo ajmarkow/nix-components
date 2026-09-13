@@ -141,6 +141,16 @@ let
   };
 in
 {
+  home.activation.importGpgSigningKey = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    key_file="${if pkgs.stdenv.isDarwin then "/etc/nix-darwin" else "/etc/nixos"}/secrets/gpg-key.asc"
+    if [ -r "$key_file" ]; then
+      run ${pkgs.gnupg}/bin/gpg --batch --quiet --import "$key_file"
+      run ${pkgs.bash}/bin/bash -c ${lib.escapeShellArg ''
+        printf '%s:6:\n' ${lib.escapeShellArg signingKey} | ${pkgs.gnupg}/bin/gpg --batch --quiet --import-ownertrust
+      ''}
+    fi
+  '';
+
   programs.git = {
     enable = true;
     signing = {
