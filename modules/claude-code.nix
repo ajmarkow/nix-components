@@ -59,5 +59,11 @@
     ./claude-code/hooks.nix
     ./claude-code/credentials.nix
     ./claude-code/settings.nix
+    # hooks.nix's rtk-rewrite.sh wraps every Bash command with secretty, but
+    # the wrap degrades to secretty's bare fallback ruleset (no github_pat,
+    # api_keys, passwords, ...) unless this config is deployed too. Import it
+    # here rather than leaving it a top-level module a host might forget to
+    # add, so the two can never drift apart again.
+    ./secretty.nix
   ];
 }
