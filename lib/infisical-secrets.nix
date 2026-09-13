@@ -92,6 +92,14 @@ let
       printf 'warn: %s\n' "$*" >&2
     }
 
+    step() {
+      printf '==> %s\n' "$*"
+    }
+
+    note() {
+      printf '    %s\n' "$*"
+    }
+
     usage() {
       printf '%s\n' \
         'Usage: nix run .#secrets -- [--dry-run] [--only file-a,file-b]' \
@@ -131,61 +139,66 @@ let
     chmod 700 "$stage"
 
     resolve_auth() {
-      local auth_dir client_id_file client_secret_file client_id client_secret token login_output
+      local auth_dir client_id_file client_secret_file client_id client_secret token
       auth_dir="$HOME/.config/infisical"
       client_id_file="$auth_dir/universal-auth-client-id"
       client_secret_file="$auth_dir/universal-auth-client-secret"
 
       if [ -s "$client_id_file" ] && [ -s "$client_secret_file" ]; then
+        note "Using stored Universal Auth credentials"
         client_id=$(<"$client_id_file")
         client_secret=$(<"$client_secret_file")
         if ! token=$( \
           INFISICAL_UNIVERSAL_AUTH_CLIENT_ID="$client_id" \
           INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET="$client_secret" \
-          infisical login --method=universal-auth --plain --silent 2>&1
+          timeout 30s infisical login --method=universal-auth --plain --silent 2>&1
         ); then
-          die "Infisical Universal Auth failed. Check the stored machine identity credentials."
+          die "Infisical Universal Auth failed or timed out after 30 seconds. Check the stored machine identity credentials and network access."
         fi
         unset client_id client_secret
+        [ -n "$token" ] || die "Infisical Universal Auth returned an empty access token."
         export INFISICAL_TOKEN="$token"
         unset token
+        note "Authentication succeeded"
         return
       fi
 
       if [ -n "''${INFISICAL_UNIVERSAL_AUTH_CLIENT_ID:-}" ] \
         && [ -n "''${INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET:-}" ]; then
-        if ! token=$(infisical login --method=universal-auth --plain --silent 2>&1); then
-          die "Infisical Universal Auth failed. Check the machine identity environment variables."
+        note "Using Universal Auth environment variables"
+        if ! token=$(timeout 30s infisical login --method=universal-auth --plain --silent 2>&1); then
+          die "Infisical Universal Auth failed or timed out after 30 seconds. Check the machine identity environment variables and network access."
         fi
+        [ -n "$token" ] || die "Infisical Universal Auth returned an empty access token."
         export INFISICAL_TOKEN="$token"
         unset token
+        note "Authentication succeeded"
         return
       fi
 
       if [ -n "''${INFISICAL_TOKEN:-}" ] || [ -n "''${INFISICAL_UNIVERSAL_AUTH_ACCESS_TOKEN:-}" ]; then
+        note "Using an existing Infisical access token"
         return
       fi
 
       if [ -s "$HOME/.config/infisical-token" ]; then
+        note "Using the legacy Infisical token file"
         INFISICAL_TOKEN=$(<"$HOME/.config/infisical-token")
         export INFISICAL_TOKEN
         return
       fi
 
-      if ! login_output=$(infisical login --plain --silent 2>&1); then
-        die "Infisical login failed. Run .#infisical-login or authenticate with the Infisical CLI."
-      fi
-      export INFISICAL_TOKEN="$login_output"
-      unset login_output
+      die "No Infisical credentials found. Run 'nix run .#infisical-login' as your normal user."
     }
 
     fetch_path() {
-      local path=$1 label=$2 key blob value parsed_file
+      local path=$1 label=$2 key blob value parsed_file count=0
       parsed_file="$stage/exported-secrets"
-      if ! infisical export --silent --format=json \
+      note "Fetching $label"
+      if ! timeout 30s infisical export --silent --format=json \
         --projectId "$project_id" --env "$environment" --path "$path" \
         >"$payload_file" 2>&1; then
-        die "Infisical export failed for $label. Check authentication and project access."
+        die "Infisical export failed or timed out after 30 seconds for $label. Check authentication, network access, and project permissions."
       fi
 
       if ! jq -r 'if type == "array" then .[] else empty end | "\(.key) \(.value | @base64)"' \
@@ -205,10 +218,12 @@ let
         # shellcheck disable=SC2163
         export "$key"
         unset value
+        ((count += 1))
       done <"$parsed_file"
 
       : >"$payload_file"
       : >"$parsed_file"
+      note "$label: $count keys available"
     }
 
     selected() {
@@ -242,11 +257,15 @@ let
       rendered+=("$file:$owner")
     }
 
+    step "Authenticate with Infisical"
     resolve_auth
+    step "Fetch secrets"
     fetch_path / "shared path /"
     fetch_path "$host_folder" "host path $host_folder"
 
+    step "Render secret files"
     ${renderCalls}
+    note "''${#rendered[@]} files ready; ''${#skipped[@]} skipped"
 
     if [ -n "$only" ]; then
       IFS=',' read -r -a requested <<<"$only"
@@ -259,14 +278,16 @@ let
     fi
 
     if $dry_run; then
+      step "Dry run"
       for item in "''${rendered[@]}"; do
         file="''${item%%:*}"
         printf 'would write %s/%s\n' "$secrets_dir" "$file"
       done
-      printf '%s files ready; %s skipped; nothing written\n' "''${#rendered[@]}" "''${#skipped[@]}"
+      note "Nothing was written"
       exit 0
     fi
 
+    step "Install secret files"
     caller_uid="''${SUDO_UID:-$(id -u)}"
     caller_gid="''${SUDO_GID:-$(id -g)}"
     dir_mode=${if needsTraversal then "751" else "700"}
@@ -288,7 +309,7 @@ let
       printf 'wrote %s\n' "$file"
     done
 
-    printf '%s files rendered; %s skipped\n' "''${#rendered[@]}" "''${#skipped[@]}"
+    note "''${#rendered[@]} files rendered; ''${#skipped[@]} skipped"
   '';
 
   runtimeInputs = [
@@ -309,6 +330,7 @@ let
     runtimeInputs = runtimeInputs ++ [ pkgs.bash ];
     text = ''
       ${commonScript}
+      step "Rebuild host configuration"
       exec bash -c ${lib.escapeShellArg rebuildCommand}
     '';
   };
@@ -317,17 +339,32 @@ let
     name = "infisical-login-setup";
     runtimeInputs = [ pkgs.coreutils ];
     text = ''
+      set -euo pipefail
+
       auth_dir="$HOME/.config/infisical"
       install -d -m 700 "$auth_dir"
+      umask 077
+
+      printf '==> Store Infisical Universal Auth credentials\n'
       read -r -p "Universal Auth Client ID: " client_id
       read -r -s -p "Universal Auth Client Secret: " client_secret
       printf '\n'
       [ -n "$client_id" ] || { printf 'error: client ID must not be empty\n' >&2; exit 1; }
       [ -n "$client_secret" ] || { printf 'error: client secret must not be empty\n' >&2; exit 1; }
-      printf '%s' "$client_id" | install -m 600 /dev/stdin "$auth_dir/universal-auth-client-id"
-      printf '%s' "$client_secret" | install -m 600 /dev/stdin "$auth_dir/universal-auth-client-secret"
+
+      client_id_tmp=$(mktemp "$auth_dir/.universal-auth-client-id.XXXXXX")
+      client_secret_tmp=$(mktemp "$auth_dir/.universal-auth-client-secret.XXXXXX")
+      trap 'rm -f "$client_id_tmp" "$client_secret_tmp"' EXIT
+
+      printf '%s' "$client_id" >"$client_id_tmp"
+      printf '%s' "$client_secret" >"$client_secret_tmp"
+      chmod 600 "$client_id_tmp" "$client_secret_tmp"
+      mv -f "$client_id_tmp" "$auth_dir/universal-auth-client-id"
+      mv -f "$client_secret_tmp" "$auth_dir/universal-auth-client-secret"
+      trap - EXIT
       unset client_id client_secret
-      printf 'Stored machine identity credentials in %s. Re-run this command to rotate them.\n' "$auth_dir"
+      printf '    Credentials stored in %s with mode 600.\n' "$auth_dir"
+      printf '    Run this command again to rotate them.\n'
     '';
   };
 

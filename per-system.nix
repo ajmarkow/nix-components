@@ -50,6 +50,33 @@
             ${pkgs.shellcheck}/bin/shellcheck ${apps.secrets.program}
             ${pkgs.shellcheck}/bin/shellcheck ${apps.rebuild.program}
             ${apps.secrets.program} --help > /dev/null
+
+            login_home="$TMPDIR/login-home"
+            mkdir -p "$login_home"
+            printf 'test-client-id\ntest-client-secret\n' | \
+              HOME="$login_home" ${apps.infisical-login.program} > "$TMPDIR/login-output"
+            test "$(stat -c '%a' "$login_home/.config/infisical")" = 700
+            test "$(stat -c '%a' "$login_home/.config/infisical/universal-auth-client-id")" = 600
+            test "$(stat -c '%a' "$login_home/.config/infisical/universal-auth-client-secret")" = 600
+            test "$(<"$login_home/.config/infisical/universal-auth-client-id")" = test-client-id
+            test "$(<"$login_home/.config/infisical/universal-auth-client-secret")" = test-client-secret
+            if grep -Eq 'test-client-id|test-client-secret' "$TMPDIR/login-output"; then
+              echo "credential value leaked into login output" >&2
+              exit 1
+            fi
+
+            empty_home="$TMPDIR/empty-home"
+            mkdir -p "$empty_home"
+            if HOME="$empty_home" env \
+              -u INFISICAL_TOKEN \
+              -u INFISICAL_UNIVERSAL_AUTH_ACCESS_TOKEN \
+              -u INFISICAL_UNIVERSAL_AUTH_CLIENT_ID \
+              -u INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET \
+              ${apps.secrets.program} --dry-run > "$TMPDIR/missing-output" 2>&1; then
+              echo "secrets unexpectedly succeeded without credentials" >&2
+              exit 1
+            fi
+            grep -q "No Infisical credentials found" "$TMPDIR/missing-output"
             touch "$out"
           '';
 
