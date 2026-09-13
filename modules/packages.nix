@@ -9,6 +9,7 @@ let
   scripts = map (f: import f { inherit pkgs; }) (
     lib.filter (f: lib.hasSuffix ".nix" (toString f)) (lib.filesystem.listFilesRecursive ../scripts)
   );
+  statixPackage = import ../lib/statix-package.nix { inherit pkgs; };
 in
 {
   home.packages =
@@ -70,7 +71,7 @@ in
       nil
       nixfmt
       devenv
-      statix
+      statixPackage
       deadnix
 
       # Custom packages
