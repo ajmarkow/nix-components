@@ -46,12 +46,23 @@
     text = ''
       #!/usr/bin/env bash
       # rtk-hook-version: 3
-      # RTK Claude Code hook — rewrites commands to use rtk for token savings.
+      # RTK Claude Code hook — rewrites commands to use rtk for token savings,
+      # then wraps the result with secretty so its output gets redacted.
       # Requires: rtk >= 0.23.0, jq
       #
-      # This is a thin delegating hook: all rewrite logic lives in `rtk rewrite`,
-      # which is the single source of truth (src/discover/registry.rs).
-      # To add or change rewrite rules, edit the Rust registry — not this file.
+      # This is a thin delegating hook: all rtk rewrite logic lives in
+      # `rtk rewrite`, which is the single source of truth
+      # (src/discover/registry.rs). To add or change rewrite rules, edit the
+      # Rust registry — not this file. Do not run `rtk init -g` against the
+      # deployed copy of this script: it treats this as a legacy hook to
+      # migrate/replace, which would silently drop the secretty wrap below.
+      #
+      # The secretty wrap lives here, in the same hook, rather than as a
+      # second PreToolUse hook, because Claude Code runs all matching
+      # PreToolUse hooks in parallel against the SAME original tool_input —
+      # there is no chaining, so a second hook can't safely layer its own
+      # updatedInput on top of this one's without a race. Composing both
+      # transformations in one hook guarantees exactly one updatedInput.
       #
       # Exit code protocol for `rtk rewrite`:
       #   0 + stdout  Rewrite found, no deny/ask rule matched → auto-allow
@@ -96,52 +107,79 @@
       case $EXIT_CODE in
         0)
           # Rewrite found, no permission rules matched — safe to auto-allow.
-          # If the output is identical, the command was already using RTK.
-          [ "$CMD" = "$REWRITTEN" ] && exit 0
+          # If the output is identical, the command was already using RTK
+          # (or RTK had nothing to add) — fall through to the secretty wrap
+          # below using the original command.
+          FINAL_CMD="$REWRITTEN"
+          RTK_REASON="RTK auto-rewrite"
+          [ "$CMD" = "$REWRITTEN" ] && RTK_REASON=""
           ;;
         1)
-          # No RTK equivalent — pass through unchanged.
-          exit 0
+          # No RTK equivalent — still wrap with secretty below, unchanged.
+          FINAL_CMD="$CMD"
+          RTK_REASON=""
           ;;
         2)
           # Deny rule matched — let Claude Code's native deny rule handle it.
+          # Do not wrap: the command will never run.
           exit 0
           ;;
         3)
-          # Ask rule matched — rewrite the command but do NOT auto-allow so that
-          # Claude Code prompts the user for confirmation.
+          # Ask rule matched — rewrite the command but do NOT auto-allow, and
+          # do NOT secretty-wrap: this is a deliberate human-review gate, and
+          # the wrapped invocation would be unreadable in the confirmation
+          # prompt. secretty protection resumes for whatever the user runs
+          # next once they've approved this one.
+          ORIGINAL_INPUT=$(echo "$INPUT" | jq -c '.tool_input')
+          UPDATED_INPUT=$(echo "$ORIGINAL_INPUT" | jq --arg cmd "$REWRITTEN" '.command = $cmd')
+          jq -n \
+            --argjson updated "$UPDATED_INPUT" \
+            '{
+              "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "updatedInput": $updated
+              }
+            }'
+          exit 0
           ;;
         *)
           exit 0
           ;;
       esac
 
-      ORIGINAL_INPUT=$(echo "$INPUT" | jq -c '.tool_input')
-      UPDATED_INPUT=$(echo "$ORIGINAL_INPUT" | jq --arg cmd "$REWRITTEN" '.command = $cmd')
-
-      if [ "$EXIT_CODE" -eq 3 ]; then
-        # Ask: rewrite the command, omit permissionDecision so Claude Code prompts.
-        jq -n \
-          --argjson updated "$UPDATED_INPUT" \
-          '{
-            "hookSpecificOutput": {
-              "hookEventName": "PreToolUse",
-              "updatedInput": $updated
-            }
-          }'
+      # Wrap the final command with secretty so its output gets redacted
+      # before Claude ever sees it. Degrade gracefully (run unwrapped) if
+      # secretty isn't installed, matching rtk's own degrade-gracefully
+      # pattern above rather than blocking the tool call outright.
+      if command -v secretty &>/dev/null; then
+        QUOTED_CMD=$(printf '%q' "$FINAL_CMD")
+        WRAPPED_CMD="secretty --config \"\$HOME/.config/secretty/config.yaml\" --no-init-hints --strict run -- bash -c $QUOTED_CMD"
       else
-        # Allow: rewrite the command and auto-allow.
-        jq -n \
-          --argjson updated "$UPDATED_INPUT" \
-          '{
-            "hookSpecificOutput": {
-              "hookEventName": "PreToolUse",
-              "permissionDecision": "allow",
-              "permissionDecisionReason": "RTK auto-rewrite",
-              "updatedInput": $updated
-            }
-          }'
+        WRAPPED_CMD="$FINAL_CMD"
       fi
+
+      ORIGINAL_INPUT=$(echo "$INPUT" | jq -c '.tool_input')
+      UPDATED_INPUT=$(echo "$ORIGINAL_INPUT" | jq --arg cmd "$WRAPPED_CMD" '.command = $cmd')
+
+      # Every case reaching here (0 and 1) auto-allows: rewriting the command
+      # to route through secretty changes the literal string Claude Code's
+      # permission patterns would otherwise match against, so preserving the
+      # normal allow-list UX (no extra prompt) requires this hook to make the
+      # call itself. This does not bypass other hooks' own deny decisions —
+      # e.g. block-ssh-rg-cd.sh's exit-2 denials still win regardless of what
+      # this hook returns, since a deny from any hook blocks the tool call.
+      REASON="''${RTK_REASON:-secretty redaction wrap}"
+      jq -n \
+        --argjson updated "$UPDATED_INPUT" \
+        --arg reason "$REASON" \
+        '{
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "permissionDecisionReason": $reason,
+            "updatedInput": $updated
+          }
+        }'
     '';
   };
 }
