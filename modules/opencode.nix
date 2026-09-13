@@ -40,6 +40,14 @@ let
   opencodeCommands = lib.mapAttrs (_: template: { inherit template; }) skillCommands;
 in
 {
+  imports = [
+    ./opencode/secretty.nix
+    # The plugin above deliberately resolves secretty from PATH, but it needs
+    # the shared declarative ruleset too. Import both parts transitively so a
+    # host cannot deploy the wrapper while forgetting its full configuration.
+    ./secretty.nix
+  ];
+
   programs.opencode = {
     enable = true;
     package = pkgs.opencode;
