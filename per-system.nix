@@ -7,6 +7,7 @@
       extraArgs = {
         inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
       };
+      statixPackage = import ./lib/statix-package.nix { inherit pkgs; };
       customPackages =
         lib.mapAttrs'
           (
@@ -126,13 +127,15 @@
             ''
           else
             throw result.message;
+
+        statix-package = statixPackage;
       };
 
       devShells.default = pkgs.mkShell {
         packages = [
           pkgs.nil
           pkgs.nixfmt-rfc-style
-          pkgs.statix
+          statixPackage
           pkgs.deadnix
         ];
       };
