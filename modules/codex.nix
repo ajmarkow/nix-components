@@ -44,10 +44,19 @@ let
 
 in
 {
+  imports = [
+    ./codex/secretty.nix
+    # The hook above deliberately resolves secretty from PATH, but it needs the
+    # shared declarative ruleset too. Import both parts transitively so a host
+    # cannot deploy the wrapper while forgetting its full configuration.
+    ./secretty.nix
+  ];
+
   programs.codex = {
     enable = true;
     package = codexCliNix.packages.${pkgs.stdenv.hostPlatform.system}.default;
     context = import ./lib/claude-md-content.nix;
+    settings.features.hooks = true;
   };
 
   # programs.codex.skills treats each value as SKILL.md content. Install each
