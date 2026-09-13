@@ -78,6 +78,7 @@ in
       semble
       summarize
       mcpm
+      secretty
 
       # Search / process / text tools
       nix-index
