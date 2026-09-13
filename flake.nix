@@ -118,6 +118,7 @@
 
       imports = [
         ./home-modules.nix
+        ./lib.nix
         ./os-modules.nix
         ./overlays.nix
         ./per-system.nix

@@ -4,9 +4,6 @@
   config,
   ...
 }:
-let
-  infisicalProjectId = "0bd4a4d8-f58e-4bad-9d65-c16ee9aeae7e";
-in
 {
   # Thin OMZ plugin dirs: upstream OMZ does not ship these; Nix wraps the store paths.
   home.file = {
@@ -109,32 +106,6 @@ in
       ))
 
       (lib.mkOrder 1000 ''
-        # Load secrets from Infisical. Errors print to stderr so failures are visible.
-        [[ -f ~/.config/infisical-token ]] && export INFISICAL_TOKEN=$(cat ~/.config/infisical-token)
-        if _inf_out=$(timeout 5 infisical export --silent --format=dotenv-export --projectId=${infisicalProjectId} --env=prod 2>&1); then
-          eval "$_inf_out"
-        else
-          echo "[zsh] infisical secrets failed to load: $_inf_out" >&2
-        fi
-        unset _inf_out
-        # Infisical's prod secrets include NODE_ENV=production, which clobbers the
-        # empty value the paseo daemon deliberately sets (see nix-server's paseo.nix)
-        # and causes npm to silently skip devDependencies in every interactive shell.
-        unset NODE_ENV
-        # Secrets moved to the /ignored folder in Infisical are intentionally kept
-        # out of the interactive shell (e.g. PASEO_PASSWORD, which is for the remote
-        # daemon and must not leak into local desktop processes). Fetch that folder
-        # and unset any vars it names, so even if a secret migrates back to root it
-        # gets cleaned up here.
-        if _inf_ignored=$(timeout 5 infisical export --silent --format=dotenv-export --projectId=${infisicalProjectId} --env=prod --secretPath=/ignored 2>/dev/null); then
-          while IFS= read -r _inf_line; do
-            _inf_var="''${_inf_line#export }"
-            _inf_var="''${_inf_var%%=*}"
-            [[ -n "$_inf_var" && "$_inf_var" != "$_inf_line" ]] && unset "$_inf_var"
-          done <<< "$_inf_ignored"
-        fi
-        unset _inf_ignored _inf_line _inf_var
-
         unalias gcmsg 2>/dev/null; 'gcmsg'() { cz commit; }
 
         git() {
