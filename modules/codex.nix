@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   codexCliNix,
@@ -39,8 +40,10 @@ let
   ) skillDirs;
 
   explicitOnlySkillFiles = lib.mapAttrs' (
-    name: path: lib.nameValuePair ".codex/skills/${name}" { source = path; }
+    name: path: lib.nameValuePair ".agents/skills/${name}" { source = path; }
   ) explicitOnlySkillDirs;
+
+  codexConfig = (pkgs.formats.toml { }).generate "codex-config" config.programs.codex.settings;
 
 in
 {
@@ -59,7 +62,21 @@ in
     settings.features.hooks = true;
   };
 
-  # programs.codex.skills treats each value as SKILL.md content. Install each
-  # complete skill directory instead so its metadata remains a sibling file.
-  home.file = explicitOnlySkillFiles;
+  # Codex keeps project trust in config.toml. The upstream module manages this
+  # file as a Nix-store symlink, which makes the TUI fail when it saves trust.
+  # Seed it once as a writable file and leave Codex-owned state intact.
+  home.file = explicitOnlySkillFiles // {
+    ".codex/config.toml".enable = lib.mkForce false;
+  };
+
+  home.activation.codexConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    config_file="${config.home.homeDirectory}/.codex/config.toml"
+    if [ -L "$config_file" ]; then
+      run rm "$config_file"
+    fi
+    if [ ! -e "$config_file" ]; then
+      run mkdir -p "$(dirname "$config_file")"
+      run install -m600 "${codexConfig}" "$config_file"
+    fi
+  '';
 }

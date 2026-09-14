@@ -7,7 +7,7 @@
 let
   # Returns an attrset of { <skill-name> = <path to the skill's directory>; }.
   # codex.nix uses this to symlink whole skill directories (SKILL.md plus any
-  # scripts/references/assets) into ~/.codex/skills/<name>/.
+  # scripts/references/assets) into ~/.agents/skills/<name>/.
   readSkillDirs =
     dir:
     let
