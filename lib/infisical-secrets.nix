@@ -1,11 +1,12 @@
 {
   pkgs,
   projectId,
-  hostFolder,
+  hostFolder ? null,
   secretsDir,
   manifest,
   environment ? "prod",
   rebuildCommand ? null,
+  secretsDirGroup ? null,
 }:
 let
   inherit (pkgs) lib;
@@ -26,13 +27,20 @@ let
       key: builtins.isString key && builtins.match "[a-zA-Z_][a-zA-Z0-9_]*" key != null
     ) entry.keys
     && builtins.isString entry.template
-    && (!(entry ? owner) || entry.owner == null || builtins.isString entry.owner);
+    && (!(entry ? owner) || entry.owner == null || builtins.isString entry.owner)
+    && (
+      !(entry ? requiredKeys)
+      || (
+        builtins.isList entry.requiredKeys
+        && builtins.all (key: builtins.elem key entry.keys) entry.requiredKeys
+      )
+    );
 
   checkedManifest =
     if projectId == "" then
       throw "mkSecretsApp: projectId must not be empty"
-    else if !(lib.hasPrefix "/" hostFolder) || hostFolder == "/" then
-      throw "mkSecretsApp: hostFolder must be an absolute, host-specific path"
+    else if hostFolder != null && (!(lib.hasPrefix "/" hostFolder) || hostFolder == "/") then
+      throw "mkSecretsApp: hostFolder must be null or an absolute, host-specific path"
     else if !(lib.hasPrefix "/" secretsDir) then
       throw "mkSecretsApp: secretsDir must be absolute"
     else if manifest == [ ] then
@@ -58,6 +66,7 @@ let
     let
       templateFile = pkgs.writeText "infisical-secret-template-${entry.file}" entry.template;
       owner = if (entry.owner or null) == null then "" else entry.owner;
+      requiredKeys = if (entry.requiredKeys or null) == null then entry.keys else entry.requiredKeys;
     in
     ''
       render_file ${
@@ -65,6 +74,7 @@ let
           entry.file
           owner
           (lib.concatStringsSep " " entry.keys)
+          (lib.concatStringsSep " " requiredKeys)
           templateFile
         ]
       }
@@ -76,10 +86,13 @@ let
   commonScript = ''
     set -euo pipefail
 
-    project_id=${lib.escapeShellArg projectId}
-    environment=${lib.escapeShellArg environment}
-    host_folder=${lib.escapeShellArg hostFolder}
+    project_id=''${INFISICAL_PROJECT_ID:-${lib.escapeShellArg projectId}}
+    environment=''${INFISICAL_ENVIRONMENT:-${lib.escapeShellArg environment}}
+    host_folder=''${INFISICAL_SECRET_PATH:-${
+      lib.escapeShellArg (if hostFolder == null then "" else hostFolder)
+    }}
     secrets_dir=${lib.escapeShellArg secretsDir}
+    root_dir="/"
     dry_run=false
     only=""
 
@@ -102,10 +115,14 @@ let
 
     usage() {
       printf '%s\n' \
-        'Usage: nix run .#secrets -- [--dry-run] [--only file-a,file-b]' \
+        'Usage: nix run .#secrets -- [options]' \
         "" \
         '  --dry-run       Validate available keys and list files. Write nothing.' \
         '  --only <files>  Render only these comma-separated manifest file names.' \
+        '  --root <dir>    Target root. Default /. Use /mnt from an installer ISO.' \
+        '  --project <id>  Infisical project id. Overrides the built-in default.' \
+        '  --env <slug>    Infisical environment. Overrides the built-in default.' \
+        '  --path <path>   Infisical host-folder path. Overrides the built-in default.' \
         '  -h, --help      Show this text.' \
         "" \
         'Secret values are never printed.'
@@ -122,6 +139,26 @@ let
           only=$2
           shift 2
           ;;
+        --root)
+          [ -n "''${2:-}" ] || die "--root needs a value"
+          root_dir=$2
+          shift 2
+          ;;
+        --project)
+          [ -n "''${2:-}" ] || die "--project needs a value"
+          project_id=$2
+          shift 2
+          ;;
+        --env)
+          [ -n "''${2:-}" ] || die "--env needs a value"
+          environment=$2
+          shift 2
+          ;;
+        --path)
+          [ -n "''${2:-}" ] || die "--path needs a value"
+          host_folder=$2
+          shift 2
+          ;;
         -h|--help)
           usage
           exit 0
@@ -132,6 +169,9 @@ let
           ;;
       esac
     done
+
+    root_dir="''${root_dir%/}"
+    secrets_dir="$root_dir$secrets_dir"
 
     stage=$(mktemp -d)
     payload_file=$(mktemp)
@@ -235,17 +275,21 @@ let
     skipped=()
 
     render_file() {
-      local file=$1 owner=$2 key_list=$3 template_file=$4 key substitution_vars="" missing=false
-      local -a keys
+      local file=$1 owner=$2 key_list=$3 required_list=$4 template_file=$5
+      local key substitution_vars="" missing=false
+      local -a keys required_keys
       selected "$file" || return
       read -r -a keys <<<"$key_list"
+      read -r -a required_keys <<<"$required_list"
 
       for key in "''${keys[@]}"; do
+        substitution_vars+="\$$key "
+      done
+      for key in "''${required_keys[@]}"; do
         if [ -z "''${!key:-}" ]; then
           warn "$file: missing Infisical key $key; leaving the host copy unchanged"
           missing=true
         fi
-        substitution_vars+="\$$key "
       done
       if $missing; then
         skipped+=("$file")
@@ -261,7 +305,9 @@ let
     resolve_auth
     step "Fetch secrets"
     fetch_path / "shared path /"
-    fetch_path "$host_folder" "host path $host_folder"
+    if [ -n "$host_folder" ]; then
+      fetch_path "$host_folder" "host path $host_folder"
+    fi
 
     step "Render secret files"
     ${renderCalls}
@@ -288,10 +334,37 @@ let
     fi
 
     step "Install secret files"
+
+    # Root-aware: with --root unset (root_dir empty here), resolves against the
+    # live system like `id` always did. With --root <dir>, the target system's
+    # users may not exist as live accounts yet (installer-ISO bootstrap before
+    # first boot), so this reads the target's own /etc/passwd instead.
+    resolve_owner() {
+      local owner=$1
+      if [ -n "$root_dir" ]; then
+        awk -F: -v u="$owner" '$1 == u { print $3":"$4; exit }' "$root_dir/etc/passwd" 2>/dev/null
+        return
+      fi
+      local uid gid
+      uid=$(id -u "$owner" 2>/dev/null) || return 1
+      gid=$(id -g "$owner" 2>/dev/null) || return 1
+      printf '%s:%s\n' "$uid" "$gid"
+    }
+
     caller_uid="''${SUDO_UID:-$(id -u)}"
     caller_gid="''${SUDO_GID:-$(id -g)}"
     dir_mode=${if needsTraversal then "751" else "700"}
-    sudo install -d -m "$dir_mode" -o 0 -g "$caller_gid" "$secrets_dir"
+    dir_gid=$caller_gid
+    ${lib.optionalString (secretsDirGroup != null) ''
+      dir_pair=$(resolve_owner ${lib.escapeShellArg secretsDirGroup})
+      if [ -n "$dir_pair" ]; then
+        dir_gid="''${dir_pair#*:}"
+      else
+        warn "group ${secretsDirGroup} not found under ''${root_dir:-/}; $secrets_dir left 0700, re-run after that group exists"
+        dir_mode=700
+      fi
+    ''}
+    sudo install -d -m "$dir_mode" -o 0 -g "$dir_gid" "$secrets_dir"
 
     for item in "''${rendered[@]}"; do
       file="''${item%%:*}"
@@ -300,10 +373,13 @@ let
         uid=$caller_uid
         gid=$caller_gid
       else
-        if ! uid=$(id -u "$owner" 2>/dev/null) || ! gid=$(id -g "$owner" 2>/dev/null); then
+        pair=$(resolve_owner "$owner")
+        if [ -z "$pair" ]; then
           warn "$file: owner $owner does not exist; leaving the host copy unchanged"
           continue
         fi
+        uid="''${pair%%:*}"
+        gid="''${pair#*:}"
       fi
       sudo install -m 600 -o "$uid" -g "$gid" "$stage/$file" "$secrets_dir/$file"
       printf 'wrote %s\n' "$file"
