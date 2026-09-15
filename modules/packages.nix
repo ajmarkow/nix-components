@@ -40,6 +40,7 @@ in
       # Linters
       gibo
       shfmt
+      yamllint
 
       # Zsh plugins (needed by zsh.nix OMZ shims)
       zsh-completions
