@@ -184,22 +184,12 @@ let
       client_id_file="$auth_dir/universal-auth-client-id"
       client_secret_file="$auth_dir/universal-auth-client-secret"
 
-      if [ -s "$client_id_file" ] && [ -s "$client_secret_file" ]; then
-        note "Using stored Universal Auth credentials"
-        client_id=$(<"$client_id_file")
-        client_secret=$(<"$client_secret_file")
-        if ! token=$( \
-          INFISICAL_UNIVERSAL_AUTH_CLIENT_ID="$client_id" \
-          INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET="$client_secret" \
-          timeout 30s infisical login --method=universal-auth --plain --silent 2>&1
-        ); then
-          die "Infisical Universal Auth failed or timed out after 30 seconds. Check the stored machine identity credentials and network access."
-        fi
-        unset client_id client_secret
-        [ -n "$token" ] || die "Infisical Universal Auth returned an empty access token."
-        export INFISICAL_TOKEN="$token"
-        unset token
-        note "Authentication succeeded"
+      # An already-provided token is a deliberate, per-invocation auth
+      # decision by the caller (e.g. CI forwarding a short-lived OIDC-issued
+      # token over SSH) -- it must win over ambient credentials left on disk
+      # from an earlier unrelated login, not the other way around.
+      if [ -n "''${INFISICAL_TOKEN:-}" ] || [ -n "''${INFISICAL_UNIVERSAL_AUTH_ACCESS_TOKEN:-}" ]; then
+        note "Using an existing Infisical access token"
         return
       fi
 
@@ -216,8 +206,22 @@ let
         return
       fi
 
-      if [ -n "''${INFISICAL_TOKEN:-}" ] || [ -n "''${INFISICAL_UNIVERSAL_AUTH_ACCESS_TOKEN:-}" ]; then
-        note "Using an existing Infisical access token"
+      if [ -s "$client_id_file" ] && [ -s "$client_secret_file" ]; then
+        note "Using stored Universal Auth credentials"
+        client_id=$(<"$client_id_file")
+        client_secret=$(<"$client_secret_file")
+        if ! token=$( \
+          INFISICAL_UNIVERSAL_AUTH_CLIENT_ID="$client_id" \
+          INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET="$client_secret" \
+          timeout 30s infisical login --method=universal-auth --plain --silent 2>&1
+        ); then
+          die "Infisical Universal Auth failed or timed out after 30 seconds. Check the stored machine identity credentials and network access."
+        fi
+        unset client_id client_secret
+        [ -n "$token" ] || die "Infisical Universal Auth returned an empty access token."
+        export INFISICAL_TOKEN="$token"
+        unset token
+        note "Authentication succeeded"
         return
       fi
 
