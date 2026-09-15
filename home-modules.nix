@@ -61,6 +61,7 @@ let
       }
       // lib.optionalAttrs (name == "packages.nix") {
         _module.args.backlogMd = inputs.backlog-md;
+        _module.args.snippetCli = inputs.snippet-cli;
       }
       // lib.optionalAttrs (name == "git.nix") {
         _module.args.treefmtNix = inputs.treefmt-nix;

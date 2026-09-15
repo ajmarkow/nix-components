@@ -2,6 +2,7 @@
   pkgs,
   lib,
   backlogMd,
+  snippetCli,
   ...
 }:
 let
@@ -88,6 +89,7 @@ in
     ]
     ++ [
       backlogMd.packages.${pkgs.stdenv.hostPlatform.system}.default
+      snippetCli.packages.${pkgs.stdenv.hostPlatform.system}.default
       rtk
     ]
     ++ scripts;

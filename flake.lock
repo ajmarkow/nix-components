@@ -557,9 +557,30 @@
         "paseo-skills": "paseo-skills",
         "pyproject-build-systems": "pyproject-build-systems",
         "pyproject-nix": "pyproject-nix",
+        "snippet-cli": "snippet-cli",
         "superpowers-skills": "superpowers-skills",
         "treefmt-nix": "treefmt-nix_2",
         "uv2nix": "uv2nix"
+      }
+    },
+    "snippet-cli": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789496400,
+        "narHash": "sha256-bMMkTixBCtRHe3wAcOtuL5fXIm09iFTKxJD1PHMIdq4=",
+        "owner": "ajmarkow",
+        "repo": "snippet_cli",
+        "rev": "6072dbb5766dc5c6d3a0128acedef88df93f0eee",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ajmarkow",
+        "repo": "snippet_cli",
+        "type": "github"
       }
     },
     "superpowers-skills": {
