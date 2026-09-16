@@ -552,9 +552,13 @@ if __name__ == "__main__":
     cp ${reflectUtils} $out/reflect_utils.py
   '';
 
-  captureScript = pkgs.substituteAll {
+  captureScript = pkgs.substitute {
     src = pkgs.writeText "capture_learning_template.py" captureScriptTemplate;
-    inherit libDir;
+    substitutions = [
+      "--replace"
+      "@libDir@"
+      "${libDir}"
+    ];
   };
 
 
