@@ -23,6 +23,12 @@ _: {
         exit 0
       fi
 
+      # Idempotency guard: pass through commands already wrapped with secretty
+      # instead of wrapping again (compounds quoting until bash fails to parse).
+      if [[ "$command" =~ ^[[:space:]]*['"]?[^[:space:]'"]*secretty['"]?[[:space:]] ]]; then
+        exit 0
+      fi
+
       printf -v quoted_command '%q' "$command"
       wrapped_command="secretty --config \"\$HOME/.config/secretty/config.yaml\" --no-init-hints --strict run -- bash -c $quoted_command"
 

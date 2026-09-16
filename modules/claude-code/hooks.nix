@@ -151,7 +151,12 @@
       # before Claude ever sees it. Degrade gracefully (run unwrapped) if
       # secretty isn't installed, matching rtk's own degrade-gracefully
       # pattern above rather than blocking the tool call outright.
-      if command -v secretty &>/dev/null; then
+      # Idempotency guard: pass through commands already wrapped (the agent
+      # sometimes copies the visible wrapper into its next call; wrapping
+      # again compounds quoting until bash fails to parse).
+      if [[ "$FINAL_CMD" =~ ^[[:space:]]*[\'\"]?[^[:space:]\'\"]*secretty[\'\"]?[[:space:]] ]]; then
+        WRAPPED_CMD="$FINAL_CMD"
+      elif command -v secretty &>/dev/null; then
         QUOTED_CMD=$(printf '%q' "$FINAL_CMD")
         WRAPPED_CMD="secretty --config \"\$HOME/.config/secretty/config.yaml\" --no-init-hints --strict run -- bash -c $QUOTED_CMD"
       else
