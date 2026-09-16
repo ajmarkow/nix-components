@@ -342,7 +342,7 @@ import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-sys.path.insert(0, "@REFLECT_LIB_DIR@")
+sys.path.insert(0, "@libDir@")
 
 from reflect_utils import (
     create_queue_item,
@@ -552,14 +552,9 @@ if __name__ == "__main__":
     cp ${reflectUtils} $out/reflect_utils.py
   '';
 
-  captureScript = pkgs.substitute {
+  captureScript = pkgs.substituteAll {
     src = pkgs.writeText "capture_learning_template.py" captureScriptTemplate;
-    substitutions = [
-      {
-        from = "@REFLECT_LIB_DIR@";
-        to = "${libDir}";
-      }
-    ];
+    inherit libDir;
   };
 
 
