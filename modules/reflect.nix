@@ -339,7 +339,7 @@ let
     from urllib.error import HTTPError
     from urllib.request import Request, urlopen
 
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
 
     from reflect_utils import (
         create_queue_item,
