@@ -559,7 +559,7 @@ let
     fi
     export REFLECT_QUEUE_REPO=${lib.escapeShellArg cfg.queueRepo}
     export REFLECT_CAPTURE_REPOS=${lib.escapeShellArg (lib.concatStringsSep "," cfg.captureRepos)}
-    exec ${pkgs.python3}/bin/python3 ${captureScript} "$1"
+    exec ${pkgs.python3}/bin/python3 ${captureScript}
   '';
 in
 {
