@@ -5,7 +5,7 @@
 
   `rtk` is a proxy with a **fixed, closed set of subcommands** (run `rtk --help` for the current list). Prefixing a command it doesn't recognize (e.g. `rtk nix ...`, `rtk mkdir ...`) fails outright with "No such file or directory" — there is no generic passthrough.
 
-  A PreToolUse hook already rewrites every Bash command through `rtk`'s equivalent automatically, whether or not you type the prefix — so don't add `rtk` yourself just to trigger it. The `rtk`-prefixed examples in this file (below and elsewhere) are documentation convention, not a required action.
+  A PreToolUse hook already rewrites every Bash command through `rtk`'s equivalent automatically, whether or not you type the prefix — so don't add `rtk` yourself just to trigger it. The `rtk`-prefixed examples in this file (below and elsewhere) are documentation convention, not a required action. Same for `secretty`: the redaction wrap is applied automatically, so never type it into a command yourself.
 
   **`rtk` recognizes:** `ls, tree, read, smart, git, gh, glab, aws, psql, pnpm, err, test, json, deps, env, find, diff, log, dotnet, docker, kubectl, summary, grep, init, wget, wc, gain, cc-economics, config, jest, vitest, prisma, tsc, next, lint, prettier, format, playwright, cargo, npm, npx, curl, discover, session, telemetry, learn, ruff, pytest, mypy, rake, rubocop, rspec, pip, go, gt, golangci-lint, gradlew`.
 
