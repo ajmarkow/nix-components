@@ -329,17 +329,26 @@ let
   '';
 
   # Vendored from ajmarkow/claude-reflect (reflect/declarative):
-  # scripts/capture_learning.py, reading lib/reflect_utils.py from the
-  # sibling `lib/` directory this module also deploys.
-  captureScript = pkgs.writeText "capture_learning.py" ''
-    import json
-    import os
-    import subprocess
-    import sys
-    from urllib.error import HTTPError
-    from urllib.request import Request, urlopen
+  # scripts/capture_learning.py. REFLECT_LIB_DIR is substituted at build
+  # time with the store path of the sibling lib/ directory: home-manager
+  # symlinks home.file entries individually, so the script and the lib end
+  # up in DIFFERENT store paths and a relative import can never work.
+  captureScript =
+    let
+      libDir = pkgs.runCommand "reflect-lib" { } ''
+        mkdir -p $out
+        cp ${reflectUtils} $out/reflect_utils.py
+      '';
+    in
+    pkgs.writeText "capture_learning.py" ''
+      import json
+      import os
+      import subprocess
+      import sys
+      from urllib.error import HTTPError
+      from urllib.request import Request, urlopen
 
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
+      sys.path.insert(0, ${builtins.toJSON "${libDir}"})
 
     from reflect_utils import (
         create_queue_item,
