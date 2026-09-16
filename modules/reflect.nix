@@ -5,8 +5,8 @@
 # by adding or dropping a single import line.
 #
 # What it does: deploys the reflect capture hook (UserPromptSubmit) that
-# POSTs detected corrections as JSON items to the private queue issue in
-# the reflections-queue repo. The capture script is vendored from
+# POSTs detected corrections as JSON items to the n8n reflect-capture
+# webhook. The capture script is vendored from
 # ajmarkow/claude-reflect branch reflect/declarative
 # (scripts/capture_learning.py + the kept parts of
 # scripts/lib/reflect_utils.py); only the dependency-free capture path is
@@ -14,9 +14,9 @@
 #
 # Inert by default: `nix-components.reflect.enable` defaults to false, and
 # even when enabled an empty `captureRepos` allowlist captures nothing.
-# The token reaches the hook only through `tokenFile` (0600, rendered by
-# the host's Infisical manifest as reflect-capture.env) — never through
-# sessionVariables or the Nix store.
+# The webhook secret reaches the hook only through `secretFile` (0600,
+# rendered by the host's Infisical manifest as reflect-capture.env) — never
+# through sessionVariables or the Nix store.
 {
   config,
   lib,
@@ -328,19 +328,20 @@ let
         return None
   '';
 
-  # Vendored from ajmarkow/claude-reflect (reflect/declarative):
-  # scripts/capture_learning.py. The lib arrives as a sibling directory at
-  # build time: substituteLibDir splices this template with the real store
-  # path because home-manager symlinks home.file entries individually, so
-  # the script and the lib end up in DIFFERENT store paths and a relative
-  # import can never work.
+  # Vendored from ajmarkow/claude-reflect (reflect/declarative),
+  # reworked: builds the same queue item, then POSTs it to the n8n
+  # reflect-capture webhook instead of a GitHub queue issue.
+  # The lib arrives as a sibling directory at build time: the template's
+  # @libDir@ is substituted with the real store path because home-manager
+  # symlinks home.file entries individually, so the script and the lib end
+  # up in DIFFERENT store paths and a relative import can never work.
   captureScriptTemplate = ''
 import json
 import os
 import subprocess
 import sys
-from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 sys.path.insert(0, "@libDir@")
 
@@ -353,13 +354,7 @@ from reflect_utils import (
     MAX_CAPTURE_PROMPT_LENGTH,
 )
 
-QUEUE_ISSUE_TITLE = "reflect queue"
-QUEUE_LABEL = "reflect-queue"
 HTTP_TIMEOUT = 3
-
-
-class TokenExpiredError(Exception):
-    pass
 
 
 def _fail(reason: str) -> int:
@@ -368,8 +363,8 @@ def _fail(reason: str) -> int:
 
 
 def _fail_loud(reason: str) -> int:
-    print(f"reflect: CAPTURE TOKEN INVALID: {reason}", file=sys.stderr)
-    print("reflect: fix REFLECT_CAPTURE_TOKEN, then retry the prompt.",
+    print(f"reflect: WEBHOOK SECRET INVALID: {reason}", file=sys.stderr)
+    print("reflect: fix REFLECT_WEBHOOK_SECRET, then retry the prompt.",
           file=sys.stderr)
     return 2
 
@@ -403,76 +398,39 @@ def _allowlisted(allowlist: str, identity: str) -> bool:
     return identity in entries
 
 
-def _github(path: str, token: str, payload=None) -> object:
-    body = json.dumps(payload).encode("utf-8") if payload is not None else None
+def _post_item(webhook_url: str, secret: str, item: dict) -> None:
+    body = json.dumps(item).encode("utf-8")
     request = Request(
-        f"https://api.github.com{path}",
+        webhook_url,
         data=body,
         headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {token}",
-            "X-GitHub-Api-Version": "2022-11-28",
+            "Content-Type": "application/json",
+            "X-Reflect-Secret": secret,
         },
-        method="POST" if payload is not None else "GET",
+        method="POST",
     )
     try:
         with urlopen(request, timeout=HTTP_TIMEOUT) as response:
-            return json.loads(response.read().decode("utf-8"))
+            response.read()
     except Exception as exc:
         status = getattr(exc, "code", None)
         if isinstance(exc, HTTPError) and status == 401:
-            raise TokenExpiredError(
-                f"GitHub API {path} returned 401 — token expired or revoked."
+            raise SecretRejectedError(
+                "webhook returned 401 — secret wrong or revoked."
             ) from exc
         raise
 
 
-def _find_queue_issue(repo: str, token: str):
-    page = 1
-    while True:
-        try:
-            issues = _github(
-                f"/repos/{repo}/issues?state=open&labels={QUEUE_LABEL}&per_page=100&page={page}",
-                token,
-            )
-        except TokenExpiredError:
-            raise
-        except Exception as exc:
-            print(f"reflect: queue issue lookup failed: {exc}", file=sys.stderr)
-            return None
-        if not isinstance(issues, list):
-            return None
-        for issue in issues:
-            if isinstance(issue, dict) and issue.get("title") == QUEUE_ISSUE_TITLE:
-                number = issue.get("number")
-                return str(number) if number is not None else None
-        if len(issues) < 100:
-            return None
-        page += 1
-
-
-def _post_item(repo: str, token: str, issue_number: str, item: dict) -> bool:
-    comment = "```json\n" + json.dumps(item, indent=2) + "\n```"
-    try:
-        _github(
-            f"/repos/{repo}/issues/{issue_number}/comments",
-            token,
-            {"body": comment},
-        )
-    except TokenExpiredError:
-        raise
-    except Exception as exc:
-        print(f"reflect: queue POST failed: {exc}", file=sys.stderr)
-        return False
-    return True
+class SecretRejectedError(Exception):
+    pass
 
 
 def main() -> int:
-    queue_repo = os.environ.get("REFLECT_QUEUE_REPO", "").strip()
-    capture_token = os.environ.get("REFLECT_CAPTURE_TOKEN", "").strip()
+    webhook_url = os.environ.get("REFLECT_WEBHOOK_URL", "").strip()
+    webhook_secret = os.environ.get("REFLECT_WEBHOOK_SECRET", "").strip()
     capture_repos = os.environ.get("REFLECT_CAPTURE_REPOS", "")
-    if not queue_repo or not capture_token or not capture_repos.strip():
-        return _fail("missing REFLECT_QUEUE_REPO, REFLECT_CAPTURE_TOKEN, "
+    if not webhook_url or not webhook_secret or not capture_repos.strip():
+        return _fail("missing REFLECT_WEBHOOK_URL, REFLECT_WEBHOOK_SECRET, "
                      "or REFLECT_CAPTURE_REPOS")
 
     identity = normalize_repo_identity(_origin_url())
@@ -480,16 +438,6 @@ def main() -> int:
         return _fail("could not determine repo identity from origin remote")
     if not _allowlisted(capture_repos, identity):
         return _fail(f"repo identity {identity} is not allowlisted")
-
-    try:
-        repo_info = _github(f"/repos/{queue_repo}", capture_token)
-    except TokenExpiredError as exc:
-        return _fail_loud(str(exc))
-    except Exception as exc:
-        print(f"reflect: queue repo check failed: {exc}", file=sys.stderr)
-        return 0
-    if not isinstance(repo_info, dict) or repo_info.get("private") is not True:
-        return _fail(f"queue repo {queue_repo} is not private")
 
     try:
         input_data = sys.stdin.read()
@@ -520,22 +468,20 @@ def main() -> int:
     if secret is not None:
         return _fail(f"deny-list hit ({secret})")
 
-    try:
-        issue_number = _find_queue_issue(queue_repo, capture_token)
-    except TokenExpiredError as exc:
-        return _fail_loud(str(exc))
-    if issue_number is None:
-        return _fail("queue issue not found")
     item = create_queue_item(
         message=prompt,
         item_type=item_type,
         patterns=patterns,
         confidence=confidence,
     )
+    item["repo_identity"] = identity
     try:
-        _post_item(queue_repo, capture_token, issue_number, item)
-    except TokenExpiredError as exc:
+        _post_item(webhook_url, webhook_secret, item)
+    except SecretRejectedError as exc:
         return _fail_loud(str(exc))
+    except Exception as exc:
+        print(f"reflect: webhook POST failed: {exc}", file=sys.stderr)
+        return 0
     return 0
 
 
@@ -563,34 +509,33 @@ if __name__ == "__main__":
 
 
 
-  # The hook entrypoint: sources the token from tokenFile (never the store),
-  # exports the non-secret vars from the module options, then execs the
-  # vendored capture script. Exit 2 (expired token) blocks the prompt by
-  # design — a dead token must never pass as quiet capture. The store path
-  # of captureScript is baked into this wrapper (unavoidable for a Nix-built
-  # file), but the wrapper itself carries no secrets: token, queue repo, and
-  # allowlist all arrive via file/env at runtime.
+  # The hook entrypoint: sources the webhook secret from secretFile (never
+  # the store), exports the non-secret vars from the module options, then
+  # execs the vendored capture script. Exit 2 (rejected secret) blocks the
+  # prompt by design — a dead secret must never pass as quiet capture. The
+  # store path of captureScript is baked into this wrapper (unavoidable for
+  # a Nix-built file), but the wrapper itself carries no secrets: webhook
+  # URL/secret and allowlist all arrive via file/env at runtime.
   hookScript = pkgs.writeShellScript "reflect-capture-hook" ''
     set -u
-    if [ -r "${cfg.tokenFile}" ]; then
+    if [ -r "${cfg.secretFile}" ]; then
       # shellcheck disable=SC1090
-      set -a; . "${cfg.tokenFile}"; set +a
+      set -a; . "${cfg.secretFile}"; set +a
     fi
-    export REFLECT_QUEUE_REPO=${lib.escapeShellArg cfg.queueRepo}
+    export REFLECT_WEBHOOK_URL=${lib.escapeShellArg cfg.webhookUrl}
     export REFLECT_CAPTURE_REPOS=${lib.escapeShellArg (lib.concatStringsSep "," cfg.captureRepos)}
     exec ${pkgs.python3}/bin/python3 ${captureScript}
   '';
 in
 {
   options.nix-components.reflect = {
-    enable = lib.mkEnableOption "reflect correction-capture hook (posts to the private queue issue)";
+    enable = lib.mkEnableOption "reflect correction-capture hook (posts to the n8n webhook)";
 
-    queueRepo = lib.mkOption {
+    webhookUrl = lib.mkOption {
       type = lib.types.str;
-      default = "ajmarkow/reflections-queue";
+      default = "https://n8n.aj-cloud.cc/webhook/reflect-capture";
       description = ''
-        Queue repo in owner/name form. Must be private; the hook refuses a
-        public queue at runtime.
+        n8n webhook URL receiving captured items as JSON.
       '';
     };
 
@@ -603,11 +548,11 @@ in
       '';
     };
 
-    tokenFile = lib.mkOption {
+    secretFile = lib.mkOption {
       type = lib.types.path;
       default = "/etc/nixos/secrets/reflect-capture.env";
       description = ''
-        File sourced at hook invocation for REFLECT_CAPTURE_TOKEN. Rendered
+        File sourced at hook invocation for REFLECT_WEBHOOK_SECRET. Rendered
         by the host's Infisical manifest (0600); never the Nix store.
       '';
     };
