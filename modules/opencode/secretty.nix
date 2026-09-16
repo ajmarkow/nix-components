@@ -26,6 +26,11 @@ _: {
           const command = output.args.command
           if (typeof command !== "string" || command.length === 0) return
 
+          // Idempotency guard: the agent sometimes copies the visible wrapped
+          // command into its next call. Wrapping again compounds quoting until
+          // bash fails to parse, so pass through commands already wrapped.
+          if (/^\s*(['"]?)[^\s'"]*secretty\1\s/.test(command)) return
+
           output.args.command = [
             shellQuote(secretty),
             '--config "$HOME/.config/secretty/config.yaml"',
