@@ -35,7 +35,7 @@ Nix will refuse to evaluate files that are not tracked by Git, even if they exis
 
 ## Companion repo
 
-The companion server repo is named **`nix-server`** (at `~/paseo-projects/nix-server`). Do not use the old name `server-2-config`.
+The companion server repo is named **`nix-server`** (at `/var/lib/paseo/projects/nix-server`). Do not use the old name `server-2-config`.
 
 ## Claude Code skills
 

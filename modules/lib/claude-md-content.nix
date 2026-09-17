@@ -136,6 +136,40 @@
 
   If Todoist is unavailable, stop before beginning the task and tell the user that board tracking is blocked.
 
+  ## Common IDs — Shorthand
+
+  Use these stable values directly. Skip the lookup calls. Re-list on failure — IDs drift.
+
+  Todoist Agentic project `6hHv4pRr5cJG77Xg`. Inbox `6Crf9RMq9wH5xF69`.
+
+  | Section | ID |
+  |---|---|
+  | Queue | `6hQqHqJgqmR23rr8` |
+  | Active | `6hQqHqJhpvq74CCg` |
+  | Needs You | `6hQqHqHxMfRwRMhg` |
+  | Testing | `6hV2xHG7JG3C8cHg` |
+  | Done | `6hQqHqHMhR2V4c6g` |
+  | Awaiting Usage | `6hVMv8W2PXMCff4g` |
+
+  Paseo PRIMARY workspaces. Spawn with `--workspace`, never `--cwd` alone.
+
+  | Workspace | Cwd | Title |
+  |---|---|---|
+  | `wks_582cc0bd6b48e4f3` | `/var/lib/paseo/projects/nix-server` | PRIMARY_NIX-SERVER |
+  | `wks_5304173c1a50b772` | `/var/lib/paseo/projects/nix-components` | PRIMARY_NIX-COMPONENTS |
+  | `wks_c81b121f3da04122` | `/var/lib/paseo/projects/nix-pixelbook` | PRIMARY_NIX-PIXELBOOK |
+  | `wks_c2810533f5d2e6d1` | `/var/lib/paseo/projects/nix-mac` | PRIMARY_NIX-MAC |
+  | `wks_430ad05f6e16257b` | `/var/lib/paseo/projects` | PRIMARY |
+
+  | Fact | Value |
+  |---|---|
+  | Owner | `ajmarkow` (nix-server, nix-components, nix-mac, nix-pixelbook) |
+  | Canonical path | `/var/lib/paseo/projects/<repo>` (`paseo-projects/` is a symlink) |
+  | Obsidian vault | `agentic` (renamed from `main` — never use `main`) |
+  | This host | `nixos-host` = `ajm-nix-server.tail772f0.ts.net` |
+  | Stable tailnet names | `homepage`, `storage`, `plex`, `mcpm` |
+  | Darwin host | `AJ-MARKOW-WORK-MACBOOK-PRO` |
+
   ## Inter-Agent Messaging
 
   When the user asks you to message, notify, or send something to another agent or repo, **use Paseo** — not files, git, or any other mechanism.
