@@ -6,14 +6,14 @@
 #
 # What it does: deploys the reflect capture hook (UserPromptSubmit) that
 # POSTs detected corrections as JSON items to the n8n reflect-capture
-# webhook. The capture script is vendored from
-# ajmarkow/claude-reflect branch reflect/declarative
-# (scripts/capture_learning.py + the kept parts of
-# scripts/lib/reflect_utils.py); only the dependency-free capture path is
-# vendored here, never the deleted file-queue or routing code.
+# webhook, in every repo the hook runs in. The capture script is vendored
+# from ajmarkow/claude-reflect branch reflect/declarative
+# (the capture path of scripts/capture_learning.py + the kept parts of
+# scripts/lib/reflect_utils.py). The `repo_identity` field labels the item
+# with the repo the correction was typed in — it is never a capture gate.
+# Enforcement lives server-side (n8n Trigger A allowlist).
 #
-# Inert by default: `nix-components.reflect.enable` defaults to false, and
-# even when enabled an empty `captureRepos` allowlist captures nothing.
+# Inert by default: `nix-components.reflect.enable` defaults to false.
 # The webhook secret reaches the hook only through `secretFile` (0600,
 # rendered by the host's Infisical manifest as reflect-capture.env) — never
 # through sessionVariables or the Nix store.
@@ -28,7 +28,7 @@ let
 
   # Vendored from ajmarkow/claude-reflect (reflect/declarative):
   # detect_patterns + pattern tables + create_queue_item +
-  # should_include_message + normalize_repo_identity + deny list.
+  # should_include_message + normalize_repo_identity (label only) + deny list.
   # Pure logic, no file I/O, no network.
   reflectUtils = pkgs.writeText "reflect_utils.py" ''
     import re
@@ -328,169 +328,155 @@ let
         return None
   '';
 
-  # Vendored from ajmarkow/claude-reflect (reflect/declarative),
-  # reworked: builds the same queue item, then POSTs it to the n8n
-  # reflect-capture webhook instead of a GitHub queue issue.
+  # Reworked from ajmarkow/claude-reflect (reflect/declarative),
+  # webhook variant: builds the same queue item (plus repo_identity label),
+  # then POSTs it to the n8n reflect-capture webhook.
   # The lib arrives as a sibling directory at build time: the template's
   # @libDir@ is substituted with the real store path because home-manager
   # symlinks home.file entries individually, so the script and the lib end
   # up in DIFFERENT store paths and a relative import can never work.
   captureScriptTemplate = ''
-import json
-import os
-import subprocess
-import sys
-from urllib.request import Request, urlopen
-from urllib.error import HTTPError
+    import json
+    import os
+    import subprocess
+    import sys
+    from urllib.request import Request, urlopen
+    from urllib.error import HTTPError
 
-sys.path.insert(0, "@libDir@")
+    sys.path.insert(0, "@libDir@")
 
-from reflect_utils import (
-    create_queue_item,
-    detect_patterns,
-    find_secret,
-    normalize_repo_identity,
-    should_include_message,
-    MAX_CAPTURE_PROMPT_LENGTH,
-)
-
-HTTP_TIMEOUT = 3
-
-
-def _fail(reason: str) -> int:
-    print(f"reflect: capture skipped: {reason}", file=sys.stderr)
-    return 0
-
-
-def _fail_loud(reason: str) -> int:
-    print(f"reflect: WEBHOOK SECRET INVALID: {reason}", file=sys.stderr)
-    print("reflect: fix REFLECT_WEBHOOK_SECRET, then retry the prompt.",
-          file=sys.stderr)
-    return 2
-
-
-def _origin_url():
-    try:
-        proc = subprocess.run(
-            ["git", "rev-parse", "--is-inside-work-tree"],
-            capture_output=True,
-            text=True,
-            timeout=3,
-        )
-        if proc.returncode != 0 or proc.stdout.strip() != "true":
-            return None
-        proc = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
-            capture_output=True,
-            text=True,
-            timeout=3,
-        )
-        if proc.returncode != 0:
-            return None
-        return proc.stdout.strip() or None
-    except Exception:
-        return None
-
-
-def _allowlisted(allowlist: str, identity: str) -> bool:
-    entries = [entry.strip().lower() for entry in allowlist.split(",")]
-    entries = [entry for entry in entries if entry]
-    return identity in entries
-
-
-def _post_item(webhook_url: str, secret: str, item: dict) -> None:
-    body = json.dumps(item).encode("utf-8")
-    request = Request(
-        webhook_url,
-        data=body,
-        headers={
-            "Content-Type": "application/json",
-            "X-Reflect-Secret": secret,
-        },
-        method="POST",
+    from reflect_utils import (
+        create_queue_item,
+        detect_patterns,
+        find_secret,
+        normalize_repo_identity,
+        should_include_message,
+        MAX_CAPTURE_PROMPT_LENGTH,
     )
-    try:
-        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
-            response.read()
-    except Exception as exc:
-        status = getattr(exc, "code", None)
-        if isinstance(exc, HTTPError) and status == 401:
-            raise SecretRejectedError(
-                "webhook returned 401 — secret wrong or revoked."
-            ) from exc
-        raise
+
+    HTTP_TIMEOUT = 3
 
 
-class SecretRejectedError(Exception):
-    pass
-
-
-def main() -> int:
-    webhook_url = os.environ.get("REFLECT_WEBHOOK_URL", "").strip()
-    webhook_secret = os.environ.get("REFLECT_WEBHOOK_SECRET", "").strip()
-    capture_repos = os.environ.get("REFLECT_CAPTURE_REPOS", "")
-    if not webhook_url or not webhook_secret or not capture_repos.strip():
-        return _fail("missing REFLECT_WEBHOOK_URL, REFLECT_WEBHOOK_SECRET, "
-                     "or REFLECT_CAPTURE_REPOS")
-
-    identity = normalize_repo_identity(_origin_url())
-    if identity is None:
-        return _fail("could not determine repo identity from origin remote")
-    if not _allowlisted(capture_repos, identity):
-        return _fail(f"repo identity {identity} is not allowlisted")
-
-    try:
-        input_data = sys.stdin.read()
-    except Exception:
-        input_data = ""
-    if not input_data:
-        return 0
-    try:
-        data = json.loads(input_data)
-    except json.JSONDecodeError:
+    def _fail(reason: str) -> int:
+        print(f"reflect: capture skipped: {reason}", file=sys.stderr)
         return 0
 
-    prompt = data.get("prompt") or data.get("message") or data.get("text")
-    if not prompt or not isinstance(prompt, str):
+
+    def _fail_loud(reason: str) -> int:
+        print(f"reflect: WEBHOOK SECRET INVALID: {reason}", file=sys.stderr)
+        print("reflect: fix REFLECT_WEBHOOK_SECRET, then retry the prompt.",
+              file=sys.stderr)
+        return 2
+
+
+    def _origin_url():
+        try:
+            proc = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            if proc.returncode != 0 or proc.stdout.strip() != "true":
+                return None
+            proc = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            if proc.returncode != 0:
+                return None
+            return proc.stdout.strip() or None
+        except Exception:
+            return None
+
+
+    def _post_item(webhook_url: str, secret: str, item: dict) -> None:
+        body = json.dumps(item).encode("utf-8")
+        request = Request(
+            webhook_url,
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Reflect-Secret": secret,
+            },
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=HTTP_TIMEOUT) as response:
+                response.read()
+        except Exception as exc:
+            status = getattr(exc, "code", None)
+            if isinstance(exc, HTTPError) and status == 401:
+                raise SecretRejectedError(
+                    "webhook returned 401 — secret wrong or revoked."
+                ) from exc
+            raise
+
+
+    class SecretRejectedError(Exception):
+        pass
+
+
+    def main() -> int:
+        webhook_url = os.environ.get("REFLECT_WEBHOOK_URL", "").strip()
+        webhook_secret = os.environ.get("REFLECT_WEBHOOK_SECRET", "").strip()
+        if not webhook_url or not webhook_secret:
+            return _fail("missing REFLECT_WEBHOOK_URL or REFLECT_WEBHOOK_SECRET")
+
+        try:
+            input_data = sys.stdin.read()
+        except Exception:
+            input_data = ""
+        if not input_data:
+            return 0
+        try:
+            data = json.loads(input_data)
+        except json.JSONDecodeError:
+            return 0
+
+        prompt = data.get("prompt") or data.get("message") or data.get("text")
+        if not prompt or not isinstance(prompt, str):
+            return 0
+
+        if not should_include_message(prompt):
+            return 0
+
+        if len(prompt) > MAX_CAPTURE_PROMPT_LENGTH and "remember:" not in prompt.lower():
+            return 0
+
+        item_type, patterns, confidence, _sentiment, _decay_days = detect_patterns(prompt)
+        if not item_type:
+            return 0
+
+        secret = find_secret(prompt)
+        if secret is not None:
+            return _fail(f"deny-list hit ({secret})")
+
+        item = create_queue_item(
+            message=prompt,
+            item_type=item_type,
+            patterns=patterns,
+            confidence=confidence,
+        )
+        item["repo_identity"] = normalize_repo_identity(_origin_url())
+        try:
+            _post_item(webhook_url, webhook_secret, item)
+        except SecretRejectedError as exc:
+            return _fail_loud(str(exc))
+        except Exception as exc:
+            print(f"reflect: webhook POST failed: {exc}", file=sys.stderr)
+            return 0
         return 0
 
-    if not should_include_message(prompt):
-        return 0
 
-    if len(prompt) > MAX_CAPTURE_PROMPT_LENGTH and "remember:" not in prompt.lower():
-        return 0
-
-    item_type, patterns, confidence, _sentiment, _decay_days = detect_patterns(prompt)
-    if not item_type:
-        return 0
-
-    secret = find_secret(prompt)
-    if secret is not None:
-        return _fail(f"deny-list hit ({secret})")
-
-    item = create_queue_item(
-        message=prompt,
-        item_type=item_type,
-        patterns=patterns,
-        confidence=confidence,
-    )
-    item["repo_identity"] = identity
-    try:
-        _post_item(webhook_url, webhook_secret, item)
-    except SecretRejectedError as exc:
-        return _fail_loud(str(exc))
-    except Exception as exc:
-        print(f"reflect: webhook POST failed: {exc}", file=sys.stderr)
-        return 0
-    return 0
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except Exception as exc:
-        print(f"Warning: capture_learning.py error: {exc}", file=sys.stderr)
-        sys.exit(0)
+    if __name__ == "__main__":
+        try:
+            sys.exit(main())
+        except Exception as exc:
+            print(f"Warning: capture_learning.py error: {exc}", file=sys.stderr)
+            sys.exit(0)
   '';
 
   libDir = pkgs.runCommand "reflect-lib" { } ''
@@ -507,15 +493,13 @@ if __name__ == "__main__":
     ];
   };
 
-
-
   # The hook entrypoint: sources the webhook secret from secretFile (never
-  # the store), exports the non-secret vars from the module options, then
-  # execs the vendored capture script. Exit 2 (rejected secret) blocks the
-  # prompt by design — a dead secret must never pass as quiet capture. The
-  # store path of captureScript is baked into this wrapper (unavoidable for
-  # a Nix-built file), but the wrapper itself carries no secrets: webhook
-  # URL/secret and allowlist all arrive via file/env at runtime.
+  # the store), exports the non-secret webhook URL from the module option,
+  # then execs the vendored capture script. Exit 2 (rejected secret) blocks
+  # the prompt by design — a dead secret must never pass as quiet capture.
+  # The store path of captureScript is baked into this wrapper (unavoidable
+  # for a Nix-built file), but the wrapper itself carries no secrets:
+  # webhook URL arrives via env, the secret via file at runtime.
   hookScript = pkgs.writeShellScript "reflect-capture-hook" ''
     set -u
     if [ -r "${cfg.secretFile}" ]; then
@@ -523,7 +507,6 @@ if __name__ == "__main__":
       set -a; . "${cfg.secretFile}"; set +a
     fi
     export REFLECT_WEBHOOK_URL=${lib.escapeShellArg cfg.webhookUrl}
-    export REFLECT_CAPTURE_REPOS=${lib.escapeShellArg (lib.concatStringsSep "," cfg.captureRepos)}
     exec ${pkgs.python3}/bin/python3 ${captureScript}
   '';
 in
@@ -539,15 +522,6 @@ in
       '';
     };
 
-    captureRepos = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ ];
-      description = ''
-        Allowlist of exact host/owner/name repo identities capture runs in.
-        Empty captures nothing, so a host with the module but no list is inert.
-      '';
-    };
-
     secretFile = lib.mkOption {
       type = lib.types.path;
       default = "/etc/nixos/secrets/reflect-capture.env";
@@ -559,13 +533,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.captureRepos == map (r: lib.toLower r) cfg.captureRepos;
-        message = "nix-components.reflect.captureRepos entries must be lowercase host/owner/name identities.";
-      }
-    ];
-
     home.file = {
       ".claude/hooks/reflect-capture.py" = {
         executable = true;
