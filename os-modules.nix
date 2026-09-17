@@ -5,6 +5,7 @@ let
   mcpmServe = import ./os-modules/mcpm-serve.nix;
   beszelAgent = import ./os-modules/beszel-agent;
   nixLd = import ./os-modules/nix-ld.nix;
+  resticBackupDarwin = import ./os-modules/restic-backup-darwin.nix;
 
   # OS-level (NixOS / nix-darwin) home-manager defaults shared by every host
   # repo: nix-mac, nix-server, nix-pixelbook.
@@ -38,6 +39,7 @@ in
     determinate = determinate.darwin;
     tailscale = tailscale.darwin;
     beszel-agent = beszelAgent.darwin;
+    restic-backup = resticBackupDarwin;
   };
 
   flake.nixosModules = {

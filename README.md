@@ -112,6 +112,7 @@ modules = [
 | `tailscale`           | darwin, nixos | Tailscale client daemon, the tailscaled operator grant the `diff-viewer` module needs, and an opt-in health watchdog      |
 | `mcpm-serve`          | nixos         | Publishes the local mcpm aggregate as the Tailscale Service `svc:mcpm` (nix-server only)                                  |
 | `beszel-agent`        | darwin, nixos | [Beszel](https://beszel.dev) monitoring agent, registering itself with the hub from a universal token read out of a file  |
+| `restic-backup`       | darwin        | Restic backups to the shared Backblaze B2 bucket, as a root launchd daemon. Darwin counterpart to `homeModules.restic`    |
 
 ### `determinate`
 
@@ -190,6 +191,46 @@ Everything else about the two platforms differs, because only one of them has an
 - **The token reaches the agent differently.** On darwin the daemon is root and reads `tokenFile` directly. On NixOS the agent is a `DynamicUser` under `ProtectSystem=strict` and cannot read a root-owned 0600 file, so the module passes it through `LoadCredential` and sets `TOKEN_FILE` to the staged copy under `/run/credentials/`. Chowning the secret to `beszel-agent` instead would need that user to exist when the secret is provisioned, and on a fresh host provisioning runs before the first rebuild creates it.
 - **`openFirewall` is not upstream's.** nixpkgs' own `openFirewall` picks its port from `environment.PORT`, but the agent's option is `LISTEN` — a non-default port would open 45876 while the agent listened elsewhere. This module pins upstream's to `false` and writes the firewall rule itself.
 - **`openFirewall` and `smartmon.enable` are NixOS-only.** The darwin variant asserts both are off rather than ignoring them: macOS has no nix-darwin-managed firewall, and smartmon is a udev rule plus the `disk` group plus two Linux capabilities.
+
+### `restic-backup`
+
+Darwin counterpart to `homeModules.restic`. nix-darwin has no restic module at
+all to wrap — unlike beszel-agent/tailscale/determinate, there is no upstream
+implementation on this platform, Linux or otherwise — so this is a plain root
+launchd daemon around the restic binary, same idiom as `beszel-agent`'s darwin
+variant: root reads the secret files directly off disk.
+
+```nix
+nix-components.resticBackup = {
+  enable   = true;
+  hostName = "nix-mac";          # -> b2:aj-backups:nix-mac
+  bucket   = "aj-backups";
+  paths    = [ "/Users/aj/Documents" ];
+};
+```
+
+| Option                                        | Description                                                                                 |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `nix-components.resticBackup.hostName`        | This host's subdirectory in the shared bucket. Required, no default                         |
+| `nix-components.resticBackup.bucket`          | Shared Backblaze B2 bucket name. Required, no default                                       |
+| `nix-components.resticBackup.paths`           | Paths to back up. Required, no default                                                      |
+| `nix-components.resticBackup.exclude`         | Exclude patterns, default `[ ]`                                                             |
+| `nix-components.resticBackup.pruneOpts`       | `restic forget --prune` policy, default 7 daily / 4 weekly / 6 monthly                      |
+| `nix-components.resticBackup.environmentFile` | File holding `B2_ACCOUNT_ID`/`B2_ACCOUNT_KEY`. Default `/etc/nix-darwin/secrets/restic.env` |
+| `nix-components.resticBackup.passwordFile`    | File holding the repository password. Default `/etc/nix-darwin/secrets/restic-password`     |
+| `nix-components.resticBackup.calendar`        | `launchd`'s `StartCalendarInterval`, default `{ Hour = 3; Minute = 0; }`                    |
+
+`restic-b2` lands on `PATH` for manual restores, same as the Linux module's
+wrapper:
+
+```bash
+restic-b2 snapshots
+restic-b2 restore latest --target /tmp/restore
+```
+
+launchd's `StartCalendarInterval` has no `Persistent`-style catch-up: a Mac
+asleep at the scheduled time simply misses that day's backup rather than
+running it late once it wakes.
 
 ## Packages
 
