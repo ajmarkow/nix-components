@@ -248,6 +248,10 @@
   rtk nix-shell -p curl --run "curl https://example.com"
   ```
 
+  ## Python One-Off Scripts — Use `uv` with Inline PEP 723 Metadata
+
+  Write one-off Python scripts to run under `uv run`, with dependencies declared as inline PEP 723 metadata in the script itself — not a `requirements.txt` or a project venv. See [uv's script guide](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies).
+
   ## Missing Tools — Self-Healing Protocol
 
   When a command fails with **"command not found"**, **"No such file or directory"** (ENOENT on a binary), or **"spawn X ENOENT"**, fix the environment declaratively rather than working around it.
