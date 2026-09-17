@@ -154,20 +154,15 @@ Claude Code skills under `skills/` are bundled into `claude-code.nix` at build t
 
 | Skill                     | Description                                                                        |
 | ------------------------- | ---------------------------------------------------------------------------------- |
-| `add-mcp`                 | Add a new MCP server to the central `catalog` in `modules/lib/mcp.nix`             |
 | `adding-to-claude-md`     | Add new rules or guidance to `modules/lib/claude-md-content.nix`                   |
-| `backlog-md`              | Guide use of the Backlog.md CLI for task creation, status, and board views         |
 | `c-and-p`                 | Commit all staged and unstaged changes with a conventional commit message and push |
 | `debug-with-llms`         | Debug AI-assisted code without looping, patching symptoms, or writing slop         |
 | `deploy-nix-components`   | Deploy a nix-components change and bump the flake input on nix-server              |
-| `git-rewrite-history`     | Rewrite git history with `git-filter-repo` instead of `filter-branch`              |
 | `paseo-send`              | Find a running paseo agent by repo name and send it a message                      |
 | `ponytail`                | Push for the simplest, shortest working solution on any coding task                |
-| `ruleset-design`          | Design and audit rule files such as AGENTS.md and CLAUDE.md                        |
 | `serve`                   | Serve a local file or directory publicly through an ngrok tunnel                   |
 | `ste-writing`             | Write or edit documentation in Simplified Technical English                        |
 | `summarize`               | Summarize or transcribe URLs, YouTube videos, podcasts, PDFs, and local files      |
 | `taste-skill`             | Design landing pages and portfolios that avoid a templated look                    |
 | `test-driven-development` | Follow test-driven development before writing implementation code                  |
 | `tighten`                 | Refactor AGENTS.md following progressive disclosure principles                     |
-| `writing-skills`          | Create, edit, and verify Claude Code skills before deployment                      |
