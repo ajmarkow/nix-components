@@ -129,6 +129,15 @@
             throw result.message;
 
         statix-package = statixPackage;
+      }
+      # The restic module targets Linux only: upstream home-manager creates no
+      # service and no timer on other platforms, so the module asserts on them.
+      // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+        restic-module = import ./tests/restic-module.nix {
+          inherit lib pkgs;
+          homeManagerLib = inputs.home-manager.lib;
+          resticModule = ./modules/restic.nix;
+        };
       };
 
       devShells.default = pkgs.mkShell {
