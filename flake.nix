@@ -78,6 +78,8 @@
     codex-cli-nix.inputs.nixpkgs.follows = "nixpkgs";
     backlog-md.url = "github:MrLesk/Backlog.md";
     backlog-md.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.url = "github:nix-community/home-manager/release-26.05";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
     # Not in nixpkgs; consumed from its own flake, which wraps the bundlerApp
     # derivation in the repo's nix/ directory.
     snippet-cli.url = "github:ajmarkow/snippet_cli";
