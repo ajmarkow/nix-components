@@ -13,10 +13,9 @@
 # with the repo the correction was typed in — it is never a capture gate.
 # Enforcement lives server-side (n8n Trigger A allowlist).
 #
-# Inert by default: `nix-components.reflect.enable` defaults to false.
-# The webhook secret reaches the hook only through `secretFile` (0600,
-# rendered by the host's Infisical manifest as reflect-capture.env) — never
-# through sessionVariables or the Nix store.
+# All host-side config lives in one env file (`envFile`, 0600, rendered by
+# the host's Infisical manifest as reflect-capture.env) — never the Nix
+# store. Inert by default: `nix-components.reflect.enable` defaults to false.
 {
   config,
   lib,
@@ -493,20 +492,18 @@ let
     ];
   };
 
-  # The hook entrypoint: sources the webhook secret from secretFile (never
-  # the store), exports the non-secret webhook URL from the module option,
+  # The hook entrypoint: sources both vars from envFile (never the store),
   # then execs the vendored capture script. Exit 2 (rejected secret) blocks
   # the prompt by design — a dead secret must never pass as quiet capture.
   # The store path of captureScript is baked into this wrapper (unavoidable
-  # for a Nix-built file), but the wrapper itself carries no secrets:
-  # webhook URL arrives via env, the secret via file at runtime.
+  # for a Nix-built file), but the wrapper itself carries no secrets and no
+  # config: everything arrives via the env file at runtime.
   hookScript = pkgs.writeShellScript "reflect-capture-hook" ''
     set -u
-    if [ -r "${cfg.secretFile}" ]; then
+    if [ -r "${cfg.envFile}" ]; then
       # shellcheck disable=SC1090
-      set -a; . "${cfg.secretFile}"; set +a
+      set -a; . "${cfg.envFile}"; set +a
     fi
-    export REFLECT_WEBHOOK_URL=${lib.escapeShellArg cfg.webhookUrl}
     exec ${pkgs.python3}/bin/python3 ${captureScript}
   '';
 in
@@ -514,20 +511,13 @@ in
   options.nix-components.reflect = {
     enable = lib.mkEnableOption "reflect correction-capture hook (posts to the n8n webhook)";
 
-    webhookUrl = lib.mkOption {
-      type = lib.types.str;
-      default = "https://n8n.aj-cloud.cc/webhook/reflect-capture";
-      description = ''
-        n8n webhook URL receiving captured items as JSON.
-      '';
-    };
-
-    secretFile = lib.mkOption {
+    envFile = lib.mkOption {
       type = lib.types.path;
       default = "/etc/nixos/secrets/reflect-capture.env";
       description = ''
-        File sourced at hook invocation for REFLECT_WEBHOOK_SECRET. Rendered
-        by the host's Infisical manifest (0600); never the Nix store.
+        Env file sourced at hook invocation for REFLECT_WEBHOOK_URL and
+        REFLECT_WEBHOOK_SECRET. Rendered by the host's Infisical manifest
+        (0600); never the Nix store.
       '';
     };
   };
