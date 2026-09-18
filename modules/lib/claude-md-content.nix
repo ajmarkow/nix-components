@@ -55,20 +55,7 @@
   rtk rg "functionName" src/                                     # exact/regex match
   ```
 
-  Use `--content docs`, `--content config`, or `--content all` to search beyond code:
-
-  ```bash
-  rtk semble search "deployment guide" ./my-project --content docs
-  rtk semble search "database host port" ./my-project --content config
-  ```
-
-  Use `semble find-related` to discover code similar to a known location:
-
-  ```bash
-  rtk semble find-related src/auth.py 42 ./my-project
-  ```
-
-  The index builds and caches automatically; `path` defaults to `.`. If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
+  See `semble --help` for `--content` scoping and `find-related`. The index builds and caches automatically; `path` defaults to `.`.
 
   ## Context & Session Discipline
 
@@ -86,15 +73,11 @@
 
   ## Fetching Web Content
 
-  Always prefer `defuddle` over `WebFetch` when reading URLs (articles, docs, blog posts, any standard web page). It strips navigation and clutter, reducing token usage.
-
-  ```bash
-  rtk defuddle parse <url> --md
-  ```
-
-  Only fall back to `WebFetch` if defuddle is unavailable or the URL is not a standard web page (e.g. raw JSON APIs, authenticated services).
+  Prefer `rtk defuddle parse <url> --md` over `WebFetch` for standard web pages. Fall back to `WebFetch` for raw JSON APIs or authenticated services.
 
   ## Response Style — ASD-STE100
+
+  Be a supportive colleague: plain talk, questions decisions that hurt goals.
 
   Write responses to the user in ASD-STE100 (Simplified Technical English) style: short sentences, active voice, plain vocabulary. Keep the tone casual and conversational — STE is about clarity, not formality.
 
@@ -176,9 +159,9 @@
 
   When the user asks you to message, notify, or send something to another agent or repo, **use Paseo** — not files, git, or any other mechanism.
 
-  **Always use the Paseo MCP tools when they are available.** Use the `paseo` CLI only when the Paseo MCP interface is completely unavailable. Do not choose the CLI merely because it is familiar or convenient.
+  **Always use the Paseo MCP tools when they are available.** Use the `paseo` CLI (`paseo ls -a -g`, `paseo send <id>`, `paseo run ... --workspace <id>`) only when the Paseo MCP interface is completely unavailable.
 
-  **CLI fallback:** Run bare `paseo`; it does not need the `rtk` prefix. Configured remote clients already supply their connection settings, and local daemon operations need no `PASEO_HOST`.
+  **CLI fallback:** Run bare `paseo`; it does not need the `rtk` prefix.
 
   **Host diagnostics:** A sandbox or container can see host files without sharing the host PID namespace or loopback, so rerun read-only diagnostics with approved host access before reporting that a local daemon is stopped or unreachable, or recommending a restart.
 
@@ -201,48 +184,13 @@
   - **Use automatic permission review for Paseo subagents:** Select `auto` mode for Claude, `auto-review` mode for Codex, and `auto_accept = true` for OpenCode.
   - **Always tell spawned agents to report back:** any agent you spawn (paseo agent, subagent, workflow) must be instructed to send its results back to you when done — the user should never have to ask you to manually relay them
 
-  When MCP is unavailable, find the target agent and send with the CLI:
-  ```bash
-  paseo ls -a -g                         # list all agents across all directories
-  paseo send <id> "message or task"      # id can be shortened if unambiguous
-  ```
-
-  If no relevant agent is running, spawn a new one:
-  ```bash
-  paseo run "task" --detach --name <name> --model sonnet --mode auto
-  ```
-
-  Other commands:
-  ```bash
-  paseo attach <id>   # stream output live
-  paseo wait <id>     # block until agent finishes
-  paseo stop <id>     # terminate
-  ```
-
   ### ⚠️ Spawn Sub-Agents by Workspace, Not `--cwd`
 
-  **When spawning a paseo agent to work in another repo, target that repo's workspace with `--workspace <id>` — passing `--cwd` alone is silently ignored and the agent boots in the caller's repo.**
-
-  Why: agent-scoped `paseo run` defaults to the *caller's* workspace. `--cwd` sets a process directory but does not switch workspaces, so the child ends up back in the caller's repo.
-
-  ```bash
-  # 1. Find the workspace id (match on the PROJECT / CWD columns)
-  paseo workspace ls
-
-  # 2. Spawn into that workspace
-  paseo run "remove pylsp from neovim config" \
-    --workspace wks_6d815c666fe4cf4b \
-    --detach --name remove-pylsp --provider claude/claude-sonnet-4-6 --mode auto
-
-  # No workspace exists yet for the repo? Create one:
-  #   paseo run "..." --new-workspace local --cwd /var/lib/paseo/paseo-projects/<repo> --mode auto ...
-  ```
-
-  Verify: `paseo run` prints `Using workspace <id>` and the CWD column shows the target repo. Pass the ID exactly as `paseo workspace ls` prints it — it may be a `wks_` id or a path.
+  **When spawning a paseo agent to work in another repo, target that repo's workspace with `--workspace <id>` — passing `--cwd` alone is silently ignored and the agent boots in the caller's repo.** See the workspace IDs in Common IDs above; run `paseo workspace ls` to confirm.
 
   ## Tool Availability & nix-shell Optimization
 
-  Run `which <tool>` before wrapping a command in nix-shell — if it exits 0, use the tool directly.
+  Run `which <tool>` before wrapping a command in nix-shell — if it exits 0, use the tool directly. Codex/Opencode: also export `GIT_PAGER=cat`, `GH_PAGER=cat` (evidence: session `53c6877` gh hang).
 
   ```bash
   rtk which curl && rtk curl https://example.com
@@ -252,7 +200,7 @@
 
   ## Python One-Off Scripts — Use `uv` with Inline PEP 723 Metadata
 
-  Write one-off Python scripts to run under `uv run`, with dependencies declared as inline PEP 723 metadata in the script itself — not a `requirements.txt` or a project venv. See [uv's script guide](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies).
+  Run one-off Python scripts under `uv run` with inline PEP 723 dependency metadata — not a `requirements.txt` or project venv.
 
   ## Missing Tools — Self-Healing Protocol
 
@@ -261,17 +209,17 @@
   ### Protocol
 
   1. **Identify the missing binary** from the error (e.g. `sh`, `make`, `sed`).
-  2. **Find its nixpkgs package**: `rtk nix-locate --top-level --whole-name bin/<binary>` or check [search.nixos.org](https://search.nixos.org/packages).
-  3. **Add it to the appropriate Nix configuration for this system** (e.g. the home-manager or NixOS module that manages the relevant service's PATH). If you don't know the path, ask the user before proceeding.
-  4. **Verify the flake evaluates**: `rtk nix flake check --no-build` in the config repo root.
-  5. **Commit and push**, then **trigger redeploy** using the appropriate rebuild command for this system (e.g. `home-manager switch`, `nixos-rebuild switch`, or the system's deploy script). Ask the user if unsure.
-  6. **Wait for the deploy to complete**, then retry the original task.
+  2. **Find its nixpkgs package** (`rtk nix-locate --top-level --whole-name bin/<binary>`). Ask the user before editing if you don't know the right Nix module.
+  3. **Verify the flake evaluates**: `rtk nix flake check --no-build` in the config repo root.
+  4. **Commit and push**, then redeploy via CI (GitHub Actions — never rebuild locally). Ask the user if unsure.
 
   Ad-hoc `nix-shell -p foo --run "..."` works once but leaves the environment broken for the next session and for other agents. Adding to the appropriate Nix config fixes it permanently. **Always fix the root cause.**
 
   ## ⚠️ NEVER Run Rebuild Commands — This Is a Management Server
 
-  **Do NOT run `home-manager switch`, `nixos-rebuild switch`, or any other rebuild/apply command.** Ever. Without exception.
+  **Do NOT run `home-manager switch`, `nixos-rebuild switch`, or any other rebuild/apply command.** Ever. Agent never runs it.
+
+  Sole exception: a CI-blocked `AcceptEnv`/sshd change (evidence: session `8af73cf` chicken-and-egg) — the *user* runs one `nixos-rebuild switch` by hand. Never the agent.
 
   This agent runs on a **management server** holding Nix configurations for many hosts. Most repos here do NOT configure this host, so a rebuild would apply the wrong config to the wrong machine. For the two that do — **nix-server** and **nix-components** — deploys still go through CI: a local rebuild activates an unreviewed working tree and desyncs the host's generation from `main`.
 
@@ -296,18 +244,9 @@
 
   **When working in nix-server or nix-components, you are already running on the machine those repos configure.** Inspecting its services, containers, and logs is local work, not SSH — do it yourself instead of asking the user to paste output.
 
-  Read-only channels available to the `paseo` user:
+  Read-only channels: `journalctl -u <unit> --since "10 min ago" --no-pager` (no sudo), `journalctl CONTAINER_NAME=<name>`, `/run/wrappers/bin/sudo -u containers podman-logs-ro {logs,ps,inspect}` from a world-readable cwd (NOPASSWD-allowlisted, logs/ps/inspect only), bare `podman logs/ps/inspect` for paseo's own containers.
 
-  | What | How |
-  |---|---|
-  | Any service's logs | `journalctl -u <unit> --since "10 min ago" --no-pager` — no sudo (`paseo` is in `systemd-journal`) |
-  | Any container's stdout | `journalctl CONTAINER_NAME=<name>` |
-  | `containers`-user rootless containers | `/run/wrappers/bin/sudo -u containers podman-logs-ro {logs,ps,inspect}` |
-  | paseo's own rootless containers | bare `podman logs/ps/inspect` |
-
-  `podman-logs-ro` is NOPASSWD-allowlisted to `logs`, `ps`, and `inspect` only, so it needs no approval. Two silent gotchas: use the absolute `/run/wrappers/bin/sudo` (plain `sudo` can resolve to the non-setuid copy), and run it from a world-readable cwd like `/tmp` — the `containers` user cannot chdir into the repo and fails with a misleading `Permission denied`. Source: `podmanLogsRo` in nix-server's `modules/paseo.nix`.
-
-  **When debugging a service behind Traefik, check the backend's own health — never conclude from the proxy layer alone that the service is up.** An Authelia redirect (302 to `auth.aj-cloud.cc`) is issued before Traefik contacts the backend at all, so a completely dead service returns exactly the same 302, and the login page's own 200 is not evidence either. Confirm against the container's health (`podman-logs-ro ps`) and the status codes Traefik actually returned (`journalctl CONTAINER_NAME=traefik | grep RequestHost`), which expose the 5xx a redirect hides.
+  **When debugging a service behind Traefik, check the backend's own health — never conclude from the proxy layer alone that the service is up.** A 302 redirect is issued before Traefik contacts the backend, so confirm against the container's health and Traefik's own request logs.
 
   ## ⚠️ Claude Config Files Are Generated — Edit the Nix Source
 
@@ -337,7 +276,7 @@
 
   ## ⚠️ Don't Self-Edit Memory — the Reflect Hook Owns Capture
 
-  **Don't write to auto-memory folders (`~/.claude/projects/*/memory/`) or edit CLAUDE.md (global or repo) on your own initiative when you notice a correction or insight — only when the user explicitly asks.** A hook already captures learnings from every prompt automatically, so CLAUDE.md stays the single source of truth for agent feedback without agents self-editing it.
+  **Don't write to global `CLAUDE.md`/`AGENTS.md` or auto-memory folders (`~/.claude/projects/*/memory/`) without an explicit user `remember` in the same turn — hooks enforce this, and Opencode denies unconditionally.** A hook already captures learnings from every prompt automatically, so CLAUDE.md stays the single source of truth for agent feedback without agents self-editing it.
 
   ## Nix & Declarative Configuration Philosophy
 
@@ -355,39 +294,7 @@
 
   ## Flake Updates — Targeted by Default
 
-  **Always target specific inputs rather than updating everything at once.** Before running any `nix flake update`, ask the user for scope:
-
-  1. **List named inputs** from `flake.lock` or `flake.nix` so the user can see what's available.
-  2. **Ask**: "Which inputs would you like to update? (list specific names, or 'all' to update everything)"
-  3. Update only what the user confirms.
-
-  ```bash
-  # Targeted (preferred)
-  rtk nix flake update nixpkgs
-  rtk nix flake update nixpkgs home-manager
-
-  # Update all (only when user explicitly requests it)
-  rtk nix flake update
-  ```
-
-  Updating all inputs at once can introduce unexpected breakage across unrelated packages. Targeted updates keep changes reviewable and rollbacks easy.
-
-  ### ⚠️ Update-All Requires Explicit Re-Confirmation
-
-  If the user asks to update all inputs (e.g. "update all flakes", "run nix flake update"), **do not execute immediately**. Instead:
-
-  1. List every named input that will be updated.
-  2. Explicitly warn: "This will update ALL inputs, which may introduce breaking changes."
-  3. Ask: "Confirm you want to update all of the above inputs?"
-  4. **Only proceed after the user says yes in that same turn.**
-
-  A prior "update everything" instruction is not standing permission — re-confirm every time.
-
-  ### ⚠️ Never Run `nix flake update` Outside the Current Working Directory
-
-  **Only ever run `nix flake update` (targeted or otherwise) against the flake in your current working directory.** Never pass a path to a different repo, `cd` into another flake to update it, or target a flake elsewhere on disk.
-
-  This agent may have several unrelated flake repos checked out on the same system. Updating a flake you're not actively working in changes `flake.lock` for a repo you have no context on, bypasses review, and can surprise whoever owns that repo. If a flake elsewhere needs updating, tell the user or hand the task to an agent whose working directory is that repo — don't reach out and update it from here.
+  **Always target specific inputs rather than updating everything at once.** Before running any `nix flake update`, ask the user for scope and re-confirm an update-all every time.
 
   ### nixpkgs Pin Is Shared Across Repos — Never Bump Independently
 
@@ -403,55 +310,15 @@
 
   ## Deploys = GitHub Actions CI
 
-  **When the user says "deploy", "monitor deploy", "check the deploy", "did it deploy", "is it deployed", or anything about deployment status — the answer is always the GitHub Actions CI workflows for that repo.**
-
-  There is no separate deploy system to check. Deployment happens through CI. Always use the `gh` CLI to inspect it:
-
-  ```bash
-  rtk gh run list --limit 10                        # recent runs across all workflows
-  rtk gh run list --workflow=<name>.yml             # runs for a specific workflow
-  rtk gh run view <run-id>                          # full details and logs for one run
-  rtk gh run watch <run-id>                         # stream a run live until it finishes
-  rtk gh workflow list                              # list all workflows in the repo
-  ```
-
-  **Decision tree:**
-  - "Is it deployed?" → `gh run list --limit 5` and check if the latest run on the relevant branch succeeded
-  - "Monitor the deploy" → `gh run watch <latest-run-id>` to stream it live
-  - "What failed?" → `gh run view <run-id> --log-failed` to see only failing step logs
-  - "Which workflows exist?" → `gh workflow list`
-
-  Never check a separate dashboard, URL, or service unless the user explicitly names one. GitHub Actions is the source of truth.
-
-  **Do not watch CI unless monitoring is necessary to complete the task or the user explicitly asks you to watch it.** Routine flake input bumps do not need CI monitoring. Unnecessary monitoring wastes tokens.
-
-  If multiple unrelated jobs or repos fail the same way around the same time (e.g. runner-acquisition errors, timeouts), check https://www.githubstatus.com/ for an active incident before debugging the workflow config.
+  **When the user asks about deployment status — the answer is always the GitHub Actions CI workflows for that repo.** Use `rtk gh run list`, `rtk gh run view <run-id>`, `rtk gh run watch <run-id>`, `rtk gh workflow list`. Watch CI only when needed to finish the task or the user asks.
 
   ## ⚠️ Never Remove CI Checks Without Explicit Instruction
 
-  **Agents must NEVER remove, disable, or bypass CI checks (e.g. GitHub Actions workflow steps) without explicit instruction from the user to do so.**
-
-  This rule exists because a CI step was removed during debugging without user approval, which bypassed a safety check. Removing a CI step is an irreversible action with blast radius beyond the current task — it silently disables protection for all future commits and contributors.
-
-  If a CI step is failing and you think removing it would fix the immediate problem, **stop**. Instead:
-  1. Diagnose why the step is failing.
-  2. Fix the underlying issue so the step passes.
-  3. If the step genuinely needs to be removed, ask the user explicitly before touching it.
+  **Agents must NEVER remove, disable, or bypass CI checks without explicit instruction from the user to do so.** If a CI step fails, diagnose and fix the underlying issue; ask explicitly before touching the step itself.
 
   ## Git Workflow
 
-  **Using the `/c-and-p` skill is explicit approval to commit and push.** Do not show a diff or ask for more approval. Commit and push the changes directly.
-
-  **Before committing, show the full `rtk git diff --staged` and wait for approval.** Include every modified file in the working tree (including AGENTS.md, `backlog/`, and docs) unless the user says to exclude it.
-
-  **Always render any diff through the `diff-viewer` skill — never ask first.** This applies to every diff shown to the user (staged, working-tree, or arbitrary), not just pre-commit ones.
-
-  Commits do not require approval.
-
-  **`git push` needs approval — once per request, not once per command.** A request is the current task, from the user's message through however many turns it takes to finish it.
-  - State the exact command and wait for an explicit yes before the first push.
-  - That yes covers every later push until the task is done — do not ask again.
-  - If the user preauthorizes pushing at the start of a request, skip asking entirely.
+  **Using the `/c-and-p` skill is explicit approval to commit and push.** Otherwise show the full staged diff (via the `diff-viewer` skill) and wait for approval before committing; `git push` needs approval once per request. Commits do not require approval.
 
   ## Branch Merges — main Is Always the Base
 
@@ -472,10 +339,10 @@
 
   ## ⚠️ AWS CLI Requires a Plan First
 
-  Before running any `aws` command, present a full plan first: every step in order, with the exact command for each. Wait for user confirmation before executing.
+  Before running any `aws` command, present the full plan (every step, exact commands) and wait for user confirmation.
 
   ## Playwright / Screenshots
 
-  Playwright screenshots and other artifacts land in `~/.cache/mcpm/playwright/` on nix-server. The shared `mcpm` service resolves relative output names in this global directory, not in the caller's repository. Copy an artifact into a repository only when it must be committed, and put it in a subdirectory, never the repository root.
+  Playwright artifacts land in `~/.cache/mcpm/playwright/` (global, not the repo); only copy into a repo subdirectory when the artifact must be committed.
 
 ''
