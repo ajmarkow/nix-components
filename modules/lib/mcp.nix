@@ -11,8 +11,10 @@
 #
 # Secrets never land in servers.json. Each server declares the runtime
 # environment references it needs. MCPM resolves only those variables when it
-# starts the child. Remote HTTP servers run through `mcp-remote`, wrapped in
-# `bash -c` so the child shell expands the resolved token.
+# starts the child. Remote HTTP servers run through `mcp-remote` via the
+# `remoteRunner` wrapper below, which materializes the auth header into a
+# 0600 temp file from the environment (`--header-file`) -- token values never
+# appear in argv, where `ps` would expose them to every local user.
 let
   # mcpm launches each mounted server with exactly the `env` dict from
   # servers.json -- it does not inherit or merge the parent process's
@@ -125,21 +127,43 @@ let
     };
   };
 
-  # `\${VAR}` renders the literal ${VAR} for bash to expand at spawn -- never
+  # Env-only transport for remote servers. The runner's argv carries only the
+  # URL, header name, header prefix, and env-var *name* -- all public -- while
+  # the token *value* travels via the process environment (populated by mcpm
+  # from this server's `env` dict) into a 0600 header file passed via
+  # mcp-remote's `--header-file` flag (its documented workaround for argv
+  # snooping: one `Name: value` per line). Token values never appear in argv,
+  # where `ps` would expose them to every local user (evidence: paseo session
+  # 66521186 leaked ghp_, sk-or-v1-, ctx7sk- via `ps aux | grep mcpm`).
+  # The temp file is removed after the child exits; a trap covers signals.
+  #
+  # `\${VAR}` renders the literal ${VAR} for resolution at spawn -- never
   # resolved by Nix, never written to the store.
-  remoteCommand =
-    s:
-    let
-      value = "${s.headerPrefix or ""}\${${s.headerVar}}";
-      withHeader = "exec npx -y mcp-remote ${s.url} --header \"${s.headerName}: ${value}\"";
-      withoutHeader = "exec npx -y mcp-remote ${s.url}";
-    in
-    if !(s ? headerName) then
-      withoutHeader
-    else if s.headerRequired or true then
-      withHeader
-    else
-      "if [ -n \"\${${s.headerVar}}\" ]; then ${withHeader}; else ${withoutHeader}; fi";
+  remoteRunner = pkgs.writeShellScript "mcp-remote-runner" ''
+    set -eu
+    url="$1"; header_name="$2"; header_prefix="$3"; header_var="$4"; required="$5"
+    if [ -z "$header_var" ]; then
+      exec npx -y mcp-remote "$url"
+    fi
+    if [ -z "''${!header_var:-}" ]; then
+      if [ "$required" = required ]; then
+        echo "mcp-remote-runner: $header_var is unset or empty" >&2
+        exit 1
+      fi
+      exec npx -y mcp-remote "$url"
+    fi
+    header_file="$(mktemp)"
+    chmod 600 "$header_file"
+    printf '%s: %s%s\n' "$header_name" "$header_prefix" "''${!header_var}" > "$header_file"
+    trap 'rm -f "$header_file"' EXIT INT TERM
+    npx -y mcp-remote "$url" --header-file "$header_file" &
+    child=$!
+    wait "$child"
+    status=$?
+    rm -f "$header_file"
+    trap - EXIT INT TERM
+    exit "$status"
+  '';
 
   # Render one catalog entry to an mcpm STDIOServerConfig in the fixed `all`
   # aggregate.
@@ -149,10 +173,13 @@ let
       transport =
         if s ? url then
           {
-            command = "bash";
+            command = "${remoteRunner}";
             args = [
-              "-c"
-              (remoteCommand s)
+              s.url
+              (s.headerName or "")
+              (s.headerPrefix or "")
+              (s.headerVar or "")
+              (if s.headerRequired or true then "required" else "optional")
             ];
           }
         else

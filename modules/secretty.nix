@@ -5,6 +5,12 @@
   # across every host. Schema/defaults verified against secretty's own
   # internal/config/config.go and internal/config/testdata/canonical.yaml.
   #
+  # Guardrail (evidence: paseo session 66521186 leaked ghp_, sk-or-v1-,
+  # ctx7sk- via `ps aux | grep mcpm`): never run `ps aux` / `ps -ef`
+  # unwrapped -- argv may carry live tokens. For process checks use
+  # `ps -o pid,comm=` (no args column) under the secretty wrap, and rely on
+  # the argv rules below to redact anything that still leaks.
+  #
   # action is "placeholder" everywhere (not the default "mask" + glow
   # blocks) because this output is read by an LLM through the Claude Code
   # Bash hook, not displayed on a human's terminal — a plain
@@ -105,8 +111,39 @@
         secret_type: API_KEY
         ruleset: api_keys
         regex:
-          pattern: "\\bghp_[A-Za-z0-9]{36}\\b"
+          pattern: "\\b(ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36})\\b"
           group: 0
+      - name: openrouter_key
+        enabled: true
+        type: regex
+        action: placeholder
+        severity: high
+        secret_type: API_KEY
+        ruleset: api_keys
+        regex:
+          pattern: "\\bsk-or-v1-[A-Za-z0-9]{16,}\\b"
+          group: 0
+      - name: context7_key
+        enabled: true
+        type: regex
+        action: placeholder
+        severity: high
+        secret_type: API_KEY
+        ruleset: api_keys
+        regex:
+          pattern: "\\bctx7sk-[A-Za-z0-9._-]{8,}\\b"
+          group: 0
+      - name: mcp_remote_argv_header
+        enabled: true
+        type: regex
+        action: placeholder
+        severity: high
+        secret_type: AUTH_TOKEN
+        ruleset: auth_tokens
+        regex:
+          pattern: "(?i)(mcp-remote[^\\n]*?--header[\\s=]+[\"']?[^\"']*(?:Bearer|Basic)\\s+)([^\\s\"']+)"
+          group: 2
+        context_keywords: ["mcp-remote", "--header", "Bearer"]
       - name: bearer_token
         enabled: true
         type: regex
