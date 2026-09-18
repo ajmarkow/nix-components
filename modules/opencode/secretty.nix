@@ -6,6 +6,13 @@ _: {
   # https://opencode.ai/docs/plugins/#from-local-files and
   # https://opencode.ai/docs/plugins/#dependencies
   #
+  # This file is the secretty redaction plugin only. The shared Bash deny
+  # class lives next door in ./deny.nix and the memory guard in
+  # ./memory-guard.nix as sibling xdg.configFile entries — all three are
+  # separate plugin files so each concern stays reviewable on its own,
+  # with no shared wrapper to race (deny/guard plugins only throw, never
+  # rewrite).
+  #
   # Resolve secretty when the plugin starts instead of embedding its Nix store
   # path. This keeps the same degrade-gracefully contract as Claude Code: hosts
   # that import this agent module but omit the shared packages module still get
@@ -21,7 +28,7 @@ _: {
 
       return {
         "tool.execute.before": async (input, output) => {
-          if (input.tool !== "bash" || !secretty) return
+          if (input.tool !== "bash") return
 
           const command = output.args.command
           if (typeof command !== "string" || command.length === 0) return

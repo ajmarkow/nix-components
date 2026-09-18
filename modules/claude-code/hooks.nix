@@ -4,20 +4,63 @@
     executable = true;
     text = ''
       #!/usr/bin/env bash
-      # Claude Code PreToolUse hook — blocks direct host connections and bare rg.
+      # Claude Code PreToolUse hook — blocks direct host connections, raw
+      # search tools, secret-leaking process checks, auto-memory writes, and
+      # local rebuilds. Denies with exit 2; any hook's deny blocks the call.
       # ssh/scp/sftp: this agent must never open a connection to a remote host (see
       #   CLAUDE.md). Only the connecting form matches — the command name must be
       #   followed by whitespace or end-of-line. Local helpers (ssh-add, ssh-keygen,
       #   ssh-agent) and ~/.ssh/ paths stay allowed so the agent can diagnose its own
       #   SSH identity; blocking those is what made a past failure undebuggable.
-      # bare rg: use `rtk semble search` instead of ripgrep for code search.
+      # Search: use `rtk semble search` instead of ripgrep/find/grep -r for
+      #   code search. Bare `rg` is unambiguous, but `grep` is only blocked
+      #   with a recursive flag (-r/-R, alone or bundled like -ril).
+      # ps: never run `ps aux` / `ps -ef` — argv may carry tokens. Use
+      #   `ps -o pid,comm=` for process checks instead.
+      # memory: auto-memory paths are guarded by memory-guard.sh at the
+      #   Write/Edit layer; writes via shell redirection are denied here.
+      #   Matched on the .claude/projects memory subtree and any /memory/
+      #   path so agents cannot dodge by redirecting to an adjacent path.
+      #   Repo-level instruction files stay writable via shell.
+      # Rebuilds: this is a management server — never rebuild locally. CI
+      #   deploys after commit+push.
 
       CMD=$(jq -r '.tool_input.command // empty')
 
-      # Stage 1 — bare rg. Checked for every command, git included.
-      if echo "$CMD" | grep -Eq '^\s*rg\b'; then
-        echo "Blocked: use rtk semble search instead of rg." >&2
+      deny() {
+        echo "Blocked: $1" >&2
         exit 2
+      }
+
+      # Stage 1 — search tools. Checked for every command, git included.
+      # `git grep` is exempt: version-controlled code search, not
+      # filesystem spelunking, so strip it before matching.
+      NONGIT_GREP=$(printf '%s' "$CMD" | sed -E 's/git[[:space:]]+(grep|egrep|fgrep)/git-GREP-EXEMPT/g')
+      if echo "$CMD" | grep -Eq '(^|[;&|(|`$]|\s)rg\b'; then
+        deny "use rtk semble search instead of rg."
+      fi
+      if echo "$NONGIT_GREP" | grep -Eq '(^|[;&|(|`$]|\s)(grep|egrep|fgrep)[[:space:]]+[^;&|]*-[a-zA-Z]*[rR]'; then
+        deny "use rtk semble search instead of grep -r."
+      fi
+      if echo "$CMD" | grep -Eq '(^|[;&|(|`$]|\s)find[[:space:]]+[^;&|]*-name\b'; then
+        deny "use rtk semble search instead of find -name."
+      fi
+
+      # Stage 1b — argv-revealing process checks. `ps aux` / `ps -ef` and
+      # kin print full command lines where tokens travel in argv. Explicit
+      # `-o` output (e.g. `ps -o pid,comm=`) stays allowed: the caller
+      # chose safe columns.
+      if echo "$CMD" | grep -Eq '(^|[;&|(|`$]|\s)ps[[:space:]]+(aux[[:alnum:]]*|u[[:alnum:]]*|-([[:alnum:]]*[fF][[:alnum:]]*|[[:alnum:]]*u[[:alnum:]]*))([^[:alnum:]_]|$)' \
+        && ! echo "$CMD" | grep -Eq '(^|[;&|(|`$]|\s)ps[[:space:]]+[^;&|]*-o[[:space:]]'; then
+        deny "no argv-revealing ps (ps aux / ps -ef). Use ps -o pid,comm= instead."
+      fi
+
+      # Stage 1c — memory writes and local rebuilds via shell.
+      if echo "$CMD" | grep -Eq '(>>?|>)\s*[^;&|]*\.claude/projects/[^;&| ]*memory|>>?\s*[^;&|]*/memory/'; then
+        deny "no shell writes to auto-memory (prompt must contain explicit remember approval)."
+      fi
+      if echo "$CMD" | grep -Eq '(^|[;&|(|`$]|\s)(nixos-rebuild|home-manager)[[:space:]]+switch\b'; then
+        deny "never rebuild locally — commit+push, CI deploys."
       fi
 
       # Stage 2 — ssh/scp/sftp. Skipped for git, which cannot open an interactive
@@ -33,8 +76,7 @@
       esac
 
       if echo "$SCAN" | grep -Eq '(^|[^[:alnum:]._-])(ssh|scp|sftp)([[:space:]]|$)'; then
-        echo "Blocked: no direct ssh/scp/sftp to a host. ssh-add, ssh-keygen, .ssh/ paths and git commands are allowed." >&2
-        exit 2
+        deny "no direct ssh/scp/sftp to a host. ssh-add, ssh-keygen, .ssh/ paths and git commands are allowed."
       fi
 
       exit 0

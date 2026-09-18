@@ -28,6 +28,7 @@ in
 {
   imports = [
     ./codex/secretty.nix
+    ./codex/memory-guard.nix
     # The hook above deliberately resolves secretty from PATH, but it needs the
     # shared declarative ruleset too. Import both parts transitively so a host
     # cannot deploy the wrapper while forgetting its full configuration.

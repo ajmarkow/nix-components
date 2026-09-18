@@ -77,6 +77,20 @@
               }
             ];
           }
+          # Write|Edit memory guard (script lives in ./memory-guard.nix next
+          # to hooks.nix; entry here so all PreToolUse matchers stay in one
+          # list literal). Denies global CLAUDE.md (~/.claude/CLAUDE.md) and
+          # auto-memory writes without explicit user `remember` approval —
+          # see memory-guard.nix for scope and per-agent wiring gaps.
+          {
+            matcher = "Write|Edit";
+            hooks = [
+              {
+                type = "command";
+                command = "${config.home.homeDirectory}/.claude/hooks/memory-guard.sh";
+              }
+            ];
+          }
         ];
       };
       statusLine = {

@@ -57,6 +57,7 @@
     ./claude-code/skills.nix
     ./claude-code/statusline.nix
     ./claude-code/hooks.nix
+    ./claude-code/memory-guard.nix
     ./claude-code/credentials.nix
     ./claude-code/settings.nix
     # hooks.nix's rtk-rewrite.sh wraps every Bash command with secretty, but

@@ -141,6 +141,21 @@ let
         && lib.hasInfix "profile run --http all" mcpSource;
     }
     {
+      name = "rendered remote args carry no token values and no shell";
+      ok =
+        let
+          argStrings = lib.concatMap (s: s.args or [ ]) (lib.attrValues rendered);
+          commands = map (s: s.command or "") (lib.attrValues rendered);
+          # The public "Bearer " prefix (headerPrefix, trailing space, no
+          # token) is by design; only Bearer-followed-by-value or shell
+          # variable expansion would leak a secret into argv.
+          hasTokenValue = a: builtins.match ".*Bearer [^ ].*" a != null;
+          hasExpansion = a: builtins.match ".*\\$.*" a != null;
+        in
+        lib.all (a: !(hasTokenValue a) && !(hasExpansion a)) argStrings
+        && lib.all (c: baseNameOf c != "bash") commands;
+    }
+    {
       name = "removed enabledProfiles option is absent";
       ok = !(lib.hasAttr "enabledProfiles" (evalMcp { }).options.nix-components.mcp);
     }

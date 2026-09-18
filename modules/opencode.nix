@@ -42,6 +42,9 @@ in
 {
   imports = [
     ./opencode/secretty.nix
+    ./opencode/deny.nix
+    ./opencode/memory-guard.nix
+    ./opencode/hooks.nix
     # The plugin above deliberately resolves secretty from PATH, but it needs
     # the shared declarative ruleset too. Import both parts transitively so a
     # host cannot deploy the wrapper while forgetting its full configuration.
