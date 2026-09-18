@@ -23,6 +23,7 @@
         DISABLE_AUTOUPDATER = "1";
         DISABLE_UPDATES = "1";
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+        CLAUDE_CODE_DISABLE_AUTO_MEMORY = "1";
         # core.pager=delta (modules/git.nix) is global for the interactive
         # terminal experience. The Bash tool presents a TTY to child
         # processes, so without this override `git diff`/`log`/`show` launch

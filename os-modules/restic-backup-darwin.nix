@@ -32,7 +32,7 @@ let
     runtimeInputs = [ pkgs.restic ];
     text = ''
       set -a
-      # shellcheck disable=SC1090
+      # shellcheck disable=SC1091
       . ${lib.escapeShellArg cfg.environmentFile}
       set +a
       export RESTIC_REPOSITORY=${lib.escapeShellArg "b2:${cfg.bucket}:${cfg.hostName}"}
