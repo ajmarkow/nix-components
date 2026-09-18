@@ -23,6 +23,13 @@
         DISABLE_AUTOUPDATER = "1";
         DISABLE_UPDATES = "1";
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+        # core.pager=delta (modules/git.nix) is global for the interactive
+        # terminal experience. The Bash tool presents a TTY to child
+        # processes, so without this override `git diff`/`log`/`show` launch
+        # delta's interactive pager, which blocks forever waiting for
+        # keypress input no agent can send. GIT_PAGER wins over core.pager,
+        # so this disables paging for agent sessions only.
+        GIT_PAGER = "cat";
       };
       permissions = {
         allow = [
