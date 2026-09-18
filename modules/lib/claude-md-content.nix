@@ -118,6 +118,8 @@
 
   Use the Todoist **Agentic** project as the source of truth for agent work.
 
+  **Track substantial work only** — features, bugs, and multi-step changes. Skip the board for simple flake input bumps and operational or informational questions (status checks, log lookups, "is X deployed", explaining existing behavior).
+
   Before you begin work:
 
   1. Search the Agentic project for a task that matches the request.
@@ -326,6 +328,8 @@
   **Call MCP tools only through the single `mcpm` aggregator.** Tool names include the underlying server name, such as `<server>_<tool>` or `mcp__mcpm__<server>_<tool>` (for example, `nixos_nix` or `mcp__mcpm__todoist_find_tasks`). Use a native connector, Codex app, or plugin only when explicit `mcpm` tool discovery finds no usable tool for the service. Every agent on every host points at the central tailnet endpoint `https://mcpm.tail772f0.ts.net/mcp`, served from nix-server. The registry holds env-var names, never secret values.
 
   **Never edit the central registry by hand.** Add servers in `modules/lib/mcp.nix` in nix-components, then redeploy nix-server so its `mcpm` service picks them up. Start a new session after — servers connect at session start.
+
+  **If you are Codex: never claim mcpm or any of its tools (Todoist included) are unavailable without first searching for them via tool/MCP discovery.** mcpm can still be connecting when a session starts, so an empty result on the first check is not proof it's down — retry the discovery once automatically before reporting unavailability.
 
   ## ⚠️ A Repo's AGENTS.md / CLAUDE.md Is for Repo-Specific Facts Only
 
