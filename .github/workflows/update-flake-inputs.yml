@@ -1,0 +1,117 @@
+name: Update flake inputs
+
+# Weekly bump of the flake inputs this repo tracks upstream (skills,
+# codex/claude packaging, python toolchain, misc CLIs). nixpkgs and
+# home-manager are deliberately excluded -- their pin is shared across
+# nix-components, nix-server, nix-mac, and nix-pixelbook and must be bumped
+# in lockstep across all four, not from a single repo's schedule.
+on:
+  schedule:
+    - cron: "0 9 * * 1" # every Monday at 09:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: update-flake-inputs
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Update flake inputs
+        run: |
+          inputs=(
+            flake-parts paseo-skills superpowers-skills obsidian-skills
+            catppuccin-obsidian aws-skills codex-plugin-cc pyproject-nix uv2nix
+            pyproject-build-systems claude-code-nix codex-cli-nix backlog-md
+            snippet-cli treefmt-nix determinate
+          )
+          nix flake update "${inputs[@]}"
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR
+        if: steps.diff.outputs.changed == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="update/flake-inputs-$(date +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add flake.lock
+          git commit -m "chore(flake): update inputs"
+          git push --force origin "$branch"
+          if ! gh pr view "$branch" --json number -q .number 2>/dev/null; then
+            gh pr create \
+              --title "chore(flake): update inputs" \
+              --body "$(cat <<EOF
+          Weekly automated update of the following flake inputs:
+
+          \`flake-parts\`, \`paseo-skills\`, \`superpowers-skills\`, \`obsidian-skills\`,
+          \`catppuccin-obsidian\`, \`aws-skills\`, \`codex-plugin-cc\`, \`pyproject-nix\`,
+          \`uv2nix\`, \`pyproject-build-systems\`, \`claude-code-nix\`, \`codex-cli-nix\`,
+          \`backlog-md\`, \`snippet-cli\`, \`treefmt-nix\`, \`determinate\`
+
+          \`nixpkgs\` and \`home-manager\` are intentionally excluded from this update.
+
+          Auto-merges if the Check workflow passes.
+          EOF
+              )" \
+              --base main \
+              --head "$branch"
+          fi
+          echo "branch=${branch}" >> "$GITHUB_OUTPUT"
+
+      # A PR/push made with the default GITHUB_TOKEN does not fire the normal
+      # pull_request/push-triggered Check run the way a human's would -- PR
+      # runs land in an "approval-required" state with nobody around to
+      # approve them. workflow_dispatch is exempt from that restriction, so
+      # dispatch Check explicitly on the branch and treat that run as the
+      # gate.
+      - name: Dispatch Check on branch
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run check.yml --ref "${{ steps.pr.outputs.branch }}"
+
+      - name: Wait for Check to pass
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          run_id=""
+          for _ in $(seq 1 12); do
+            run_id=$(gh run list --workflow=check.yml --branch "${{ steps.pr.outputs.branch }}" \
+              --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
+            [ -n "$run_id" ] && break
+            sleep 5
+          done
+          if [ -z "$run_id" ]; then
+            echo "::error::Check run never appeared for ${{ steps.pr.outputs.branch }}"
+            exit 1
+          fi
+          gh run watch "$run_id" --exit-status
+
+      - name: Merge
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ steps.pr.outputs.branch }}" --squash --delete-branch
