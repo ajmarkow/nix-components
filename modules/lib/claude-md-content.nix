@@ -347,4 +347,12 @@
 
   Playwright artifacts land in `~/.cache/mcpm/playwright/` (global, not the repo); only copy into a repo subdirectory when the artifact must be committed.
 
+  ## Memory — `remember:` Is Handled by a Hook
+
+  Do not treat `remember:` as a request to edit CLAUDE.md / AGENTS.md content. A prompt-submit hook already captures `remember:` insights for automatic tooling updates. Only edit this content on an explicit direct request to do so.
+
+  ## MCP First — Do Not Work Around With CLI
+
+  If an MCP server is unreachable, do not silently switch to a CLI workaround. Tell the user so they can debug it. Use a CLI only when no MCP exists for the task.
+
 ''
