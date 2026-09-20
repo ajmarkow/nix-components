@@ -345,4 +345,8 @@
 
   Playwright artifacts land in `~/.cache/mcpm/playwright/` (global, not the repo); only copy into a repo subdirectory when the artifact must be committed.
 
+  ## Indentation — Tabs
+
+  Prefer tabs over spaces for indentation in new sections.
+
 ''
