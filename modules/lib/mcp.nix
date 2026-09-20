@@ -125,6 +125,33 @@ let
       headerVar = "N8N_MCP_AUTH_TOKEN";
       env.N8N_MCP_AUTH_TOKEN = "\${N8N_MCP_AUTH_TOKEN}";
     };
+    # mcp-searxng (ihor-sokoliuk) talks to the self-hosted SearXNG instance
+    # (nix-server modules/containers/searxng.nix), which publishes its JSON
+    # search endpoint to nix-server's loopback at 18095 -- same
+    # loopback-resolves-on-nix-server reasoning as n8n above. No auth: the
+    # port is loopback-only and SearXNG has no API token, just the unrelated
+    # Flask session secret (SEARXNG_SECRET).
+    searxng = {
+      command = "npx";
+      args = [
+        "-y"
+        "mcp-searxng"
+      ];
+      env.SEARXNG_URL = "http://127.0.0.1:18095";
+    };
+    # camofox-mcp (redf0x1) talks to the camofox-browser container
+    # (nix-server modules/containers/camofox-browser.nix), a Camoufox-based
+    # anti-detection browser, published to nix-server's loopback at 18096 --
+    # same loopback-resolves-on-nix-server reasoning as searxng above. No
+    # auth: the server disables it for this loopback-only deployment.
+    camofox = {
+      command = "npx";
+      args = [
+        "-y"
+        "camofox-mcp@latest"
+      ];
+      env.CAMOFOX_URL = "http://127.0.0.1:18096";
+    };
   };
 
   # Env-only transport for remote servers. The runner's argv carries only the
