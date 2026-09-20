@@ -270,13 +270,15 @@
 
   **If you are Codex: never claim mcpm or any of its tools (Todoist included) are unavailable without first searching for them via tool/MCP discovery.** mcpm can still be connecting when a session starts, so an empty result on the first check is not proof it's down — retry the discovery once automatically before reporting unavailability.
 
+  **If an MCP tool exists for a capability but is unreachable or failing, don't fall back to its CLI equivalent as a workaround — tell the user so they can debug the MCP connection.** A CLI is fine, and encouraged, only when no MCP tool covers the capability at all.
+
   ## ⚠️ A Repo's AGENTS.md / CLAUDE.md Is for Repo-Specific Facts Only
 
   **Never write a global working preference into a repo's `AGENTS.md`/`CLAUDE.md`** — those files are only for instructions true of *that* repo (its build commands, file layout, conventions, code-level gotchas). Anything equally true in every repo (search tooling, paseo defaults, rebuild/SSH bans, git workflow) is a global preference and belongs in `modules/lib/claude-md-content.nix` in **nix-components**, which generates this file. Restating a global rule locally creates two copies that drift apart. Before adding to a repo file, ask: true of this repo only, or all my work? Repo-only → the repo file; everything else → `claude-md-content.nix`. This applies across all four config repos: **nix-components, nix-server, nix-mac, nix-pixelbook.**
 
   ## ⚠️ Don't Self-Edit Memory — the Reflect Hook Owns Capture
 
-  **Don't write to global `CLAUDE.md`/`AGENTS.md` or auto-memory folders (`~/.claude/projects/*/memory/`) without an explicit user `remember` in the same turn — hooks enforce this, and Opencode denies unconditionally.** A hook already captures learnings from every prompt automatically, so CLAUDE.md stays the single source of truth for agent feedback without agents self-editing it.
+  **Don't write to global `CLAUDE.md`/`AGENTS.md` or auto-memory folders (`~/.claude/projects/*/memory/`) except on an explicit user request to edit that content directly — hooks enforce this, and Opencode denies unconditionally.** A `remember:`-prefixed message is not that request: a hook already watches every prompt for that exact phrase and records it to tooling for automatic updates, so seeing `remember:` is not a cue to self-edit CLAUDE.md.
 
   ## Nix & Declarative Configuration Philosophy
 
