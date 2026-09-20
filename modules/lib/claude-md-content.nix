@@ -320,6 +320,10 @@
 
   **Using the `/c-and-p` skill is explicit approval to commit and push.** Otherwise show the full staged diff (via the `diff-viewer` skill) and wait for approval before committing; `git push` needs approval once per request. Commits do not require approval.
 
+
+  ## Commits and Pull Requests
+
+  Use conventional commit prefixes (`feat:`, `fix:`, `docs:`). Run `nixfmt` on changed `.nix` files before committing. Keep pull requests under 400 changed lines, split larger work. Paste `nix flake check --no-build` result into the PR body before requesting review.
   ## Branch Merges — main Is Always the Base
 
   Feature branches merge INTO main — never the reverse. All merges go through a PR (`base: main`). If main has diverged, rebase the feature branch onto main rather than merging main into it.
