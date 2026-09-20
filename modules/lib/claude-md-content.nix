@@ -325,6 +325,15 @@
   ## Branch Merges — main Is Always the Base
 
   Feature branches merge INTO main — never the reverse. All merges go through a PR (`base: main`). If main has diverged, rebase the feature branch onto main rather than merging main into it.
+  Prefer git worktrees over a second full clone when you need a second branch side by side. Use `git worktree add` to save disk and keep remotes in sync.
+
+  ## Automation Scripts — Dry-Run First
+
+  New automation scripts support `--dry-run`. Log planned actions without executing them. Review the dry-run output before scheduling the job.
+
+  ## Systemd Services — Monitoring and Logs
+
+  New systemd service modules include a monitoring check and a log retention note alongside the service definition. State what to watch and how long to keep logs.
 
   ## ⚠️ NEVER Print Infisical Secrets as Plaintext
 
