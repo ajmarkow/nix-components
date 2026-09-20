@@ -341,7 +341,15 @@
 
   Before running any `aws` command, present the full plan (every step, exact commands) and wait for user confirmation.
 
-  ## Playwright / Screenshots
+  ## Automation Scripts — Dry-Run Flag
+
+Every new automation script includes a `--dry-run` flag that logs planned actions without executing them. Review dry-run output before scheduling the job.
+
+## Runbooks — Rollback Step
+
+Every runbook section ends with a rollback step that describes how to undo the change.
+
+## Playwright / Screenshots
 
   Playwright artifacts land in `~/.cache/mcpm/playwright/` (global, not the repo); only copy into a repo subdirectory when the artifact must be committed.
 
