@@ -334,6 +334,8 @@
 
   Feature branches merge INTO main — never the reverse. All merges go through a PR (`base: main`). If main has diverged, rebase the feature branch onto main rather than merging main into it.
 
+  Flake check runs before every push, so if the only changes on main are yours, treat a `nix flake check` failure as caused by your changes — never assume it was pre-existing.
+
   ## ⚠️ NEVER Print Infisical Secrets as Plaintext
 
   Never run an `infisical` command that outputs secret values in plaintext, including `infisical export` (default, and with `--format=dotenv-export`, `json`, or `yaml`) and `infisical secrets get ... --plain`. These print secret values to stdout unless piped straight to a consumer that doesn't echo them.
