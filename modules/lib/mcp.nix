@@ -150,7 +150,16 @@ let
         "-y"
         "camofox-mcp@latest"
       ];
-      env.CAMOFOX_URL = "http://127.0.0.1:18096";
+      env = {
+        CAMOFOX_URL = "http://127.0.0.1:18096";
+        # Defaults to ~/.camofox-mcp/profiles for its best-effort session
+        # auto-save -- unwritable under the mcpm service's
+        # ProtectHome=read-only (same class of problem cacheEnv above
+        # solves for npx/uvx package caches). Redirect into the tree
+        # already carved out via that service's ReadWritePaths instead of
+        # adding another one.
+        CAMOFOX_PROFILES_DIR = "${homeDirectory}/.cache/mcpm/camofox-profiles";
+      };
     };
   };
 
