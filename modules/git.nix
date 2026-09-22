@@ -167,7 +167,7 @@ in
       diff.algorithm = "histogram";
       fetch.prune = true;
       push.autoSetupRemote = true;
-      core.pager = "delta";
+      core.pager = "cat";
       core.hooksPath = "${config.xdg.configHome}/git/hooks";
       interactive.diffFilter = "delta --color-only";
       delta.navigate = true;
