@@ -286,7 +286,7 @@
 
   ## ⚠️ Don't Self-Edit Memory — the Reflect Hook Owns Capture
 
-  **Don't write to global `CLAUDE.md`/`AGENTS.md` or auto-memory folders (`~/.claude/projects/*/memory/`) except on an explicit user request to edit that content directly — hooks enforce this, and Opencode denies unconditionally.** A `remember:`-prefixed message is not that request: a hook already watches every prompt for that exact phrase and records it to tooling for automatic updates, so seeing `remember:` is not a cue to self-edit CLAUDE.md.
+  **Don't write to global `CLAUDE.md`/`AGENTS.md` or auto-memory folders (`~/.claude/projects/*/memory/`) except on an explicit user request to edit that content directly — hooks enforce this, and Opencode denies unconditionally.** A `remember:`-prefixed message is not that request, and neither is a preference stated as a standing rule (e.g. "always do X going forward") — both mean apply it for the rest of the session and ask whether to persist it. Only a direct ask, such as "add this to CLAUDE.md," is explicit.
 
   ## Nix & Declarative Configuration Philosophy
 
