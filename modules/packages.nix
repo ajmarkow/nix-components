@@ -41,6 +41,7 @@ in
       # Linters
       actionlint
       gibo
+      shellcheck
       shfmt
       yamllint
 
