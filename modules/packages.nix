@@ -39,6 +39,7 @@ in
       btop
       p7zip
       # Linters
+      actionlint
       gibo
       shfmt
       yamllint
