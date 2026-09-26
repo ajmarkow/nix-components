@@ -263,7 +263,7 @@ let
     };
 in
 {
-  inherit catalog;
+  inherit catalog remoteRunner;
 
   # servers.json content: the whole catalog (plus host-local extraServers)
   # rendered to mcpm's schema, every server in the fixed `all` aggregate.

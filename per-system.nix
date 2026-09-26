@@ -149,6 +149,18 @@
         ];
       };
 
-      packages = customPackages;
+      packages = customPackages // {
+        # The exact production remoteRunner script (modules/lib/mcp.nix),
+        # exposed so CI can drive it against tests/mock-mcp-server.py --
+        # see tests/test-remote-runner-stdio.sh and
+        # .github/workflows/mcp-remote-runner-regression.yml. homeDirectory
+        # only feeds cacheEnv for per-server catalog entries, not this
+        # script, so any placeholder value is fine here.
+        mcp-remote-runner-test =
+          (import ./modules/lib/mcp.nix {
+            inherit lib pkgs;
+            homeDirectory = "/tmp/mcp-remote-runner-test-home";
+          }).remoteRunner;
+      };
     };
 }

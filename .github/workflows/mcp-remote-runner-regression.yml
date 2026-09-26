@@ -1,0 +1,43 @@
+name: mcp-remote-runner-regression
+
+# Standalone rather than folded into check.yml: check.yml delegates its
+# entire job to a shared reusable workflow (ajmarkow/ci-workflows), which
+# only evaluates/builds flake outputs inside the Nix sandbox -- no network,
+# so it can't run mcp-remote against even a loopback-only mock server. This
+# workflow is a plain job with real network access instead.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "modules/lib/mcp.nix"
+      - "tests/mock-mcp-server.py"
+      - "tests/test-remote-runner-stdio.sh"
+      - ".github/workflows/mcp-remote-runner-regression.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "modules/lib/mcp.nix"
+      - "tests/mock-mcp-server.py"
+      - "tests/test-remote-runner-stdio.sh"
+      - ".github/workflows/mcp-remote-runner-regression.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Build the real remoteRunner script
+        run: |
+          RUNNER=$(nix build .#mcp-remote-runner-test --no-link --print-out-paths)
+          echo "RUNNER=$RUNNER" >> "$GITHUB_ENV"
+
+      # GitHub-hosted ubuntu-latest ships Node/npx preinstalled, which
+      # remoteRunner needs to run `npx -y mcp-remote` -- no extra setup.
+      - name: Regression test -- remoteRunner must relay tools/list over stdio
+        run: ./tests/test-remote-runner-stdio.sh "$RUNNER"
