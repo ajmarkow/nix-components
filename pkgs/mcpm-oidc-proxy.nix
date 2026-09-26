@@ -53,6 +53,27 @@ pkgs.runCommand "mcpm-oidc-proxy"
 
     from fastmcp import FastMCP
     from fastmcp.server.auth.oidc_proxy import OIDCProxy
+    from fastmcp.server.auth.oauth_proxy import OAuthProxy
+
+    # fastmcp 2.13.0's OAuthProxy.register_client() hardcodes
+    # token_endpoint_auth_method="none" for every DCR-registered client (this
+    # proxy always treats MCP clients as public/PKCE) but still copies over
+    # whatever client_secret the client's own registration produced. The MCP
+    # SDK's ClientAuthenticator then raises "Client secret is required" for
+    # that client at /token time, since it expects a "none"-auth-method
+    # client to have no stored secret -- confirmed live 2026-09-26 against a
+    # real claude.ai connector login (client_secret present, auth_method
+    # "none", token exchange 401s every time). Fixed upstream in fastmcp
+    # 3.0.0b1+ by setting client_secret=None in the same spot -- see
+    # https://github.com/PrefectHQ/fastmcp/issues/3037. Backported here
+    # rather than bumping fastmcp's major version across all of mcpm.
+    _orig_register_client = OAuthProxy.register_client
+
+    async def _patched_register_client(self, client_info):
+        client_info.client_secret = None
+        return await _orig_register_client(self, client_info)
+
+    OAuthProxy.register_client = _patched_register_client
 
     # OIDCProxy fetches the OIDC discovery document synchronously at
     # construction time -- this process will crash at startup (not just
