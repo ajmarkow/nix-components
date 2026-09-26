@@ -193,37 +193,36 @@ let
   # `\${VAR}` renders the literal ${VAR} for resolution at spawn -- never
   # resolved by Nix, never written to the store.
   #
-  # mcp-remote is pinned, not `@latest`: 0.14.0-0.14.3 (2026-09-13 onward)
-  # silently drop every stdio response after connecting -- FastMCPProxy logs
-  # "Server session was closed unexpectedly" and every remote server's
-  # tools/list comes back empty, with no error surfaced anywhere else. This
-  # broke github/context7/n8n/openrouter identically starting 2026-09-18,
-  # confirmed via journalctl -u mcpm, a week before anyone noticed because
-  # nothing else exercised their MCP tools in the meantime. 0.13.5 (last
-  # release before 0.14.0) round-trips tools/list correctly -- verified by
-  # hand against the cloudflare server. Bump only after confirming a newer
-  # release fixes the regression upstream.
-  mcpRemoteVersion = "0.13.5";
+  # The header-file branch used to background mcp-remote (`... &` + `wait
+  # "$child"`) so it could `rm` the header file afterward. That backgrounding
+  # corrupts the stdio pipe FastMCPProxy uses to talk to the child: the
+  # remote connection itself succeeds (visible in stderr -- OAuth discovery,
+  # "Connected", "Local STDIO server running"), but no JSON-RPC response ever
+  # reaches the parent, so every tools/list call hangs until FastMCPProxy
+  # gives up with "Server session was closed unexpectedly". This silently
+  # broke every server on this branch (github/context7/n8n/openrouter, and
+  # cloudflare on arrival) since at least 2026-09-18 -- confirmed by replaying
+  # the exact handshake by hand: backgrounded, tools/list gets nothing;
+  # foregrounded, it returns cleanly. Running it in the foreground and
+  # cleaning up right after (no backgrounding, no `wait`) fixes it.
   remoteRunner = pkgs.writeShellScript "mcp-remote-runner" ''
     set -eu
     url="$1"; header_name="$2"; header_prefix="$3"; header_var="$4"; required="$5"
     if [ -z "$header_var" ]; then
-      exec npx -y mcp-remote@${mcpRemoteVersion} "$url"
+      exec npx -y mcp-remote "$url"
     fi
     if [ -z "''${!header_var:-}" ]; then
       if [ "$required" = required ]; then
         echo "mcp-remote-runner: $header_var is unset or empty" >&2
         exit 1
       fi
-      exec npx -y mcp-remote@${mcpRemoteVersion} "$url"
+      exec npx -y mcp-remote "$url"
     fi
     header_file="$(mktemp)"
     chmod 600 "$header_file"
     printf '%s: %s%s\n' "$header_name" "$header_prefix" "''${!header_var}" > "$header_file"
     trap 'rm -f "$header_file"' EXIT INT TERM
-    npx -y mcp-remote@${mcpRemoteVersion} "$url" --header-file "$header_file" &
-    child=$!
-    wait "$child"
+    npx -y mcp-remote "$url" --header-file "$header_file"
     status=$?
     rm -f "$header_file"
     trap - EXIT INT TERM
