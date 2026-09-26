@@ -92,6 +92,23 @@ let
       headerVar = "OPENROUTER_API_KEY";
       env.OPENROUTER_API_KEY = "\${OPENROUTER_API_KEY}";
     };
+    cloudflare = {
+      # Cloudflare's "Code Mode" API server -- covers the whole REST API
+      # (DNS, Workers, R2, Zero Trust, ...) through two tools, search() and
+      # execute(), rather than one native tool per endpoint. This is the only
+      # Cloudflare-hosted server that can create/edit/delete DNS records;
+      # dns-analytics.mcp.cloudflare.com is read-only. Interactive OAuth is
+      # the default flow, but that can't complete headless under mcpm's
+      # systemd service, so this uses a static API token instead -- same
+      # bearer pattern as github/context7/openrouter above. Scope the token
+      # to Zone:DNS:Edit + Zone:Zone:Read on only the zones agents manage,
+      # not full account access.
+      url = "https://mcp.cloudflare.com/mcp";
+      headerName = "Authorization";
+      headerPrefix = "Bearer ";
+      headerVar = "CLOUDFLARE_API_TOKEN";
+      env.CLOUDFLARE_API_TOKEN = "\${CLOUDFLARE_API_TOKEN}";
+    };
 
     todoist = {
       command = "npx";
