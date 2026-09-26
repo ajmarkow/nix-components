@@ -56,6 +56,12 @@ in
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = "read-only";
+        # FastMCP's OAuthProxy persists its token cache to a DiskStore under
+        # $HOME/.local/share/fastmcp/oauth-proxy (fastmcp's own default data
+        # dir, not something this module configures) -- confirmed live
+        # 2026-09-26: ProtectHome=read-only alone left it unable to mkdir
+        # that path and it crash-looped on every start.
+        ReadWritePaths = [ "%h/.local/share/fastmcp" ];
         PrivateTmp = true;
       };
       Install.WantedBy = [ "default.target" ];
