@@ -192,24 +192,36 @@ let
   #
   # `\${VAR}` renders the literal ${VAR} for resolution at spawn -- never
   # resolved by Nix, never written to the store.
+  #
+  # mcp-remote is pinned, not `@latest`: 0.14.0-0.14.3 (2026-09-13 onward)
+  # silently drop every stdio response after connecting -- FastMCPProxy logs
+  # "Server session was closed unexpectedly" and every remote server's
+  # tools/list comes back empty, with no error surfaced anywhere else. This
+  # broke github/context7/n8n/openrouter identically starting 2026-09-18,
+  # confirmed via journalctl -u mcpm, a week before anyone noticed because
+  # nothing else exercised their MCP tools in the meantime. 0.13.5 (last
+  # release before 0.14.0) round-trips tools/list correctly -- verified by
+  # hand against the cloudflare server. Bump only after confirming a newer
+  # release fixes the regression upstream.
+  mcpRemoteVersion = "0.13.5";
   remoteRunner = pkgs.writeShellScript "mcp-remote-runner" ''
     set -eu
     url="$1"; header_name="$2"; header_prefix="$3"; header_var="$4"; required="$5"
     if [ -z "$header_var" ]; then
-      exec npx -y mcp-remote "$url"
+      exec npx -y mcp-remote@${mcpRemoteVersion} "$url"
     fi
     if [ -z "''${!header_var:-}" ]; then
       if [ "$required" = required ]; then
         echo "mcp-remote-runner: $header_var is unset or empty" >&2
         exit 1
       fi
-      exec npx -y mcp-remote "$url"
+      exec npx -y mcp-remote@${mcpRemoteVersion} "$url"
     fi
     header_file="$(mktemp)"
     chmod 600 "$header_file"
     printf '%s: %s%s\n' "$header_name" "$header_prefix" "''${!header_var}" > "$header_file"
     trap 'rm -f "$header_file"' EXIT INT TERM
-    npx -y mcp-remote "$url" --header-file "$header_file" &
+    npx -y mcp-remote@${mcpRemoteVersion} "$url" --header-file "$header_file" &
     child=$!
     wait "$child"
     status=$?
