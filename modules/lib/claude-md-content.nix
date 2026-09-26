@@ -67,6 +67,8 @@
 
   Cap shell command output by default. Use focused filters (`--no-pager`, `head`, `grep`, line-range flags) and paste only the relevant failing excerpt back into context — never the full raw output.
 
+  Do not mention treefmt hooks when they pass. Mention them only on failure or error.
+
   ### File Reading Discipline
 
   Before rereading a file, summarize what you already know about it. Prefer targeted symbol searches (`rg`, LSP go-to-definition) or narrow line ranges (`offset`/`limit`) over whole-file reads.
