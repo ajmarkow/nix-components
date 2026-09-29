@@ -14,10 +14,28 @@ Reads the Claude.ai usage page (`https://claude.ai/new#settings/usage`) through 
 Claude.ai login is not a static form (email, OTP, SSO). A human must complete it once. Do not try to automate it.
 
 1. `camofox_create_tab` with `url` `https://claude.ai/login`, `userId` `claude-usage`, `sessionKey` `claude-usage`.
-2. Tell the user to log in in that tab. Use `camofox_snapshot` to check when the account page has loaded.
-3. Run `camofox_save_profile` with `tabId` from step 1 and `profileId` `claude-usage`.
+2. Hand off to VNC (see below) so the user can reach that tab — it runs on a headless remote browser, not the user's own machine.
+3. Tell the user to log in at the VNC URL. Use `camofox_snapshot` to check when the account page has loaded.
+4. Run `camofox_save_profile` with `tabId` from step 1 and `profileId` `claude-usage`.
+5. `camofox_toggle_display` with `userId` `claude-usage`, `headless` `true`, to switch back to headless now that login is done.
 
 Redo this only when a check below shows a login screen instead of usage data.
+
+## Visual / Interactive Access (VNC)
+
+The camofox session runs headless on the server, not in the user's own browser — it has no way to open the tab directly. Hand off to VNC whenever:
+
+- Login setup (above) needs a human to actually see and use the page.
+- A check below hits a CAPTCHA, 2FA prompt, or anything else that needs a human click-through.
+- The user explicitly asks to see, watch, or interact with the browser session.
+
+Steps:
+
+1. `camofox_toggle_display` with `userId` `claude-usage`, `headless` `"virtual"`. The response's `vncUrl` looks like `http://localhost:6080/vnc.html?autoconnect=true&resize=scale&token=...` — `localhost:6080` is internal to the host, not reachable from the user's machine.
+2. Rewrite that URL to `https://camofox-vnc.tail772f0.ts.net/vnc.html?autoconnect=true&resize=scale&token=...` (same path and query string, new host, no port — the Tailscale Service serves HTTPS on 443) and give the user that URL.
+3. When the user is done, `camofox_toggle_display` with `headless` `true` again — don't leave the session sitting in virtual/headed mode longer than needed.
+
+Never try to route around a visual blocker (guessing at a CAPTCHA or OTP) — hand off to VNC instead.
 
 ## Checking Usage
 
@@ -42,3 +60,5 @@ State the numbers plainly — plan, percent used, reset time — then act on the
 - Using a fresh `userId`/`sessionKey` each check — this drops the reused context and can force a re-login. Always reuse `claude-usage`.
 - Treating a login screen as a load hiccup and retrying blindly — it means the session expired, not that the page is slow.
 - Guessing at login credentials or OTP codes instead of asking the user to log in by hand.
+- Handing the user the raw `vncUrl` from `camofox_toggle_display` — its `localhost:6080` host is only reachable on the server itself. Always rewrite it to the `camofox-vnc.tail772f0.ts.net` URL first.
+- Leaving the display in virtual/headed mode after VNC use — toggle back to `headless: true` when done.
