@@ -65,6 +65,7 @@
       # Interactive-shell aliases only; project work uses 'uv run', not these.
       pip = "uv pip";
       pip3 = "uv pip";
+      pull-and-rebuild = "git pull && nix run .#rebuild";
       python = "${pkgs.python3}/bin/python3";
       python3 = "${pkgs.python3}/bin/python3";
     }
