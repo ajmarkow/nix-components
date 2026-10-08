@@ -75,6 +75,31 @@
                 type = "command";
                 command = "${config.home.homeDirectory}/.claude/hooks/block-ssh-rg-cd.sh";
               }
+              # Atuin shell-history capture (docs.atuin.sh/latest/guide/agent-hooks).
+              # `atuin hook claude-code` is the runtime handler `atuin hook
+              # install claude-code` would otherwise wire up for you — written
+              # by hand here because the installer targets this very
+              # settings.json, which home-manager generates (see hooks.nix's
+              # own header comment on why imperative installers can't touch
+              # generated files).
+              #
+              # Deliberate semantic choice: Claude Code runs every matching
+              # PreToolUse hook in parallel against the SAME original
+              # tool_input (see rtk-rewrite.sh's comment below), so this hook
+              # sees the command the agent asked for, not rtk-rewrite.sh's
+              # rewritten/secretty-wrapped version that actually executes.
+              # That means atuin's history will show the agent's intent
+              # rather than the literal process — e.g. `rg foo` rather than
+              # the `rtk semble search`-equivalent substitution, or the
+              # unwrapped command rather than its secretty-wrapped form. This
+              # is the more useful record for later searching/auditing
+              # agent behavior, so it's kept rather than chained after
+              # rtk-rewrite.sh (which would require serializing the two hooks
+              # and racing their updatedInput, per that file's own note).
+              {
+                type = "command";
+                command = "${lib.getExe config.programs.atuin.package} hook claude-code";
+              }
             ];
           }
           # Write|Edit memory guard (script lives in ./memory-guard.nix next
@@ -88,6 +113,32 @@
               {
                 type = "command";
                 command = "${config.home.homeDirectory}/.claude/hooks/memory-guard.sh";
+              }
+            ];
+          }
+        ];
+        # PostToolUse/PostToolUseFailure both map to atuin's `history end`
+        # (exit code + duration); PreToolUse above is `history start`. Same
+        # binary invocation for all three — atuin tells them apart from the
+        # hook_event_name field in the JSON it reads off stdin.
+        PostToolUse = [
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "${lib.getExe config.programs.atuin.package} hook claude-code";
+              }
+            ];
+          }
+        ];
+        PostToolUseFailure = [
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "${lib.getExe config.programs.atuin.package} hook claude-code";
               }
             ];
           }

@@ -51,6 +51,15 @@ in
     ./secretty.nix
   ];
 
+  # No atuin shell-history plugin here (unlike claude-code.nix's hooks,
+  # which do have one) — deliberately absent, not forgotten. `atuin hook
+  # install opencode` and the `--author-kind` flag its template needs both
+  # require atuin >= 18.20.0; the nixpkgs pin shared across all four config
+  # repos carries 18.15.2. A plugin built without `--author-kind` records
+  # entries as plain user commands, which pollutes interactive Ctrl-R search
+  # with agent-run commands instead of hiding them — worse than not
+  # capturing at all. Revisit once the shared pin advances past 18.20.0.
+
   programs.opencode = {
     enable = true;
     package = pkgs.opencode;
