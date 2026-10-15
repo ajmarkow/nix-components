@@ -38,6 +38,7 @@ in
       fd
       btop
       p7zip
+      glow
       # Linters
       actionlint
       gibo
