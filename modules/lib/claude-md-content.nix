@@ -107,7 +107,9 @@
 
   Rule of thumb: if you'd write "Would you like X or Y?" in prose, ask it as `AskUserQuestion` instead.
 
-  ## Agentic Task Board — Mandatory
+  `backlog` always means the Todoist Agentic queue — never create or use a `backlog.md` file.
+
+## Agentic Task Board — Mandatory
 
   Use the Todoist **Agentic** project as the source of truth for agent work.
 
