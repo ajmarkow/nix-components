@@ -37,6 +37,13 @@
       url = "github:getpaseo/paseo";
       flake = false;
     };
+    # Shared pin so nix-server and nix-mac build the identical paseo
+    # derivation: each sets its own `paseo.follows = "nix-components/paseo"`.
+    # Deliberately NOT following nixpkgs below -- paseo's npmDepsHash was
+    # computed against paseo's own pinned nixpkgs, and a different node/npm
+    # version changes the hash (see lib/paseo-package.nix for the override
+    # this forces nix-server to carry).
+    paseo.url = "github:getpaseo/paseo/v0.12.0";
     superpowers-skills = {
       url = "github:obra/superpowers";
       flake = false;
