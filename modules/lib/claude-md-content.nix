@@ -164,6 +164,7 @@
   | This host | `nixos-host` = `ajm-nix-server.tail772f0.ts.net` |
   | Stable tailnet names | `homepage`, `storage`, `plex`, `mcpm` |
   | Darwin host | `AJ-MARKOW-WORK-MACBOOK-PRO` |
+  | NIX-MAC paseo daemon | `paseo <cmd> --host 100.66.66.97:6767` — Tailscale IP, not the tailnet hostname (hostname 403s on the WS handshake); use `--host`, never `PASEO_HOST` env var (conflicts with the already-set `PASEO_HOME`) |
 
   ## Inter-Agent Messaging
 
