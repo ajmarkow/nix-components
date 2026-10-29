@@ -481,6 +481,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_4": {
+      "locked": {
+        "lastModified": 1772963539,
+        "narHash": "sha256-9jVDGZnvCckTGdYT53d/EfznygLskyLQXYwJLKMPsZs=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "9dcb002ca1690658be4a04645215baea8b95f31d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "obsidian-skills": {
       "flake": false,
       "locked": {
@@ -494,6 +510,25 @@
       "original": {
         "owner": "kepano",
         "repo": "obsidian-skills",
+        "type": "github"
+      }
+    },
+    "paseo": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_4"
+      },
+      "locked": {
+        "lastModified": 1792392341,
+        "narHash": "sha256-vi1LplKz2f4bRQgJi5PFwJSih4WEv6Uh0CRfwi1oEuU=",
+        "owner": "getpaseo",
+        "repo": "paseo",
+        "rev": "cafe4b01c8522ff39560241c5deb01427dc8dc5b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "getpaseo",
+        "ref": "v0.12.0",
+        "repo": "paseo",
         "type": "github"
       }
     },
@@ -572,6 +607,7 @@
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs_3",
         "obsidian-skills": "obsidian-skills",
+        "paseo": "paseo",
         "paseo-skills": "paseo-skills",
         "pyproject-build-systems": "pyproject-build-systems",
         "pyproject-nix": "pyproject-nix",
