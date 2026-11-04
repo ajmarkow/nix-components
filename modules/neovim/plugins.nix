@@ -1,6 +1,14 @@
 { pkgs, ... }:
 {
   programs.nixvim = {
+    # Firenvim passes Cmd+V through as the literal key <D-v>; nvim has no default for it
+    extraConfigLua = ''
+      if vim.g.started_by_firenvim then
+        vim.keymap.set("i", "<D-v>", "<C-r>+")
+        vim.keymap.set("n", "<D-v>", '"+p')
+      end
+    '';
+
     # Plugins
     plugins = {
       # wakatime
