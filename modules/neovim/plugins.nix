@@ -6,6 +6,9 @@
       # wakatime
       wakatime.enable = true;
 
+      # firenvim: embed Neovim in browser text areas
+      firenvim.enable = true;
+
       # LSP Configuration
       lsp = {
         enable = true;
