@@ -3,7 +3,8 @@
   # commands run *inside* this repo get them too — CI, a fresh machine, or a
   # checkout on a host that has not applied the module yet. A flake input's
   # nixConfig does not apply to consumers, so this only ever affects work done
-  # in this repo; keep it in step with the module's lists by hand.
+  # in this repo. nixConfig must be a literal, so it cannot import caches.nix;
+  # checks.cache-parity fails when this block drifts from that file.
   #
   # Honoured only for a trusted user, or with `--accept-flake-config` (which is
   # what nix-components' own Check passes). Otherwise nix prints "ignoring

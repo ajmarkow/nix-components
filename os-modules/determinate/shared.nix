@@ -99,30 +99,9 @@
       };
 
       config.nix-components.determinate = {
-        # Copied verbatim from nix-server's modules/common.nix, which was the
-        # only repo with a real cache list. One wrong character in a key makes
-        # nix quietly skip the cache with no error, so do not retype these.
-        substituters = [
-          "https://cache.nixos.org"
-          "https://nix-community.cachix.org"
-          "https://ajmarkow.cachix.org"
-          "https://claude-code.cachix.org"
-          # Declared in this flake's own nixConfig, so consumers were only
-          # getting it when they happened to be a trusted user.
-          "https://codex-cli.cachix.org"
-          # Was hand-managed in ~/.config/nix/nix.conf on the Mac, which meant
-          # devenv shells only hit the cache for that one user on that one host.
-          "https://devenv.cachix.org"
-        ];
-
-        trustedPublicKeys = [
-          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCUSeBc="
-          "ajmarkow.cachix.org-1:6HxkDVfkPWy2esadGzUIj6vGzmMuQOgz3mimKT7J9sw="
-          "claude-code.cachix.org-1:YeXf2aNu7UTX8Vwrze0za1WEDS+4DuI2kVeWEE4fsRk="
-          "codex-cli.cachix.org-1:1Br3H1hHoRYG22n//cGKJOk3cQXgYobUel6O8DgSing="
-          "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
-        ];
+        # Lists live in ../../caches.nix, shared with the flake nixConfig
+        # parity check and nix-cache-doctor.
+        inherit (import ../../caches.nix) substituters trustedPublicKeys;
 
         trustedUsers = [ "root" ];
       };
