@@ -24,6 +24,11 @@
       formatter = pkgs.nixfmt-rfc-style;
 
       checks = {
+        cache-parity = import ./lib/cache-parity-check.nix {
+          inherit pkgs;
+          flakeNix = ./flake.nix;
+        };
+
         infisical-secrets =
           let
             apps = (import ./lib/infisical-secrets.nix) {
